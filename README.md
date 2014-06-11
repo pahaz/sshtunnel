@@ -1,11 +1,11 @@
-*Author*: Pahaz Blinov.
+**Author**: Pahaz Blinov.
 
-Inspired: https://github.com/jmagnusson/bgtunnel but it don`t work on windows.
+Inspired: https://github.com/jmagnusson/bgtunnel but it don`t work on windows.  
 See also: https://github.com/paramiko/paramiko/blob/master/demos/forward.py
 
 Require `paramiko`.
 
-# sshtunnel - SSH tunnels to remote server. #
+# SSH tunnels to remote server #
 
 Useful when you need to connect to local port on remote server throw ssh
 tunnel. It works by opening a port forwarding ssh connection in the
