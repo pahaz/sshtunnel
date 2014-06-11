@@ -1,0 +1,10 @@
+bgtunnel.egg-info/
+dist/
+MANIFEST
+.tox
+.python-version
+.venv
+.idea
+*.pyc
+.env
+__pycache__
