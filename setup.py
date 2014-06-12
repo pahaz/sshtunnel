@@ -16,7 +16,7 @@ setup(
     author='Pahaz Blinov',
     author_email='pahaz.blinov@gmail.com',
     url='https://github.com/pahaz/sshtunnel',
-    download_url='https://github.com/pahaz/sshtunnel/archive/0.0.1.tar.gz',
+    download_url='https://github.com/pahaz/sshtunnel/tarball/' + version,
     keywords=['SSH', 'proxy', 'TCP forwarder'],
     license='MIT',
     platforms=['unix', 'macos', 'windows'],
