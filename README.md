@@ -1,9 +1,18 @@
-**Author**: Pahaz Blinov.
+**Author**: Pahaz Blinov
+**Repo**: https://github.com/pahaz/sshtunnel/
 
-Inspired: https://github.com/jmagnusson/bgtunnel but it don`t work on windows.  
+Inspired: https://github.com/jmagnusson/bgtunnel but it don`t work on windows.
 See also: https://github.com/paramiko/paramiko/blob/master/demos/forward.py
 
 Require `paramiko`.
+
+# Install #
+
+    pip install sshtunnel
+
+or
+
+    easy_install sshtunnel
 
 # SSH tunnels to remote server #
 
