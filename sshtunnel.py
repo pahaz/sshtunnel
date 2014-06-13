@@ -218,7 +218,8 @@ class SSHTunnelForwarder(threading.Thread):
                  ssh_password=None,
                  ssh_private_key=None,
                  remote_bind_address=None,
-                 local_bind_address=None):
+                 local_bind_address=None,
+                 threaded=False):
         """
         Address is (host, port)
 
@@ -242,7 +243,9 @@ class SSHTunnelForwarder(threading.Thread):
         self._server = make_ssh_forward_server(
             self._remote_bind_address,
             self._local_bind_address,
-            self._transport)
+            self._transport,
+            is_threading=threaded
+        )
         # self._transport.setDaemon(False) # don`t work =(
         # TODO: fix daemon mod for transport. Main thread don`t close.
         self._is_started = False
@@ -296,7 +299,8 @@ def open(ssh_address=None,
          ssh_password=None,
          ssh_private_key=None,
          remote_bind_address=None,
-         local_bind_address=None):
+         local_bind_address=None,
+         threaded=False):
     """
     Opening SSH Tunnel.
 
@@ -326,7 +330,8 @@ def open(ssh_address=None,
         ssh_password,
         ssh_private_key,
         remote_bind_address,
-        local_bind_address)
+        local_bind_address,
+        threaded=threaded)
     return f
 
 
