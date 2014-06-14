@@ -73,9 +73,17 @@ Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
 
     server.stop()
 
+# AUTHORS #
+
+ - [Pahaz Blinov](https://github.com/pahaz)
+ - [Cameron Maske](https://github.com/cameronmaske)
+
 # CHANGELOG #
 
+## work in progress ##
+ - add `threaded` options (cameronmaske)
+
 ## v.0.0.1 ##
- - `SSHTunnelForwarder` class
- - `open` function
+ - `SSHTunnelForwarder` class (pahaz)
+ - `open` function (pahaz)
 
