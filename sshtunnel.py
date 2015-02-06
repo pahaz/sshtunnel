@@ -326,7 +326,7 @@ class SSHTunnelForwarder(threading.Thread):
         """
         Make SSH forward proxy Server class.
         """
-        self.logger.info('Thread version: %s', is_threading)
+        self.logger.debug('Thread version: %s', is_threading)
         _handler = self.make_ssh_forward_handler(remote_address, ssh_transport)
         _server = _ThreadingForwardServer if is_threading else _ForwardServer
         try:
