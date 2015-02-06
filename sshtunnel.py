@@ -59,6 +59,7 @@ Ex 2:
     server.stop()
 
 
+
 CLI usage: sshtunnel [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD]
                      [-R REMOTE_BIND_ADDRESS_LIST [REMOTE_BIND_ADDRESS_LIST...]]
                      [-L [LOCAL_BIND_ADDRESS_LIST [LOCAL_BIND_ADDRESS_LIST...]]]
@@ -76,11 +77,12 @@ optional arguments:
                         SSH server TCP port (default: 22)
   -P, --password SSH_PASSWORD
                         SSH server account password
-  -R, --remote_bind_address [REMOTE_BIND_ADDRESS [REMOTE_BIND_ADDRESS ...]]
+  -R, --remote_bind_address [IP:PORT [IP:PORT ...]]
                         Remote bind address sequence: ip1:port1 ... ip_n:port_n
                         Equivalent to ssh -Lxxxx:IP_ADDRESS:PORT
+                        If omitted, default port is 22.
                         Example: -R 10.10.10.10: 10.10.10.10:5900
-  -L, --local_bind_address [LOCAL_BIND_ADDRESS [LOCAL_BIND_ADDRESS ...]]
+  -L, --local_bind_address [IP:PORT [IP:PORT ...]]
                         Local bind address sequence: ip_1:port_1 ... ip_n:port_n
                         Equivalent to ssh -LPORT:xxxxxxxxx:xxxx, being the local
                         IP address optional.
@@ -107,6 +109,7 @@ from os.path import expanduser
 __version_info__ = (0, 0, 3)
 __version__ = '.'.join(str(i) for i in __version_info__)
 __author__ = 'pahaz'
+__author__ = 'cameronmaske'
 __author__ = 'fernandezcuesta'
 
 __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
@@ -147,18 +150,22 @@ class _BaseHandler(SocketServer.BaseRequestHandler):
     logger = None
 
     def handle(self):
-        assert isinstance(self.remote_address, tuple)
-
         try:
+            assert isinstance(self.remote_address, tuple)
             chan = self.ssh_transport.open_channel('direct-tcpip',
                                                    self.remote_address,
                                                    self.request.getpeername())
+        except AssertionError:
+            msg = 'Remote address MUST be a tuple (ip:port): %s'.\
+                  format(self.remote_address)
+            self.logger.error(msg)
+            raise HandlerSSHTunnelForwarderError(msg)
         except Exception as _exc:
             msg = 'Incoming request to {0} failed: {1}'.format(\
                   self.remote_address, repr(_exc))
             self.logger.error(msg)
             raise HandlerSSHTunnelForwarderError(msg)
-            
+        
         if chan is None:
             msg = 'Incoming request to {0} was rejected ' \
                   'by the SSH server.'.format(self.remote_address)
@@ -201,7 +208,7 @@ class _ForwardServer(SocketServer.TCPServer):  # Not Threading
     """
     Non-threading version of the forward server
     """
-    allow_reuse_address = True
+    allow_reuse_address = True   #faster rebinding
 
     @property
     def bind_port(self):
@@ -228,10 +235,9 @@ def check_bind_list(bind_address_list):
 
 class _ThreadingForwardServer(SocketServer.ThreadingMixIn, _ForwardServer):
     """
-    Will not exit until all threads created by ThreadingMixIn have exited
+    Will cleanly stop threads created by ThreadingMixIn when quitting
     """
-    daemon_threads = False    
-
+    daemon_threads = True    
 
 
 def create_logger(loggername):
@@ -315,6 +321,7 @@ class SSHTunnelForwarder(threading.Thread):
         """
         Make SSH forward proxy Server class.
         """
+        self.logger.debug('Thread version: %s', is_threading)
         _handler = self.make_ssh_forward_handler(remote_address, ssh_transport)
         _server = _ThreadingForwardServer if is_threading else _ForwardServer
         try:
@@ -332,7 +339,6 @@ class SSHTunnelForwarder(threading.Thread):
                                  base_ssh_forward_handler=None):
         """
         Make SSH Handler class.
-        Not interesting for you.
         """
         my_handler = base_ssh_forward_handler
         if my_handler is None:
@@ -351,7 +357,7 @@ class SSHTunnelForwarder(threading.Thread):
         return Handler
 
 
-    def serve_forever_wrapper(self, _srv):
+    def serve_forever_wrapper(self, _srv, poll_interval=1):
         """
         Wrapper for the server created for a SSH forward
         """
@@ -363,7 +369,7 @@ class SSHTunnelForwarder(threading.Thread):
                                    _srv.server_address)
             
             self._tunnel_is_up[_srv.server_address[1]] = True
-            _srv.serve_forever(poll_interval=1)
+            _srv.serve_forever(poll_interval)
         except socket.error as ex:
             self.logger.error(repr(ex))
         except Exception as ex: #any other exception
@@ -387,7 +393,7 @@ class SSHTunnelForwarder(threading.Thread):
           logger=__name__
           
         *local_bind_address* - if None uses ("127.0.0.1", RANDOM).
-        Use `forwarder.local_bind_port` for getting local forwarding port.
+        Use `forwarder.local_bind_ports` for getting local forwarding ports.
         """
         self._server_list = []
         
@@ -463,6 +469,7 @@ class SSHTunnelForwarder(threading.Thread):
         
         ## OTHER
         
+        self._threaded = ssh_arguments.get('threaded', False)
         self._ssh_host_key = ssh_arguments.get('ssh_host_key', None)
         self.logger.info('Connecting to gateway: %s:%s as user "%s".',
                          ssh_address, tcp_port, self._ssh_username)
@@ -473,7 +480,7 @@ class SSHTunnelForwarder(threading.Thread):
             self._transport = paramiko.Transport((ssh_address, tcp_port))
             self._server_list = \
             [self.make_ssh_forward_server(x, self._local_bind_address_list[i], \
-             self._transport, is_threading=ssh_arguments.get('threaded', False))
+             self._transport, is_threading=self._threaded)
              for i, x in enumerate(self._remote_bind_address_list)
              if self.remote_is_up(x)]
 
@@ -526,13 +533,12 @@ class SSHTunnelForwarder(threading.Thread):
         if not self._is_started:
             self.logger.error("An error occurred while opening tunnels.")
         else:
-            self.logger.info('Starting thread')
             threads = [threading.Thread(target=self.serve_forever_wrapper,
                                         args=(_srv,)
                                        ) for _srv in self._server_list]
             for thread in threads:
                 thread.daemon = True
-                thread.start()       
+                thread.start()
     
 
     def stop(self):
@@ -544,16 +550,16 @@ class SSHTunnelForwarder(threading.Thread):
         - we try to shutdown: it will not succeed until FIN_WAIT_2 and
         CLOSE_WAIT time out.        
         
-        => Handle these scenarios outside from this module, _srv.shutdown()
-        should be skipped.
+        => Handle these scenarios with '_tunnel_is_up', if true _srv.shutdown()
+           will be skipped.
         
         self._tunnel_is_up :      defines whether or not the other side of the
                                   tunnel was reported to be up (and we must
                                   close it) or not (skip shutdown() for that
                                   tunnel).
                                   Example:
-                                  {'55550': True, '55551': False}
-                                  where 55550 and 55551 are the local ports
+                                  {55550: True, 55551: False}
+                                  where 55550 and 55551 are the local bind ports
         """
         self.logger.info('Closing all open connections...')
         if not self._is_started:
@@ -703,15 +709,16 @@ if __name__ == '__main__':
                         help='SSH server account password')
  
     PARSER.add_argument('-R', '--remote_bind_address', type=bindlist,
-                        nargs='+', default=[], dest='remote_bind_address_list',
+                        nargs='+', default=[], metavar='IP:PORT',
+                        dest='remote_bind_address_list',
                         help='Remote bind address sequence: '
                              'ip_1:port_1 ip_2:port_2 ... ip_n:port_n\n'
                              'Equivalent to ssh -Lxxxx:IP_ADDRESS:PORT\n'
-                             'Default bind port is 22.\n'
+                             'If omitted, default port is 22.\n'
                              'Example: -R 10.10.10.10: 10.10.10.10:5900')
  
-    PARSER.add_argument('-L', '--local_bind_address', type=bindlist, 
-                        nargs='*', dest='local_bind_address_list',
+    PARSER.add_argument('-L', '--local_bind_address', type=bindlist, nargs='*',
+                        dest='local_bind_address_list', metavar='IP:PORT',
                         help='Local bind address sequence: '
                              'ip_1:port_1 ip_2:port_2 ... ip_n:port_n\n'
                              'Equivalent to ssh -LPORT:xxxxxxxxx:xxxx, '
@@ -724,8 +731,12 @@ if __name__ == '__main__':
                         help="Gateway's host key")
  
     PARSER.add_argument('-K', '--private_key_file', dest='ssh_private_key',
+                        metavar='RSA_KEY_FILE',
                         type=str, help='RSA private key file')
  
+    PARSER.add_argument('-t', '--threaded', action='store_true',
+                        help='Use ThreadMixIn instead of TCPserver') 
+
     ARGS = PARSER.parse_args()
  
     with open_tunnel(**vars(ARGS)) as my_tunnel:
