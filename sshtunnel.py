@@ -21,12 +21,12 @@ calling the `close` method of the returned SSHTunnelForwarder object.
 ------------------------------------------------------------------------------
 Fig1: How to connect to PRIVATE HOST through SSH tunnel.
 
-See: `sshtunnel.open` function and `sshtunnel.SSHTunnelForwarder` class.
+See: `sshtunnel.open_tunnel` function and `sshtunnel.SSHTunnelForwarder` class.
 
 Ex 1:
 
     from sshtunnel import open_tunnel
-    with open_tunnel(GATEWAY_IP_ADDRESS,
+    with open_tunnel(gateway=GATEWAY_IP_ADDRESS,
                      ssh_username=SSH_USER,
                      ssh_port=22,
                      ssh_password=SSH_PASSWORD,
@@ -43,18 +43,16 @@ Ex 1:
 
 Ex 2:
 
-    from sshtunnel import SSHTunnelForwarder
+    from sshtunnel import open_tunnel
 
-    server = SSHTunnelForwarder(
-        ssh_address = GATEWAY_IP_ADDRESS,
-        ssh_username = "pahaz",
-        ssh_password = "secret",
-        remote_bind_address_list=[('localhost', 5555)])
-
+    server = open_tunnel(gateway = GATEWAY_IP_ADDRESS,
+                         ssh_username = "pahaz",
+                         ssh_password = "secret",
+                         remote_bind_address_list=[('localhost', 5555)])
     server.start()
 
     print(server.local_bind_ports)
-    # work with `SECRET SERVICE` throw `server.local_bind_ports`.
+    # work with `SECRET SERVICE` through `server.local_bind_ports`.
 
     server.stop()
 
@@ -663,7 +661,7 @@ def open_tunnel(**kwargs):
         kwargs.update({'local_bind_address_list': \
                        lbal + [('', 0)] * (rball - lball)})
     
-    ssh_address = kwargs.pop('server')
+    ssh_address = kwargs.pop('gateway')
     
     # Remove all "None" input values
     map(kwargs.pop, [item for item in kwargs if not kwargs[item]])
@@ -696,7 +694,7 @@ if __name__ == '__main__':
     PARSER = \
     argparse.ArgumentParser(description='sshtunnel',
                             formatter_class=argparse.RawTextHelpFormatter)
-    PARSER.add_argument('server', type=str,
+    PARSER.add_argument('gateway', type=str,
                         help='SSH server IP address (GW for ssh tunnels)')
    
     PARSER.add_argument('-U', '--username', type=str, dest='ssh_username',
