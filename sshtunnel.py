@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 *sshtunnel* - Initiate SSH tunnels via a remote gateway.
@@ -91,18 +91,24 @@ optional arguments:
                         Gateway's host key
   -K, --private_key_file SSH_PRIVATE_KEY
                         RSA private key file
+  -t, --threaded        Allow concurrent connections to each tunnel
 
 """
 
 
 import paramiko
-import SocketServer
 import threading
 import argparse
 import socket
 import logging
+import sys
 from select import select
 from os.path import expanduser
+
+if sys.version_info.major < 3:
+    import SocketServer
+else:
+    import socketserver as SocketServer
 
 __version_info__ = (0, 0, 3)
 __version__ = '.'.join(str(i) for i in __version_info__)
@@ -154,7 +160,7 @@ class _BaseHandler(SocketServer.BaseRequestHandler):
                                                    self.remote_address,
                                                    self.request.getpeername())
         except AssertionError:
-            msg = 'Remote address MUST be a tuple (ip:port): %s'.\
+            msg = 'Remote address MUST be a tuple (ip:port): {}'.\
                   format(self.remote_address)
             self.logger.error(msg)
             raise HandlerSSHTunnelForwarderError(msg)
@@ -165,7 +171,7 @@ class _BaseHandler(SocketServer.BaseRequestHandler):
             raise HandlerSSHTunnelForwarderError(msg)
         
         if chan is None:
-            msg = 'Incoming request to {0} was rejected ' \
+            msg = 'Incoming request to {} was rejected ' \
                   'by the SSH server.'.format(self.remote_address)
             self.logger.error(msg)
             raise HandlerSSHTunnelForwarderError(msg)
@@ -233,8 +239,9 @@ def check_bind_list(bind_address_list):
 
 class _ThreadingForwardServer(SocketServer.ThreadingMixIn, _ForwardServer):
     """
-    Will cleanly stop threads created by ThreadingMixIn when quitting
+    Allows concurrent connections to each tunnel
     """
+    # Will cleanly stop threads created by ThreadingMixIn when quitting
     daemon_threads = True    
 
 
@@ -242,7 +249,7 @@ def create_logger(loggername):
     """
     Attaches or creates a new logger and creates console handlers if not present
     """
-    logger = logging.getLogger('{0}.SSHTunnelForwarder'.format(loggername))
+    logger = logging.getLogger('{}.SSHTunnelForwarder'.format(loggername))
 
     if not logger.handlers:  #if no handlers, add a new one (console)
         logger.setLevel(DEFAULT_LOGLEVEL)
@@ -319,7 +326,7 @@ class SSHTunnelForwarder(threading.Thread):
         """
         Make SSH forward proxy Server class.
         """
-        self.logger.debug('Thread version: %s', is_threading)
+        self.logger.info('Thread version: %s', is_threading)
         _handler = self.make_ssh_forward_handler(remote_address, ssh_transport)
         _server = _ThreadingForwardServer if is_threading else _ForwardServer
         try:
@@ -663,8 +670,8 @@ def open_tunnel(**kwargs):
     
     ssh_address = kwargs.pop('gateway')
     
-    # Remove all "None" input values
-    map(kwargs.pop, [item for item in kwargs if not kwargs[item]])
+    # Remove all "None" input values)
+    list(map(kwargs.pop, [item for item in kwargs if not kwargs[item]]))
 
     forwarder = SSHTunnelForwarder(ssh_address, **kwargs)
     return forwarder
@@ -733,10 +740,13 @@ if __name__ == '__main__':
                         type=str, help='RSA private key file')
  
     PARSER.add_argument('-t', '--threaded', action='store_true',
-                        help='Use ThreadMixIn instead of TCPserver') 
+                        help='Allow concurrent connections to each tunnel') 
 
     ARGS = PARSER.parse_args()
  
     with open_tunnel(**vars(ARGS)) as my_tunnel:
         my_tunnel.logger.info('Press Enter to stop')
-        raw_input('')
+        if sys.version_info.major < 3:
+            raw_input('')
+        else:
+            input('')
