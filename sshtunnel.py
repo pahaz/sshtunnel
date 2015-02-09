@@ -110,13 +110,13 @@ class _BaseHandler(SocketServer.BaseRequestHandler):
                 self.remote_address,
                 self.request.getpeername())
         except Exception as e:
-            m = 'Incoming request to {0} failed: {1}'.format(address, repr(e))
+            m = 'Incoming request to {0} failed: {1}'.format(self.remote_address, repr(e))
             self.logger.error(m)
             raise HandlerSSHTunnelForwarderError(m)
 
         if chan is None:
             m = 'Incoming request to {0} was rejected ' \
-                'by the SSH server.'.format(address)
+                'by the SSH server.'.format(self.remote_address)
             self.logger.error(m)
             raise HandlerSSHTunnelForwarderError(m)
 
