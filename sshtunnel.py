@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
 *sshtunnel* - Initiate SSH tunnels via a remote gateway.
@@ -97,18 +97,13 @@ optional arguments:
 
 
 import paramiko
+import SocketServer
 import threading
 import argparse
 import socket
 import logging
-import sys
 from select import select
 from os.path import expanduser
-
-if sys.version_info.major < 3:
-    import SocketServer
-else:
-    import socketserver as SocketServer
 
 __version_info__ = (0, 0, 3)
 __version__ = '.'.join(str(i) for i in __version_info__)
@@ -245,11 +240,12 @@ class _ThreadingForwardServer(SocketServer.ThreadingMixIn, _ForwardServer):
     daemon_threads = True    
 
 
-def create_logger(loggername):
+def create_logger(logger):
     """
     Attaches or creates a new logger and creates console handlers if not present
     """
-    logger = logging.getLogger('{}.SSHTunnelForwarder'.format(loggername))
+    logger = logger or logging.getLogger('{}.SSHTunnelForwarder'.\
+                                         format(__name__))
 
     if not logger.handlers:  #if no handlers, add a new one (console)
         logger.setLevel(DEFAULT_LOGLEVEL)
@@ -326,7 +322,7 @@ class SSHTunnelForwarder(threading.Thread):
         """
         Make SSH forward proxy Server class.
         """
-        self.logger.debug('Thread version: %s', is_threading)
+        self.logger.info('Concurrent connections allowed: %s', is_threading)
         _handler = self.make_ssh_forward_handler(remote_address, ssh_transport)
         _server = _ThreadingForwardServer if is_threading else _ForwardServer
         try:
@@ -365,15 +361,13 @@ class SSHTunnelForwarder(threading.Thread):
     def serve_forever_wrapper(self, _srv, poll_interval=1):
         """
         Wrapper for the server created for a SSH forward
+        Tunnels will be marked as up/down in self.tunnel_is_up[bind_port]
         """
         try:
+            if not self.tunnel_is_up[_srv.server_address[1]]:
+                raise socket.error('Could not open tunnel, {} not reachable'.\
+                                   format(_srv.server_address))
             self.logger.debug('Serve forever %s', _srv.server_address)
-            if not self.remote_is_up(_srv.server_address):
-                self._tunnel_is_up[_srv.server_address[1]] = False
-                raise socket.error('Could not open tunnel, %s not reachable',
-                                   _srv.server_address)
-            
-            self._tunnel_is_up[_srv.server_address[1]] = True
             _srv.serve_forever(poll_interval)
         except socket.error as ex:
             self.logger.error(repr(ex))
@@ -403,7 +397,8 @@ class SSHTunnelForwarder(threading.Thread):
         self._server_list = []
         
         ### LOGGER - Create a console handler if not passed as argument
-        self.logger = create_logger(ssh_arguments.pop('logger', __name__))
+        self.logger = create_logger(ssh_arguments.pop('logger') \
+                                    if 'logger' in ssh_arguments else None)
 
         # Try to read ~/.ssh/config
         ssh_config = paramiko.SSHConfig()
@@ -500,7 +495,7 @@ class SSHTunnelForwarder(threading.Thread):
 
         self._is_started = True if self._server_list and all(self._server_list)\
                            else False
-        self._tunnel_is_up = {} # handle status of the other side of the tunnel
+        self.tunnel_is_up = {} # handle status of the other side of the tunnel
         
         super(SSHTunnelForwarder, self).__init__()
 
@@ -520,7 +515,15 @@ class SSHTunnelForwarder(threading.Thread):
                 self._transport.connect(hostkey=self._ssh_host_key,
                                         username=self._ssh_username,
                                         pkey=self._ssh_private_key)        
-           
+            
+#            for _srv in self._server_list:
+#                self.tunnel_is_up[_srv.server_address[1]] = \
+#                self.remote_is_up(_srv.server_address)
+            
+            self.tunnel_is_up = {_srv.server_address[1]:
+                                 self.remote_is_up(_srv.server_address) \
+                                 for _srv in self._server_list}
+            
             super(SSHTunnelForwarder, self).start()
 
         except paramiko.ssh_exception.AuthenticationException:
@@ -555,10 +558,10 @@ class SSHTunnelForwarder(threading.Thread):
         - we try to shutdown: it will not succeed until FIN_WAIT_2 and
         CLOSE_WAIT time out.        
         
-        => Handle these scenarios with '_tunnel_is_up', if true _srv.shutdown()
+        => Handle these scenarios with 'tunnel_is_up', if true _srv.shutdown()
            will be skipped.
         
-        self._tunnel_is_up :      defines whether or not the other side of the
+        self.tunnel_is_up :       defines whether or not the other side of the
                                   tunnel was reported to be up (and we must
                                   close it) or not (skip shutdown() for that
                                   tunnel).
@@ -571,11 +574,11 @@ class SSHTunnelForwarder(threading.Thread):
             self.logger.debug('Server was already stopped!')
             return
         
-        self.logger.debug('Local ports open: %s', self._tunnel_is_up)
+        self.logger.debug('Local ports open: %s', self.tunnel_is_up)
         for _srv in self._server_list:
             try:
                 tunn_port = _srv.server_address[1]
-                if self._tunnel_is_up[tunn_port]:
+                if self.tunnel_is_up[tunn_port]:
                     self.logger.info('Shutting down tunnel on port %s',
                                      tunn_port)
                     _srv.shutdown()
@@ -670,8 +673,9 @@ def open_tunnel(**kwargs):
     
     ssh_address = kwargs.pop('gateway')
     
-    # Remove all "None" input values)
-    list(map(kwargs.pop, [item for item in kwargs if not kwargs[item]]))
+    # Remove all "None" input values
+    
+    map(kwargs.pop, [item for item in kwargs if not kwargs[item]])
 
     forwarder = SSHTunnelForwarder(ssh_address, **kwargs)
     return forwarder
@@ -746,7 +750,4 @@ if __name__ == '__main__':
  
     with open_tunnel(**vars(ARGS)) as my_tunnel:
         my_tunnel.logger.info('Press Enter to stop')
-        if sys.version_info.major < 3:
-            raw_input('')
-        else:
-            input('')
+        raw_input('')
