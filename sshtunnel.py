@@ -105,7 +105,8 @@ import logging
 from select import select
 from os.path import expanduser
 
-__version_info__ = (0, 0, 3)
+
+__version_info__ = (0, 0, 3, 3)
 __version__ = '.'.join(str(i) for i in __version_info__)
 __author__ = 'pahaz'
 __author__ = 'cameronmaske'
@@ -114,7 +115,7 @@ __author__ = 'fernandezcuesta'
 __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
            'HandlerSSHTunnelForwarderError', 'open_tunnel')
 
-DEFAULT_LOGLEVEL = 'INFO' # Default level for logging, if no logger passed
+DEFAULT_LOGLEVEL = 'DEBUG' # Default level for logging, if no logger passed
 
 
 
@@ -159,10 +160,10 @@ class _BaseHandler(SocketServer.BaseRequestHandler):
                   format(self.remote_address)
             self.logger.error(msg)
             raise HandlerSSHTunnelForwarderError(msg)
-        except Exception as _exc:
+        except paramiko.SSHException as _exc:
             msg = 'Incoming request to {0} failed: {1}'.format(\
                   self.remote_address, repr(_exc))
-            self.logger.error(msg)
+            self.logger.debug(msg)
             raise HandlerSSHTunnelForwarderError(msg)
         
         if chan is None:
@@ -192,8 +193,8 @@ class _BaseHandler(SocketServer.BaseRequestHandler):
             # no need to make an ordered close of the connection here or raise
             # the exception beyond this point...
             self.logger.warning('Sending RST >>>')
-        except Exception as ex: #any other exception
-            self.logger.error(repr(ex))
+#        except Exception as ex: #any other exception
+#            self.logger.error(repr(ex))
         finally:
             chan.close()
             self.request.close()
@@ -218,6 +219,16 @@ class _ForwardServer(SocketServer.TCPServer):  # Not Threading
     def bind_host(self):
         """ Return the listening IP address for the forwarder """
         return self.socket.getsockname()[0]
+
+    @property
+    def remote_host(self):
+        """ Return the IP address to which the packets are forwarded """
+        return self.RequestHandlerClass.remote_address[0]
+        
+    @property
+    def remote_port(self):
+        """ Return the TCP port to which the packets are forwarded """
+        return self.RequestHandlerClass.remote_address[1]
 
 
 def check_bind_list(bind_address_list):
@@ -251,7 +262,7 @@ def create_logger(logger):
         logger.setLevel(DEFAULT_LOGLEVEL)
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(\
-            logging.Formatter('%(asctime)s| %(levelname)-7s| %(message)s'))
+            logging.Formatter('%(asctime)s| %(levelname)-8s| %(message)s'))
         logger.addHandler(console_handler)
      
     # Add a console handler for paramiko.transport's logger if not present
@@ -259,7 +270,8 @@ def create_logger(logger):
     if not paramiko_logger.handlers:
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(\
-            logging.Formatter('%(asctime)s| %(levelname)-7s| %(message)s'))
+            logging.Formatter('%(asctime)s| %(levelname)-8s| PARAMIKO: '
+                              '%(lineno)03d@%(module)-10s| %(message)s'))
         paramiko_logger.addHandler(console_handler)
     return logger
         
@@ -286,35 +298,68 @@ class SSHTunnelForwarder(threading.Thread):
         >>> server.stop()
     """
     
-
-    def remote_is_up(self, target):
+    def local_is_up(self, target):
         """
-        Check if remote target_host is reachable on TCP target_port
+        Check if local side of the tunnel is up (remote target_host is
+        reachable on TCP target_port)
+        
         target: (target_host, target_port)
+        Returns: Boolean
         """
         try:
             assert isinstance(target, tuple)
             assert isinstance(target[0], str)
             assert isinstance(target[1], int)
-            self.logger.debug('Checking connection to %s:%s...',
-                              target[0],
-                              target[1])
+
+#            self.logger.debug('Checking local side of the tunnel (%s:%s)...',
+#                              *target)
             conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             conn.connect(target)
             reachable = True
             conn.close()
-            
+
         except AssertionError:
             self.logger.info('Target must be a tuple (ip, port), where ip is '
                              'a string (i.e. "192.168.1.1") and port is an '
                              'integer (i.e. 40000).')
             reachable = False
         except socket.error:
-            self.logger.warning('Connection to %s:%s not OK',
-                                target[0], target[1])
             reachable = False
-        
+
+        if reachable:
+            self.logger.debug('Local side of the tunnel (%s:%s) is UP', *target)
+        else:
+            self.logger.warning('Local side of tunnel (%s:%s) is DOWN,'
+                                ' we will not attempt to connect.', *target)
         return reachable
+            
+
+    def remote_is_up(self, srv):
+        """
+        Check if remote target host:port is reachable
+        Returns: Boolean
+        """
+        try:
+#            self.logger.debug('Checking other side of the tunnel (%s:%s)...',
+#                              srv.remote_host, srv.remote_port)
+            if not self.local_is_up(srv.server_address):
+                raise HandlerSSHTunnelForwarderError
+            req = srv.get_request()
+            reachable = srv.finish_request(*req) == None            
+        except HandlerSSHTunnelForwarderError:
+            reachable = False
+        except socket.error:
+            reachable = False
+        tunn_repr = '{2}:{3} <> {0}:{1}'.format(srv.remote_host,
+                                                srv.remote_port,
+                                                *srv.server_address)        
+        self.logger.debug('Remote side of the tunnel (%s) is %s',
+                          tunn_repr,
+                          'UP' if reachable else 'DOWN')
+                          
+        return reachable
+
+
 
     
     def make_ssh_forward_server(self, remote_address, local_bind_address,
@@ -322,8 +367,8 @@ class SSHTunnelForwarder(threading.Thread):
         """
         Make SSH forward proxy Server class.
         """
-        self.logger.info('Concurrent connections allowed: %s', is_threading)
-        _handler = self.make_ssh_forward_handler(remote_address, ssh_transport)
+        _handler = self.make_ssh_forward_handler(remote_address,
+                                                 ssh_transport)
         _server = _ThreadingForwardServer if is_threading else _ForwardServer
         try:
             return _server(local_bind_address, _handler)
@@ -333,7 +378,8 @@ class SSHTunnelForwarder(threading.Thread):
                               remote_address[0],
                               remote_address[1],
                               local_bind_address[1])
-            raise BaseSSHTunnelForwarderError('Port forward error')
+#            raise BaseSSHTunnelForwarderError('Port forward error')
+
 
 
     def make_ssh_forward_handler(self, remote_address_, ssh_transport_,
@@ -358,21 +404,24 @@ class SSHTunnelForwarder(threading.Thread):
         return Handler
 
 
-    def serve_forever_wrapper(self, _srv, poll_interval=1):
+    def serve_forever_wrapper(self, _srv, poll_interval=0.1):
         """
         Wrapper for the server created for a SSH forward
         Tunnels will be marked as up/down in self.tunnel_is_up[bind_port]
         """
         try:
-            if not self.tunnel_is_up[_srv.server_address[1]]:
-                raise socket.error('Could not open tunnel, {} not reachable'.\
-                                   format(_srv.server_address))
-            self.logger.debug('Serve forever %s', _srv.server_address)
-            _srv.serve_forever(poll_interval)
+            self.tunnel_is_up[_srv.server_address[1]] = self.remote_is_up(_srv)
+            if self.tunnel_is_up[_srv.server_address[1]]:
+                self.logger.debug('Now forwarding on: %s', _srv.server_address)
+                _srv.serve_forever(poll_interval)
+            else:
+                self.logger.warning('Could not open tunnel, '
+                                    '%s:%s not reachable',
+                                    _srv.remote_host,
+                                    _srv.remote_port)
         except socket.error as ex:
             self.logger.error(repr(ex))
-        except Exception as ex: #any other exception
-            self.logger.error(repr(ex))
+
 
 
 
@@ -474,24 +523,27 @@ class SSHTunnelForwarder(threading.Thread):
         self.logger.info('Connecting to gateway: %s:%s as user "%s".',
                          ssh_address, tcp_port, self._ssh_username)
 
-
         ## CREATE THE TUNNELS
         try:
             self._transport = paramiko.Transport((ssh_address, tcp_port))
             self._server_list = \
             [self.make_ssh_forward_server(x, self._local_bind_address_list[i], \
              self._transport, is_threading=self._threaded)
-             for i, x in enumerate(self._remote_bind_address_list)
-             if self.remote_is_up(x)]
-
+             for i, x in enumerate(self._remote_bind_address_list)]
+            self._server_list = [k for k in self._server_list if k != None]
+            
+        except paramiko.SSHException:
+            self.logger.error('Could not connect to gateway: %s', ssh_address)
+            raise BaseSSHTunnelForwarderError
         except socket.gaierror: #raised by paramiko.Transport
             self.logger.error('Could not resolve IP address for %s, aborting!',
                               ssh_address)
             raise BaseSSHTunnelForwarderError
-        except BaseSSHTunnelForwarderError:  #remove this?
-            self.logger.error('Could not initialize tunnels')
+        except BaseSSHTunnelForwarderError as _ex:
+            self.logger.error(_ex)
 #            raise BaseSSHTunnelForwarderError
             
+        self.logger.debug('Concurrent connections allowed: %s', self._threaded)
 
         self._is_started = True if self._server_list and all(self._server_list)\
                            else False
@@ -516,38 +568,35 @@ class SSHTunnelForwarder(threading.Thread):
                                         username=self._ssh_username,
                                         pkey=self._ssh_private_key)        
             
-#            for _srv in self._server_list:
-#                self.tunnel_is_up[_srv.server_address[1]] = \
-#                self.remote_is_up(_srv.server_address)
-            
-            self.tunnel_is_up = {_srv.server_address[1]:
-                                 self.remote_is_up(_srv.server_address) \
-                                 for _srv in self._server_list}
-            
+
+#            self.tunnel_is_up = {_srv.server_address[1]:
+#                                 self.remote_is_up(_srv) \
+#                                 for _srv in self._server_list}
             super(SSHTunnelForwarder, self).start()
 
         except paramiko.ssh_exception.AuthenticationException:
             self.logger.error('Could not open connection to gateway')
-#            self.stop()
 
    
     def run(self):
+        self.logger.debug('Server is %sstarted.',
+                          '' if self._is_started else '*NOT* ')
+
         for k, _srv in enumerate(self._server_list):
             self.logger.info('Opening tunnel: %s:%s:%s',
                              _srv.server_address[-1],
                              *self._remote_bind_address_list[k])
-        self.logger.debug('Server is %sstarted.',
-                          '' if self._is_started else 'not ')
         if not self._is_started:
             self.logger.error("An error occurred while opening tunnels.")
         else:
             threads = [threading.Thread(target=self.serve_forever_wrapper,
-                                        args=(_srv,)
+                                        args=(_srv,),
+                                        name='Tun-%s' % _srv.server_address[1]
                                        ) for _srv in self._server_list]
             for thread in threads:
                 thread.daemon = True
                 thread.start()
-    
+
 
     def stop(self):
         """ Shuts the tunnel down. This has to be handled with care:
@@ -574,19 +623,15 @@ class SSHTunnelForwarder(threading.Thread):
             self.logger.debug('Server was already stopped!')
             return
         
-        self.logger.debug('Local ports open: %s', self.tunnel_is_up)
+        self.logger.debug('Local ports open: %s',
+                          ', '.join([str(k) for k in self.tunnel_is_up 
+                                     if self.tunnel_is_up[k]]))
         for _srv in self._server_list:
-            try:
-                tunn_port = _srv.server_address[1]
-                if self.tunnel_is_up[tunn_port]:
-                    self.logger.info('Shutting down tunnel on port %s',
-                                     tunn_port)
-                    _srv.shutdown()
-                else:
-                    self.logger.warning('Tunnel already went down at port %s',
-                                        tunn_port)
-            except KeyError:
-                pass
+            tunn_port = _srv.server_address[1]
+            if self.tunnel_is_up[tunn_port]:
+                self.logger.info('Shutting down tunnel on port %s',
+                                 tunn_port)
+                _srv.shutdown()
             _srv.server_close()
             
         self._transport.close()
@@ -618,6 +663,7 @@ class SSHTunnelForwarder(threading.Thread):
 
     def __exit__(self, *args):
         self.stop()
+
 
 
 def open_tunnel(**kwargs):
@@ -749,5 +795,5 @@ if __name__ == '__main__':
     ARGS = PARSER.parse_args()
  
     with open_tunnel(**vars(ARGS)) as my_tunnel:
-        my_tunnel.logger.info('Press Enter to stop')
+        print('\rPress Enter to stop\n')
         raw_input('')
