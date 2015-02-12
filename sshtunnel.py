@@ -106,7 +106,7 @@ from select import select
 from os.path import expanduser
 
 
-__version_info__ = (0, 0, 3, 3)
+__version_info__ = (0, 0, 3, 4)
 __version__ = '.'.join(str(i) for i in __version_info__)
 __author__ = 'pahaz'
 __author__ = 'cameronmaske'
@@ -248,7 +248,7 @@ class _ThreadingForwardServer(SocketServer.ThreadingMixIn, _ForwardServer):
     Allows concurrent connections to each tunnel
     """
     # Will cleanly stop threads created by ThreadingMixIn when quitting
-    daemon_threads = True    
+    daemon_threads = True
 
 
 def create_logger(logger):
@@ -378,6 +378,7 @@ class SSHTunnelForwarder(threading.Thread):
                               remote_address[0],
                               remote_address[1],
                               local_bind_address[1])
+            self.tunnel_is_up[local_bind_address[1]] = False
 #            raise BaseSSHTunnelForwarderError('Port forward error')
 
 
@@ -404,23 +405,6 @@ class SSHTunnelForwarder(threading.Thread):
         return Handler
 
 
-    def serve_forever_wrapper(self, _srv, poll_interval=0.1):
-        """
-        Wrapper for the server created for a SSH forward
-        Tunnels will be marked as up/down in self.tunnel_is_up[bind_port]
-        """
-        try:
-            self.tunnel_is_up[_srv.server_address[1]] = self.remote_is_up(_srv)
-            if self.tunnel_is_up[_srv.server_address[1]]:
-                self.logger.debug('Now forwarding on: %s', _srv.server_address)
-                _srv.serve_forever(poll_interval)
-            else:
-                self.logger.warning('Could not open tunnel, '
-                                    '%s:%s not reachable',
-                                    _srv.remote_host,
-                                    _srv.remote_port)
-        except socket.error as ex:
-            self.logger.error(repr(ex))
 
 
 
@@ -524,6 +508,7 @@ class SSHTunnelForwarder(threading.Thread):
                          ssh_address, tcp_port, self._ssh_username)
 
         ## CREATE THE TUNNELS
+        self.tunnel_is_up = {} # handle status of the other side of the tunnel
         try:
             self._transport = paramiko.Transport((ssh_address, tcp_port))
             self._server_list = \
@@ -547,7 +532,6 @@ class SSHTunnelForwarder(threading.Thread):
 
         self._is_started = True if self._server_list and all(self._server_list)\
                            else False
-        self.tunnel_is_up = {} # handle status of the other side of the tunnel
         
         super(SSHTunnelForwarder, self).__init__()
 
@@ -568,34 +552,62 @@ class SSHTunnelForwarder(threading.Thread):
                                         username=self._ssh_username,
                                         pkey=self._ssh_private_key)        
             
-
-#            self.tunnel_is_up = {_srv.server_address[1]:
-#                                 self.remote_is_up(_srv) \
-#                                 for _srv in self._server_list}
+            for _srv in self._server_list:
+                self.tunnel_is_up[_srv.server_address[1]] = \
+                self.remote_is_up(_srv)
+            
             super(SSHTunnelForwarder, self).start()
+            self.logger.debug('Server is %sstarted.',
+                              '' if self._is_started else '*NOT* ')
 
+            if not self._is_started:
+                self.logger.error("An error occurred while opening tunnels.")
+            else:
+                threads = [threading.Thread(target=self.serve_forever_wrapper,
+                                            args=(_srv,k),
+                                            name='Tun-%s' % _srv.server_address[1]) 
+                           for k, _srv in enumerate(self._server_list)]
+                for thread in threads:
+                    thread.daemon = True
+                    thread.start()
+        
+        
         except paramiko.ssh_exception.AuthenticationException:
             self.logger.error('Could not open connection to gateway')
 
    
     def run(self):
-        self.logger.debug('Server is %sstarted.',
-                          '' if self._is_started else '*NOT* ')
+        return
+#        if not self._is_started:
+#            self.logger.error("An error occurred while opening tunnels.")
+#        else:
+#            threads = [threading.Thread(target=self.serve_forever_wrapper,
+#                                        args=(_srv,k),
+#                                        name='Tun-%s' % _srv.server_address[1]) 
+#                       for k, _srv in enumerate(self._server_list)]
+#            for thread in threads:
+#                thread.daemon = True
+#                thread.start()
 
-        for k, _srv in enumerate(self._server_list):
-            self.logger.info('Opening tunnel: %s:%s:%s',
-                             _srv.server_address[-1],
-                             *self._remote_bind_address_list[k])
-        if not self._is_started:
-            self.logger.error("An error occurred while opening tunnels.")
-        else:
-            threads = [threading.Thread(target=self.serve_forever_wrapper,
-                                        args=(_srv,),
-                                        name='Tun-%s' % _srv.server_address[1]
-                                       ) for _srv in self._server_list]
-            for thread in threads:
-                thread.daemon = True
-                thread.start()
+
+    def serve_forever_wrapper(self, _srv, k, poll_interval=0.1):
+        """
+        Wrapper for the server created for a SSH forward
+        Tunnels will be marked as up/down in self.tunnel_is_up[bind_port]
+        """
+        try:
+            if self.tunnel_is_up[_srv.server_address[1]]:
+                self.logger.info('Opening tunnel: %s:%s:%s',
+                                 _srv.server_address[1],
+                                 *self._remote_bind_address_list[k])
+                _srv.serve_forever(poll_interval)
+            else:
+                self.logger.warning('Could not open tunnel, '
+                                    '%s:%s not reachable',
+                                    _srv.remote_host,
+                                    _srv.remote_port)
+        except socket.error as ex:
+            self.logger.error(repr(ex))
 
 
     def stop(self):
