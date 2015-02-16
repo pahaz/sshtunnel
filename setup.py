@@ -18,7 +18,7 @@ version = get_version(appname + '.py')
 
 setup(
     name=appname,
-    version=__version__,
+    version=version,
     description="Initiate SSH tunnels",
     long_description=open('README.md').read(),
     py_modules=[appname],
@@ -26,7 +26,7 @@ setup(
     author='Pahaz Blinov',
     author_email='pahaz.blinov@gmail.com',
     url='https://github.com/pahaz/sshtunnel',
-    download_url='https://github.com/pahaz/sshtunnel/tarball/' + __version__,
+    download_url='https://pypi.python.org/packages/source/s/sshtunnel/sshtunnel-' + version + '0.0.2.zip',
     keywords=['SSH', 'proxy', 'TCP forwarder'],
     license='MIT',
     platforms=['unix', 'macos', 'windows'],
