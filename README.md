@@ -78,6 +78,7 @@ Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
  - [Pahaz Blinov](https://github.com/pahaz)
  - [Cameron Maske](https://github.com/cameronmaske)
  - [Gustavo Machado](https://github.com/gdmachado)
+ - [Colin Jermain](https://github.com/cjermain)
 
 # CHANGELOG #
 
