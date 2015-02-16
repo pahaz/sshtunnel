@@ -1,14 +1,14 @@
 from setuptools import setup
 
+__version_info__ = (0, 0, 1)
+__version__ = '.'.join(str(i) for i in __version_info__)
 __author__ = 'pahaz'
 
 appname = 'sshtunnel'
-app = __import__(appname)
-version = app.__version__
 
 setup(
     name=appname,
-    version=version,
+    version=__version__,
     description="Initiate SSH tunnels",
     long_description=open('README.md').read(),
     py_modules=[appname],
@@ -16,7 +16,7 @@ setup(
     author='Pahaz Blinov',
     author_email='pahaz.blinov@gmail.com',
     url='https://github.com/pahaz/sshtunnel',
-    download_url='https://github.com/pahaz/sshtunnel/tarball/' + version,
+    download_url='https://github.com/pahaz/sshtunnel/tarball/' + __version__,
     keywords=['SSH', 'proxy', 'TCP forwarder'],
     license='MIT',
     platforms=['unix', 'macos', 'windows'],
