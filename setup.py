@@ -12,21 +12,25 @@ def get_version(path):
         data = f.read()
         return eval(re.search(b"__version__[ ]*=[ ]*([^\r\n]+)", data).group(1))
 
-
 appname = 'sshtunnel'
 version = get_version(appname + '.py')
+try:
+   import pypandoc
+   long_description = pypandoc.convert('README.md', 'rst')
+except (IOError, ImportError):
+   long_description = open('README.md').read()
 
 setup(
     name=appname,
     version=version,
     description="Initiate SSH tunnels",
-    long_description=open('README.md').read(),
+    long_description=long_description,
     py_modules=[appname],
     install_requires=['paramiko>=1.12.3'],
     author='Pahaz Blinov',
     author_email='pahaz.blinov@gmail.com',
     url='https://github.com/pahaz/sshtunnel',
-    download_url='https://pypi.python.org/packages/source/s/sshtunnel/sshtunnel-' + version + '0.0.2.zip',
+    download_url='https://pypi.python.org/packages/source/s/sshtunnel/sshtunnel-' + version + '.zip',
     keywords=['SSH', 'proxy', 'TCP forwarder'],
     license='MIT',
     platforms=['unix', 'macos', 'windows'],

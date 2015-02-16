@@ -84,7 +84,7 @@ Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
 
 ## work in progress ##
 
-## v.0.0.2 ##
+## v.0.0.3 ##
  - add `threaded` options (cameronmaske)
  - fix exception error message, correctly printing destination address (gdmachado)
  - fix pip install fails (cjermain, pahaz)

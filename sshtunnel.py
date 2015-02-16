@@ -64,7 +64,7 @@ import threading
 import logging
 import paramiko
 
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 __author__ = 'pahaz'
 
 # NOTE: Not including `open` in __all__ as doing `from sshtunnel import *`
