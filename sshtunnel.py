@@ -122,7 +122,7 @@ __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
            'HandlerSSHTunnelForwarderError', 'open_tunnel')
 
 DEFAULT_LOGLEVEL = 'DEBUG' # Default level for logging, if no logger passed
-
+REMOTE_CHECK_TIMEOUT = 3   # Timeout in seconds for remote tunnel side detection
 
 
 ########################
@@ -184,7 +184,7 @@ class _BaseHandler(SocketServer.BaseRequestHandler):
             while True:
                 rqst, _, _ = select([self.request, chan], [], [])
                 if self.request in rqst:
-                    data = self.request.recv(1024)
+                    data = self.request.recv(1500)
                     if len(data) == 0:
                         break
                     chan.send(data)
@@ -237,6 +237,8 @@ class _ForwardServer(SocketServer.TCPServer):  # Not Threading
         return self.RequestHandlerClass.remote_address[1]
 
 
+
+
 def check_bind_list(bind_address_list):
     """
     Checks that the format of the bind address list is correct
@@ -249,12 +251,15 @@ def check_bind_list(bind_address_list):
     
 
 
+
 class _ThreadingForwardServer(SocketServer.ThreadingMixIn, _ForwardServer):
     """
     Allows concurrent connections to each tunnel
     """
     # Will cleanly stop threads created by ThreadingMixIn when quitting
     daemon_threads = True
+
+
 
 
 def create_logger(logger):
@@ -281,7 +286,8 @@ def create_logger(logger):
         paramiko_logger.addHandler(console_handler)
     return logger
         
-       
+
+      
        
 class SSHTunnelForwarder(threading.Thread):
     """
@@ -319,7 +325,9 @@ class SSHTunnelForwarder(threading.Thread):
 
 #            self.logger.debug('Checking local side of the tunnel (%s:%s)...',
 #                              *target)
+
             conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            conn.settimeout(1.0)
             conn.connect(target)
             reachable = True
             conn.close()
@@ -350,8 +358,12 @@ class SSHTunnelForwarder(threading.Thread):
 #                              srv.remote_host, srv.remote_port)
             if not self.local_is_up(srv.server_address):
                 raise HandlerSSHTunnelForwarderError
-            req = srv.get_request()
-            reachable = srv.finish_request(*req) == None            
+
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(REMOTE_CHECK_TIMEOUT)
+            s.connect((srv.remote_host, srv.remote_port))                
+            s.close()
+            reachable = True
         except HandlerSSHTunnelForwarderError:
             reachable = False
         except socket.error:
@@ -362,7 +374,7 @@ class SSHTunnelForwarder(threading.Thread):
         self.logger.debug('Remote side of the tunnel (%s) is %s',
                           tunn_repr,
                           'UP' if reachable else 'DOWN')
-                          
+        srv.timeout = None
         return reachable
 
 
@@ -558,22 +570,24 @@ class SSHTunnelForwarder(threading.Thread):
                                         username=self._ssh_username,
                                         pkey=self._ssh_private_key)        
             
+            self.logger.debug('Server is %sstarted.',
+                              '' if self._is_started else '*NOT* ')
+
             for _srv in self._server_list:
                 self.tunnel_is_up[_srv.server_address[1]] = \
                 self.remote_is_up(_srv)
             
             super(SSHTunnelForwarder, self).start()
-            self.logger.debug('Server is %sstarted.',
-                              '' if self._is_started else '*NOT* ')
-
-            if not self._is_started:
+           
+            if not any([self.tunnel_is_up[k] for k in self.tunnel_is_up]):
                 self.logger.error("An error occurred while opening tunnels.")
             else:
                 threads = [threading.Thread(target=self.serve_forever_wrapper,
                                             args=(_srv, k),
                                             name=\
                                             'Tun-%s' % _srv.server_address[1])
-                           for k, _srv in enumerate(self._server_list)]
+                           for k, _srv in enumerate(self._server_list)
+                           if self.tunnel_is_up[_srv.server_address[1]]]
                 for thread in threads:
                     thread.daemon = True
                     thread.start()
@@ -635,7 +649,7 @@ class SSHTunnelForwarder(threading.Thread):
         
         self.logger.debug('Local ports open: %s',
                           ', '.join([str(k) for k in self.tunnel_is_up 
-                                     if self.tunnel_is_up[k]]))
+                                     if self.tunnel_is_up[k]]) or 'None')
         for _srv in self._server_list:
             tunn_port = _srv.server_address[1]
             if self.tunnel_is_up[tunn_port]:
@@ -810,3 +824,5 @@ if __name__ == '__main__':
             raw_input('')
         else:
             input('')
+
+
