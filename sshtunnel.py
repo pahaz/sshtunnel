@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 *sshtunnel* - Initiate SSH tunnels via a remote gateway.
@@ -97,16 +97,22 @@ optional arguments:
 
 
 import paramiko
-import SocketServer
 import threading
 import argparse
 import socket
 import logging
+import sys
 from select import select
 from os.path import expanduser
 
 
-__version_info__ = (0, 0, 3, 4)
+if sys.version_info.major < 3:
+    import SocketServer
+else:
+    import socketserver as SocketServer
+
+
+__version_info__ = (0, 0, 3, 5)
 __version__ = '.'.join(str(i) for i in __version_info__)
 __author__ = 'pahaz'
 __author__ = 'cameronmaske'
@@ -564,8 +570,9 @@ class SSHTunnelForwarder(threading.Thread):
                 self.logger.error("An error occurred while opening tunnels.")
             else:
                 threads = [threading.Thread(target=self.serve_forever_wrapper,
-                                            args=(_srv,k),
-                                            name='Tun-%s' % _srv.server_address[1]) 
+                                            args=(_srv, k),
+                                            name=\
+                                            'Tun-%s' % _srv.server_address[1])
                            for k, _srv in enumerate(self._server_list)]
                 for thread in threads:
                     thread.daemon = True
@@ -578,16 +585,7 @@ class SSHTunnelForwarder(threading.Thread):
    
     def run(self):
         return
-#        if not self._is_started:
-#            self.logger.error("An error occurred while opening tunnels.")
-#        else:
-#            threads = [threading.Thread(target=self.serve_forever_wrapper,
-#                                        args=(_srv,k),
-#                                        name='Tun-%s' % _srv.server_address[1]) 
-#                       for k, _srv in enumerate(self._server_list)]
-#            for thread in threads:
-#                thread.daemon = True
-#                thread.start()
+
 
 
     def serve_forever_wrapper(self, _srv, k, poll_interval=0.1):
@@ -733,7 +731,7 @@ def open_tunnel(**kwargs):
     
     # Remove all "None" input values
     
-    map(kwargs.pop, [item for item in kwargs if not kwargs[item]])
+    list(map(kwargs.pop, [item for item in kwargs if not kwargs[item]]))
 
     forwarder = SSHTunnelForwarder(ssh_address, **kwargs)
     return forwarder
@@ -808,4 +806,7 @@ if __name__ == '__main__':
  
     with open_tunnel(**vars(ARGS)) as my_tunnel:
         print('\rPress Enter to stop\n')
-        raw_input('')
+        if sys.version_info.major < 3:
+            raw_input('')
+        else:
+            input('')
