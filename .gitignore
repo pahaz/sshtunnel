@@ -6,6 +6,6 @@ MANIFEST
 .python-version
 .venv
 .idea
-*.pyc
+*.py[cod]
 .env
 __pycache__
