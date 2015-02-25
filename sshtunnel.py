@@ -99,6 +99,7 @@ class _BaseHandler(SocketServer.BaseRequestHandler):
     remote_address = None
     ssh_transport = None
     logger = None
+    silent = False
 
     def handle(self):
         assert isinstance(self.remote_address, tuple)
@@ -112,13 +113,19 @@ class _BaseHandler(SocketServer.BaseRequestHandler):
             m = 'Incoming request to {0} failed: {1}'\
                 .format(self.remote_address, repr(e))
             self.logger.error(m)
-            raise HandlerSSHTunnelForwarderError(m)
+            if not self.silent:
+                raise HandlerSSHTunnelForwarderError(m)
+            else:
+                return
 
         if chan is None:
             m = 'Incoming request to {0} was rejected ' \
                 'by the SSH server.'.format(self.remote_address)
             self.logger.error(m)
-            raise HandlerSSHTunnelForwarderError(m)
+            if not self.silent:
+                raise HandlerSSHTunnelForwarderError(m)
+            else:
+                return
 
         self.logger.info('Connected!  Tunnel open.')
         while True:
@@ -139,7 +146,8 @@ class _BaseHandler(SocketServer.BaseRequestHandler):
 
 
 def make_ssh_forward_handler(remote_address_, ssh_transport_,
-                             base_ssh_forward_handler=None):
+                             base_ssh_forward_handler=None,
+                             silent_=True):
     """
     Make SSH Handler class.
     Not interesting for you.
@@ -158,6 +166,7 @@ def make_ssh_forward_handler(remote_address_, ssh_transport_,
         remote_address = remote_address_
         ssh_transport = ssh_transport_
         logger = logger_
+        silent = silent_
 
     return Handler
 
@@ -179,12 +188,13 @@ class _ThreadingForwardServer(SocketServer.ThreadingMixIn, _ForwardServer):
 
 
 def make_ssh_forward_server(remote_address, local_bind_address, ssh_transport,
-                            is_threading=False):
+                            is_threading=False, silent=False):
     """
     Make SSH forward proxy Server class.
     Not interesting for you.
     """
-    Handler = make_ssh_forward_handler(remote_address, ssh_transport)
+    Handler = make_ssh_forward_handler(remote_address, ssh_transport, 
+                    silent_=silent)
     Server = _ThreadingForwardServer if is_threading else _ForwardServer
     server = Server(local_bind_address, Handler)
     return server
@@ -219,7 +229,8 @@ class SSHTunnelForwarder(threading.Thread):
                  ssh_private_key=None,
                  remote_bind_address=None,
                  local_bind_address=None,
-                 threaded=False):
+                 threaded=False,
+                 silent=False):
         """
         Address is (host, port)
 
@@ -244,7 +255,8 @@ class SSHTunnelForwarder(threading.Thread):
             self._remote_bind_address,
             self._local_bind_address,
             self._transport,
-            is_threading=threaded
+            is_threading=threaded,
+            silent=silent
         )
         # self._transport.setDaemon(False) # don`t work =(
         # TODO: fix daemon mod for transport. Main thread don`t close.
@@ -300,7 +312,8 @@ def open(ssh_address=None,
          ssh_private_key=None,
          remote_bind_address=None,
          local_bind_address=None,
-         threaded=False):
+         threaded=False,
+         silent=False):
     """
     Opening SSH Tunnel.
 
@@ -331,7 +344,8 @@ def open(ssh_address=None,
         ssh_private_key,
         remote_bind_address,
         local_bind_address,
-        threaded=threaded)
+        threaded=threaded,
+        silent=silent)
     return f
 
 
