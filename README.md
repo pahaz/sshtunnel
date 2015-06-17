@@ -40,25 +40,6 @@ Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
 
 ## Ex 1: ##
 
-    import sshtunnel
-
-    with sshtunnel.open_tunnel(
-            (ssh_host, ssh_port),
-            ssh_host_key=None,
-            ssh_username=ssh_user,
-            ssh_password=ssh_password,
-            ssh_private_key=None,
-            remote_bind_address=(REMOTE_HOST, REMOTE_PORT)) as server:
-
-        def do_something(port):
-            pass
-
-        print("LOCAL PORT:", server.local_bind_port)
-
-        do_something(server.local_bind_port)
-
-## Ex 2: ##
-
     from sshtunnel import SSHTunnelForwarder
 
     server = SSHTunnelForwarder(
@@ -74,7 +55,8 @@ Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
 
     server.stop()
 
-# Ex 3: ##
+# Ex 2: ##
+
 Example of a port forwarding for the Vagrant MySQL local port:
 
     from sshtunnel import SSHTunnelForwarder
@@ -93,6 +75,10 @@ Example of a port forwarding for the Vagrant MySQL local port:
 
     print('FINISH!')
 
+Or simple use CLI:
+
+    python -m sshtunnel -U vagrant -P vagrant -L :3306 -R 127.0.0.1:3306 -p 2222 localhost
+
 # CONTRIBUTORS #
 
  - [Cameron Maske](https://github.com/cameronmaske)
@@ -107,6 +93,9 @@ Example of a port forwarding for the Vagrant MySQL local port:
 # CHANGELOG #
 
 ## work in progress ##
+
+## v.0.0.4.1 ##
+ - fix CLI issues/13 (pahaz)
 
 ## v.0.0.4 ##
  - daemon mode by default for all threads (fernandezcuesta, pahaz) - *incompatible*

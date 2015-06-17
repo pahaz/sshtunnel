@@ -114,7 +114,7 @@ if sys.version_info.major < 3:
 else:
     import socketserver as SocketServer
 
-__version__ = '0.0.4'
+__version__ = '0.0.4.1'
 __author__ = 'pahaz'
 
 __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
@@ -887,8 +887,7 @@ def open_tunnel(**kwargs):
 def make_ssh_forward_server(remote_address, local_bind_address, ssh_transport,
                             is_threading=False):
     """
-    *DEPRECATED*
-    Make SSH forward proxy Server class.
+    *DEPRECATED* Make SSH forward proxy Server class.
     Not interesting for you.
     """
     warnings.warn("`make_ssh_forward_server` is *DEPRECATED*. Use "
@@ -899,8 +898,7 @@ def make_ssh_forward_server(remote_address, local_bind_address, ssh_transport,
 def make_ssh_forward_handler(remote_address_, ssh_transport_,
                              base_ssh_forward_handler=None):
     """
-    *DEPRECATED*
-    Make SSH Handler class.
+    *DEPRECATED* Make SSH Handler class.
     Not interesting for you.
     """
     warnings.warn("`make_ssh_forward_handler` is *DEPRECATED*. Use "
@@ -932,7 +930,6 @@ if __name__ == '__main__':
         -U (username) is optional, we may gather it from ~/.ssh/config
         -L (local bind address list) is optional, default to 0.0.0.0:22
     """
-
     PARSER = \
         argparse.ArgumentParser(description='sshtunnel',
                                 formatter_class=argparse.RawTextHelpFormatter)
@@ -951,7 +948,7 @@ if __name__ == '__main__':
     PARSER.add_argument('-R', '--remote_bind_address', type=bindlist,
                         nargs='+', default=[], metavar='IP:PORT',
                         required=True,
-                        dest='remote_bind_address',
+                        dest='remote_bind_addresses',
                         help='Remote bind address sequence: '
                              'ip_1:port_1 ip_2:port_2 ... ip_n:port_n\n'
                              'Equivalent to ssh -Lxxxx:IP_ADDRESS:PORT\n'
@@ -959,7 +956,7 @@ if __name__ == '__main__':
                              'Example: -R 10.10.10.10: 10.10.10.10:5900')
 
     PARSER.add_argument('-L', '--local_bind_address', type=bindlist, nargs='*',
-                        dest='local_bind_address', metavar='IP:PORT',
+                        dest='local_bind_addresses', metavar='IP:PORT',
                         help='Local bind address sequence: '
                              'ip_1:port_1 ip_2:port_2 ... ip_n:port_n\n'
                              'Equivalent to ssh -LPORT:xxxxxxxxx:xxxx, '
@@ -991,7 +988,11 @@ if __name__ == '__main__':
     ARGS = PARSER.parse_args()
 
     with open_tunnel(**vars(ARGS)) as my_tunnel:
-        print('\rPress Enter to stop\n')
+        print('''
+        
+        Press <Ctrl-C> or <Enter> to stop!
+        
+        ''')
         if sys.version_info.major < 3:
             raw_input('')
         else:
