@@ -22,69 +22,65 @@ tunnel. It works by opening a port forwarding ssh connection in the
 background, using threads. The connection(s) are closed when explicitly
 calling the `close` method of the returned SSHTunnelForwarder object.
 
-```
-----------------------------------------------------------------------
 
-                            |
--------------+              |    +----------+               +---------
-    LOCAL    |              |    |  REMOTE  |               | PRIVATE
-    SERVER   | <== SSH ========> |  SERVER  | <== local ==> | SERVER
--------------+              |    +----------+               +---------
-                            |
-                         FIREWALL
+.. code-block:: none
 
-----------------------------------------------------------------------
-```
+    ----------------------------------------------------------------------
+    
+                                |
+    -------------+              |    +----------+               +---------
+        LOCAL    |              |    |  REMOTE  |               | PRIVATE
+        SERVER   | <== SSH ========> |  SERVER  | <== local ==> | SERVER
+    -------------+              |    +----------+               +---------
+                                |
+                             FIREWALL
+    
+    ----------------------------------------------------------------------
 
 Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
 
 
 ## Ex 1: ##
 
-```
-from sshtunnel import SSHTunnelForwarder
-
-server = SSHTunnelForwarder(
-    ('pahaz.urfuclub.ru', 22),
-    ssh_username="pahaz",
-    ssh_password="secret",
-    remote_bind_address=('127.0.0.1', 5555))
-
-server.start()
-
-print(server.local_bind_port)
-# work with `SECRET SERVICE` throw `server.local_bind_port`.
-
-server.stop()
-```
+    from sshtunnel import SSHTunnelForwarder
+    
+    server = SSHTunnelForwarder(
+        ('pahaz.urfuclub.ru', 22),
+        ssh_username="pahaz",
+        ssh_password="secret",
+        remote_bind_address=('127.0.0.1', 5555))
+    
+    server.start()
+    
+    print(server.local_bind_port)
+    # work with `SECRET SERVICE` throw `server.local_bind_port`.
+    
+    server.stop()
 
 # Ex 2: ##
 
 Example of a port forwarding for the Vagrant MySQL local port:
-
-```
-from sshtunnel import SSHTunnelForwarder
-from time import sleep
-
-with SSHTunnelForwarder(
-    ('localhost', 2222),
-    ssh_username="vagrant",
-    ssh_password="vagrant",
-    remote_bind_address=('127.0.0.1', 3306)) as server:
-
-    print(server.local_bind_port)
-    while True:
-        # press Ctrl-C for stopping
-        sleep(1)
-
-print('FINISH!')
-```
+    
+    from sshtunnel import SSHTunnelForwarder
+    from time import sleep
+    
+    with SSHTunnelForwarder(
+        ('localhost', 2222),
+        ssh_username="vagrant",
+        ssh_password="vagrant",
+        remote_bind_address=('127.0.0.1', 3306)) as server:
+    
+        print(server.local_bind_port)
+        while True:
+            # press Ctrl-C for stopping
+            sleep(1)
+    
+    print('FINISH!')
 
 Or simple use CLI:
 
-```
-python -m sshtunnel -U vagrant -P vagrant -L :3306 -R 127.0.0.1:3306 -p 2222 localhost
-```
+    python -m sshtunnel -U vagrant -P vagrant -L :3306 -R 127.0.0.1:3306 -p 2222 localhost
+
 
 # CONTRIBUTORS #
 
