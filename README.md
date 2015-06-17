@@ -3,7 +3,7 @@
 **Repo**: https://github.com/pahaz/sshtunnel/
 
 
-Inspired: https://github.com/jmagnusson/bgtunnel but it don`t work on windows.  
+Inspired by https://github.com/jmagnusson/bgtunnel but it doesn't work on Windows.  
 See also: https://github.com/paramiko/paramiko/blob/master/demos/forward.py
 
 Require `paramiko`.
