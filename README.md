@@ -1,4 +1,4 @@
-**Author**: Pahaz Blinov  
+**Author**: **[Pahaz Blinov](https://github.com/pahaz)**
 **Repo**: https://github.com/pahaz/sshtunnel/
 
 
@@ -25,10 +25,10 @@ calling the `close` method of the returned SSHTunnelForwarder object.
     ----------------------------------------------------------------------
 
                                 |
-    -------------|              |    |----------|               |---------
+    -------------+              |    +----------+               +---------
         LOCAL    |              |    |  REMOTE  |               | PRIVATE
         SERVER   | <== SSH ========> |  SERVER  | <== local ==> | SERVER
-    -------------|              |    |----------|               |---------
+    -------------+              |    +----------+               +---------
                                 |
                              FIREWALL
 
@@ -41,7 +41,7 @@ Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
 
     import sshtunnel
 
-    with sshtunnel.open(
+    with sshtunnel.open_tunnel(
             (ssh_host, ssh_port),
             ssh_host_key=None,
             ssh_username=ssh_user,
@@ -52,7 +52,7 @@ Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
         def do_something(port):
             pass
 
-        print "LOCAL PORT:", server.local_bind_port
+        print("LOCAL PORT:", server.local_bind_port)
 
         do_something(server.local_bind_port)
 
@@ -61,7 +61,7 @@ Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
     from sshtunnel import SSHTunnelForwarder
 
     server = SSHTunnelForwarder(
-        ssh_address=('pahaz.urfuclub.ru', 22),
+        ('pahaz.urfuclub.ru', 22),
         ssh_username="pahaz",
         ssh_password="secret",
         remote_bind_address=('127.0.0.1', 5555))
@@ -73,16 +73,51 @@ Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
 
     server.stop()
 
-# AUTHORS #
+# Ex 3: ##
+Example of a port forwarding for the Vagrant MySQL local port:
 
- - [Pahaz Blinov](https://github.com/pahaz)
+    from sshtunnel import SSHTunnelForwarder
+    from time import sleep
+
+    with SSHTunnelForwarder(
+        ('localhost', 2222),
+        ssh_username="vagrant",
+        ssh_password="vagrant",
+        remote_bind_address=('127.0.0.1', 3306)) as server:
+
+        print(server.local_bind_port)
+        while True:
+            # press Ctrl-C for stopping
+            sleep(1)
+
+    print('FINISH!')
+
+# CONTRIBUTORS #
+
  - [Cameron Maske](https://github.com/cameronmaske)
  - [Gustavo Machado](https://github.com/gdmachado)
  - [Colin Jermain](https://github.com/cjermain)
+ - [J.M. Fernández](https://github.com/fernandezcuesta) - (big thanks!)
 
+# TODO #
+
+ - Write tests!
+ 
 # CHANGELOG #
 
 ## work in progress ##
+
+## v.0.0.4 ##
+ - daemon mode by default for all threads (fernandezcuesta, pahaz) - *incompatible*
+ - move `make_ssh_forward_server` to `SSHTunnelForwarder.make_ssh_forward_server` (pahaz, fernandezcuesta) - *incompatible*
+ - move `make_ssh_forward_handler` to `SSHTunnelForwarder.make_ssh_forward_handler_class` (pahaz, fernandezcuesta) - *incompatible*
+ - rename `open` to `open_tunnel` (fernandezcuesta) - *incompatible*
+ - add CLI interface (fernandezcuesta)
+ - support opening several tunnels at once (fernandezcuesta)
+ - improve stability and readability (fernandezcuesta, pahaz)
+ - improve logging (fernandezcuesta, pahaz)
+ - add `raise_exception_if_any_forwarder_have_a_problem` argument for opening several tunnels at once (pahaz)
+ - add `ssh_config_file` argument support (fernandezcuesta)
 
 ## v.0.0.3 ##
  - add `threaded` options (cameronmaske)
