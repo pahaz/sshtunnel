@@ -119,6 +119,7 @@ Example of a port forwarding for the Vagrant MySQL local port:
  - improve logging (fernandezcuesta, pahaz)
  - add `raise_exception_if_any_forwarder_have_a_problem` argument for opening several tunnels at once (pahaz)
  - add `ssh_config_file` argument support (fernandezcuesta)
+ - add Python 3 support (fernandezcuesta, pahaz)
 
 ## v.0.0.3 ##
  - add `threaded` options (cameronmaske)
