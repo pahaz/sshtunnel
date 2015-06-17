@@ -22,9 +22,6 @@ tunnel. It works by opening a port forwarding ssh connection in the
 background, using threads. The connection(s) are closed when explicitly
 calling the `close` method of the returned SSHTunnelForwarder object.
 
-
-.. code-block:: none
-
     ----------------------------------------------------------------------
     
                                 |
