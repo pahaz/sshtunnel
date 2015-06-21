@@ -25,7 +25,9 @@ setup(
     version=version,
     description="Initiate SSH tunnels",
     long_description=long_description,
-    py_modules=[appname],
+#    py_modules=[appname],
+    package_dir={'sshtunnel': ''},
+    packages=['sshtunnel'],
     install_requires=['paramiko>=1.12.3'],
     author='Pahaz Blinov',
     author_email='pahaz.blinov@gmail.com',
@@ -45,6 +47,9 @@ setup(
         'Topic :: Internet :: Proxy Servers',
         'Topic :: Security :: Cryptography',
     ],
+    entry_points={
+        'console_scripts': [
+            'sshtunnel=sshtunnel.sshtunnel:main',
+        ]
+    }
 )
-
-# TODO: add entry_point

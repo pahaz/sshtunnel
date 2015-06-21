@@ -922,8 +922,7 @@ def bindlist(input_str):
     except AssertionError:
         raise argparse.ArgumentTypeError("Both IP:PORT can't be missing!")
 
-
-if __name__ == '__main__':
+def main():
     """ Argparse input options for open_tunnel
         Mandatory: ssh_address, -R (remote bind address list)
         
@@ -997,3 +996,6 @@ if __name__ == '__main__':
             raw_input('')
         else:
             input('')
+
+if __name__ == '__main__':
+    main()
