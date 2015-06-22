@@ -436,7 +436,7 @@ class SSHTunnelForwarder(object):
     def __init__(
             self,
             ssh_address_or_host=None,
-            ssh_port=None,
+            ssh_port=22,
 
             ssh_host_key=None,
             ssh_username=None,
