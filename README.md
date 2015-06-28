@@ -86,6 +86,7 @@ Or simple use CLI:
  - [Colin Jermain](https://github.com/cjermain)
  - [J.M. Fernández](https://github.com/fernandezcuesta) - (big thanks!)
  - [Lewis Thompson](https://github.com/lewisthompson)
+ - [Erik Rogers](https://github.com/ewrogers)
 
 # TODO #
 
@@ -94,7 +95,7 @@ Or simple use CLI:
 # CHANGELOG #
 
 ## work in progress ##
- - fix Thread.daemon mode for Python < 3.3 (lewisthompson)
+ - fix Thread.daemon mode for Python < 3.3 (lewisthompson, ewrogers)
 
 ## v.0.0.4.1 ##
  - fix CLI issues/13 (pahaz)
