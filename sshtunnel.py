@@ -659,12 +659,12 @@ class SSHTunnelForwarder(object):
         threads = [
             threading.Thread(
                 target=self.serve_forever_wrapper, args=(_srv,),
-                name="Srv-" + address_to_str(_srv.local_address),
-                daemon=self.daemon_forward_servers)
+                name="Srv-" + address_to_str(_srv.local_address))
             for _srv in self._server_list
             ]
 
         for thread in threads:
+            thread.daemon = self.daemon_forward_servers
             thread.start()
 
         self._threads = threads
