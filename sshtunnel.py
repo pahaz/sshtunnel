@@ -114,7 +114,7 @@ if sys.version_info.major < 3:
 else:
     import socketserver as SocketServer
 
-__version__ = '0.0.4.1'
+__version__ = '0.0.4.3'
 __author__ = 'pahaz'
 
 __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
@@ -580,7 +580,10 @@ class SSHTunnelForwarder(object):
         except IOError:
             self.logger.warning('Could not read SSH configuration file: {0}'
                                 .format(ssh_config_file))
-
+        
+        if ssh_port is None:
+            ssh_port = 22
+        
         check_host(ssh_host)
         check_port(ssh_port)
         check_addresses(remote_bind_addresses)
