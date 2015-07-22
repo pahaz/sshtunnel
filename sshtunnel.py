@@ -114,7 +114,7 @@ if sys.version_info.major < 3:
 else:
     import socketserver as SocketServer
 
-__version__ = '0.0.4.3'
+__version__ = '0.0.4.4'
 __author__ = 'pahaz'
 
 __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
@@ -645,7 +645,7 @@ class SSHTunnelForwarder(object):
         try:
             if self._ssh_password:  # avoid conflict using both pass and pkey
                 self.logger.debug('Logging in with password %s',
-                                  self._ssh_password)
+                                  '*' * len(self._ssh_password))
                 self._transport.connect(hostkey=self._ssh_host_key,
                                         username=self._ssh_username,
                                         password=self._ssh_password)

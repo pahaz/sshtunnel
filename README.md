@@ -94,7 +94,9 @@ Or simple use CLI:
  
 # CHANGELOG #
 
-## work in progress ##
+## v.0.0.4.4 ##
+
+ - fix issuse [#24](https://github.com/pahaz/sshtunnel/issues/24) - hide ssh password in logs (pahaz)
 
 ## v.0.0.4.3 ##
 
