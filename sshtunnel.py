@@ -942,7 +942,6 @@ def main():
                         help='SSH server account username')
 
     PARSER.add_argument('-p', '--server_port', type=int, dest='ssh_port',
-                        default=22,
                         help='SSH server TCP port (default: 22)')
 
     PARSER.add_argument('-P', '--password', type=str, dest='ssh_password',
