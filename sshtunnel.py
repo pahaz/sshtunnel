@@ -114,7 +114,7 @@ if sys.version_info.major < 3:
 else:
     import socketserver as SocketServer
 
-__version__ = '0.0.4.1'
+__version__ = '0.0.4.4'
 __author__ = 'pahaz'
 
 __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
@@ -579,7 +579,10 @@ class SSHTunnelForwarder(object):
         except IOError:
             self.logger.warning('Could not read SSH configuration file: {0}'
                                 .format(ssh_config_file))
-
+        
+        if ssh_port is None:
+            ssh_port = 22
+        
         check_host(ssh_host)
         check_port(ssh_port)
         check_addresses(remote_bind_addresses)
@@ -641,7 +644,7 @@ class SSHTunnelForwarder(object):
         try:
             if self._ssh_password:  # avoid conflict using both pass and pkey
                 self.logger.debug('Logging in with password %s',
-                                  self._ssh_password)
+                                  '*' * len(self._ssh_password))
                 self._transport.connect(hostkey=self._ssh_host_key,
                                         username=self._ssh_username,
                                         password=self._ssh_password)

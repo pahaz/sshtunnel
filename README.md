@@ -94,8 +94,16 @@ Or simple use CLI:
  
 # CHANGELOG #
 
-## work in progress ##
- - fix Thread.daemon mode for Python < 3.3 (lewisthompson, ewrogers)
+## v.0.0.4.4 ##
+
+ - fix issuse [#24](https://github.com/pahaz/sshtunnel/issues/24) - hide ssh password in logs (pahaz)
+
+## v.0.0.4.3 ##
+
+ - fix default port issuse [#19](https://github.com/pahaz/sshtunnel/issues/19) (pahaz)
+
+## v.0.0.4.2 ##
+ - fix Thread.daemon mode for Python < 3.3 [#16](https://github.com/pahaz/sshtunnel/issues/16), [#21](https://github.com/pahaz/sshtunnel/issues/21) (lewisthompson, ewrogers)
 
 ## v.0.0.4.1 ##
  - fix CLI issues/13 (pahaz)
