@@ -357,7 +357,7 @@ class SSHTunnelForwarder(object):
         """
         Check if local side of the tunnel is up (remote target_host is
         reachable on TCP target_port)
-        
+
         target: (target_host, target_port)
         Returns: Boolean
         """
@@ -442,6 +442,7 @@ class SSHTunnelForwarder(object):
             ssh_username=None,
             ssh_password=None,
             ssh_private_key=None,
+            ssh_private_key_password=None,
 
             remote_bind_address=None,
             local_bind_address=None,
@@ -555,7 +556,7 @@ class SSHTunnelForwarder(object):
 
         if not ssh_password:
             ssh_private_key = \
-                paramiko.RSAKey.from_private_key_file(ssh_private_key) \
+                paramiko.RSAKey.from_private_key_file(ssh_private_key, password=ssh_private_key_password) \
                     if ssh_private_key else None
 
             # Check if a private key was supplied or found in ssh_config
@@ -580,10 +581,10 @@ class SSHTunnelForwarder(object):
         except IOError:
             self.logger.warning('Could not read SSH configuration file: {0}'
                                 .format(ssh_config_file))
-        
+
         if ssh_port is None:
             ssh_port = 22
-        
+
         check_host(ssh_host)
         check_port(ssh_port)
         check_addresses(remote_bind_addresses)
@@ -716,11 +717,11 @@ class SSHTunnelForwarder(object):
         - we attempt a connection to that tunnel (SYN is sent and acknowledged,
         then a FIN packet is sent and never acknowledged... weird)
         - we try to shutdown: it will not succeed until FIN_WAIT_2 and
-        CLOSE_WAIT time out.        
-        
+        CLOSE_WAIT time out.
+
         => Handle these scenarios with 'tunnel_is_up', if true _srv.shutdown()
            will be skipped.
-        
+
         self.tunnel_is_up :       defines whether or not the other side of the
                                   tunnel was reported to be up (and we must
                                   close it) or not (skip shutdown() for that
@@ -841,7 +842,7 @@ def open_tunnel(**kwargs):
     """
     Opening SSH Tunnel.
 
-    kwargs: 
+    kwargs:
      ssh_address='localhost',
      ssh_host_key=None,
      ssh_username=None,
@@ -929,7 +930,7 @@ def bindlist(input_str):
 if __name__ == '__main__':
     """ Argparse input options for open_tunnel
         Mandatory: ssh_address, -R (remote bind address list)
-        
+
         -U (username) is optional, we may gather it from ~/.ssh/config
         -L (local bind address list) is optional, default to 0.0.0.0:22
     """
@@ -992,9 +993,9 @@ if __name__ == '__main__':
 
     with open_tunnel(**vars(ARGS)) as my_tunnel:
         print('''
-        
+
         Press <Ctrl-C> or <Enter> to stop!
-        
+
         ''')
         if sys.version_info.major < 3:
             raw_input('')
