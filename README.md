@@ -17,7 +17,7 @@ or
 
 # SSH tunnels to remote server #
 
-Useful when you need to connect to local port on remote server throw ssh
+Useful when you need to connect to local port on remote server through ssh
 tunnel. It works by opening a port forwarding ssh connection in the
 background, using threads. The connection(s) are closed when explicitly
 calling the `close` method of the returned SSHTunnelForwarder object.
