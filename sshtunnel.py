@@ -357,7 +357,7 @@ class SSHTunnelForwarder(object):
         """
         Check if local side of the tunnel is up (remote target_host is
         reachable on TCP target_port)
-        
+
         target: (target_host, target_port)
         Returns: Boolean
         """
@@ -436,7 +436,6 @@ class SSHTunnelForwarder(object):
     def __init__(
             self,
             ssh_address_or_host=None,
-            ssh_port=None,
 
             ssh_host_key=None,
             ssh_username=None,
@@ -560,7 +559,7 @@ class SSHTunnelForwarder(object):
         if not ssh_password:
             ssh_private_key = \
                 paramiko.RSAKey.from_private_key_file(ssh_private_key) \
-                    if ssh_private_key else None
+                if ssh_private_key else None
 
             # Check if a private key was supplied or found in ssh_config
             if not ssh_private_key:
@@ -610,7 +609,7 @@ class SSHTunnelForwarder(object):
         self.logger.info('Connecting to gateway: {0}:{1} as user "{2}".'
                          .format(ssh_host, ssh_port, ssh_username))
 
-        ## CREATE THE TUNNELS
+        # CREATE THE TUNNELS
         self.tunnel_is_up = {}  # handle status of the other side of the tunnel
         try:
             if ssh_proxy and ssh_proxy_enabled:
@@ -728,11 +727,11 @@ class SSHTunnelForwarder(object):
         - we attempt a connection to that tunnel (SYN is sent and acknowledged,
         then a FIN packet is sent and never acknowledged... weird)
         - we try to shutdown: it will not succeed until FIN_WAIT_2 and
-        CLOSE_WAIT time out.        
-        
+        CLOSE_WAIT time out.
+
         => Handle these scenarios with 'tunnel_is_up', if true _srv.shutdown()
            will be skipped.
-        
+
         self.tunnel_is_up :       defines whether or not the other side of the
                                   tunnel was reported to be up (and we must
                                   close it) or not (skip shutdown() for that
@@ -853,7 +852,7 @@ def open_tunnel(**kwargs):
     """
     Opening SSH Tunnel.
 
-    kwargs: 
+    kwargs:
      ssh_address='localhost',
      ssh_host_key=None,
      ssh_username=None,
@@ -887,7 +886,7 @@ def open_tunnel(**kwargs):
     # Remove all "None" input values
     list(map(kwargs.pop, [item for item in kwargs if not kwargs[item]]))
 
-    ### LOGGER - Create a console handler if not passed as argument
+    # LOGGER - Create a console handler if not passed as argument
     loglevel = kwargs['debug_level'] if 'debug_level' in kwargs \
         else DEFAULT_LOGLEVEL
 
@@ -938,10 +937,10 @@ def bindlist(input_str):
         raise argparse.ArgumentTypeError("Both IP:PORT can't be missing!")
 
 
-if __name__ == '__main__':
+def main():
     """ Argparse input options for open_tunnel
         Mandatory: ssh_address, -R (remote bind address list)
-        
+
         -U (username) is optional, we may gather it from ~/.ssh/config
         -L (local bind address list) is optional, default to 0.0.0.0:22
     """
@@ -1004,11 +1003,14 @@ if __name__ == '__main__':
 
     with open_tunnel(**vars(ARGS)) as my_tunnel:
         print('''
-        
+
         Press <Ctrl-C> or <Enter> to stop!
-        
+
         ''')
         if sys.version_info.major < 3:
             raw_input('')
         else:
             input('')
+
+if __name__ == '__main__':
+    main()
