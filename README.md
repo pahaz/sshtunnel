@@ -79,6 +79,25 @@ Or simple use CLI:
     python -m sshtunnel -U vagrant -P vagrant -L :3306 -R 127.0.0.1:3306 -p 2222 localhost
 
 
+# API/arguments #
+
+## `SSHTunnelForwarder` arguments ##
+
+This is an incomplete list of arguments.  See `__init__()` method of `SSHTunnelForwarder` class in [sshtunnel.py](sshtunnel.py) for a full list.
+
+### `ssh_proxy = None`
+
+Accepts a [paramiko.ProxyCommand](http://paramiko-docs.readthedocs.org/en/latest/api/proxy.html) object which all SSH traffic will be passed through.  See either the [paramiko.ProxyCommand documentation](http://paramiko-docs.readthedocs.org/en/latest/api/proxy.html) or `ProxyCommand` in `ssh_config(5)` for more information.
+
+Note `ssh_proxy` overrides any `ProxyCommand` sourced from the user's `ssh_config`.
+
+Note `ssh_proxy` is ignored if `ssh_proxy_enabled != True`.
+
+### `ssh_proxy_enabled = True`
+
+If true (default) and the user's `ssh_config` file contains a `ProxyCommand` directive that matches the specified `ssh_address_or_host` (or first positional argument) `SSHTunnelForwarder` will create a [paramiko.ProxyCommand](http://paramiko-docs.readthedocs.org/en/latest/api/proxy.html) object which all SSH traffic will be passed through.  See the [ssh_proxy](#ssh_proxy) argument for more details.
+
+
 # CONTRIBUTORS #
 
  - [Cameron Maske](https://github.com/cameronmaske)
@@ -93,6 +112,9 @@ Or simple use CLI:
  - Write tests!
  
 # CHANGELOG #
+
+## work in progress ##
+ - add `ssh_proxy` argument, as well as `ssh_config(5)` `ProxyCommand` support (lewisthompson)
 
 ## v.0.0.4.4 ##
 

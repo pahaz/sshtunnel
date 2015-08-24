@@ -442,6 +442,8 @@ class SSHTunnelForwarder(object):
             ssh_username=None,
             ssh_password=None,
             ssh_private_key=None,
+            ssh_proxy=None,
+            ssh_proxy_enabled=True,
 
             remote_bind_address=None,
             local_bind_address=None,
@@ -471,6 +473,8 @@ class SSHTunnelForwarder(object):
           ssh_port=22
           ssh_host=None
           ssh_config_file=~/.ssh/config
+          ssh_proxy=None
+          ssh_proxy_enabled=True
           logger=__name__
 
         ssh_address is (host, port) or host
@@ -577,6 +581,9 @@ class SSHTunnelForwarder(object):
                 hostname_info.get('identityfile', [None])[0]
             ssh_port = ssh_port if ssh_port else \
                 hostname_info.get('port')
+            ssh_proxy = ssh_proxy if ssh_proxy else \
+                paramiko.ProxyCommand(hostname_info.get('proxycommand')) if \
+                    hostname_info.get('proxycommand') else None
         except IOError:
             self.logger.warning('Could not read SSH configuration file: {0}'
                                 .format(ssh_config_file))
@@ -606,7 +613,12 @@ class SSHTunnelForwarder(object):
         ## CREATE THE TUNNELS
         self.tunnel_is_up = {}  # handle status of the other side of the tunnel
         try:
-            self._transport = paramiko.Transport((ssh_host, ssh_port))
+            if ssh_proxy and ssh_proxy_enabled:
+                self.logger.debug('Connecting with ProxyCommand {0}'
+                                  .format(repr(ssh_proxy.cmd)))
+                self._transport = paramiko.Transport(ssh_proxy)
+            else:
+                self._transport = paramiko.Transport((ssh_host, ssh_port))
             self._transport.daemon = self.daemon_transport
             for r, l in zip(remote_bind_addresses, local_bind_addresses):
                 ssh_forward_server = self.make_ssh_forward_server(r, l)
