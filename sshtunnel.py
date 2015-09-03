@@ -441,9 +441,9 @@ class SSHTunnelForwarder(object):
             ssh_username=None,
             ssh_password=None,
             ssh_private_key=None,
+            ssh_private_key_password=None,
             ssh_proxy=None,
             ssh_proxy_enabled=True,
-
             remote_bind_address=None,
             local_bind_address=None,
             remote_bind_addresses=None,
@@ -558,8 +558,8 @@ class SSHTunnelForwarder(object):
 
         if not ssh_password:
             ssh_private_key = \
-                paramiko.RSAKey.from_private_key_file(ssh_private_key) \
-                if ssh_private_key else None
+                paramiko.RSAKey.from_private_key_file(ssh_private_key, password=ssh_private_key_password) \
+                    if ssh_private_key else None
 
             # Check if a private key was supplied or found in ssh_config
             if not ssh_private_key:
@@ -586,10 +586,10 @@ class SSHTunnelForwarder(object):
         except IOError:
             self.logger.warning('Could not read SSH configuration file: {0}'
                                 .format(ssh_config_file))
-        
+
         if ssh_port is None:
             ssh_port = 22
-        
+
         check_host(ssh_host)
         check_port(ssh_port)
         check_addresses(remote_bind_addresses)
