@@ -186,7 +186,14 @@ def create_logger(logger=None, loglevel=DEFAULT_LOGLEVEL):
         )
         logger.addHandler(console_handler)
 
-    # Add a console handler for paramiko.transport's logger if not present
+    check_paramiko_handlers()
+    return logger
+
+
+def check_paramiko_handlers():
+    """
+    Add a console handler for paramiko.transport's logger if not present
+    """
     paramiko_logger = logging.getLogger('paramiko.transport')
     if not paramiko_logger.handlers:
         console_handler = logging.StreamHandler()
@@ -195,7 +202,6 @@ def create_logger(logger=None, loglevel=DEFAULT_LOGLEVEL):
                               '%(lineno)03d@%(module)-10s| %(message)s')
         )
         paramiko_logger.addHandler(console_handler)
-    return logger
 
 
 def address_to_str(address):
@@ -501,7 +507,12 @@ class SSHTunnelForwarder(object):
         Or use `forwarder.local_bind_port` for getting local forwarding port if
         you use only one tunnel.
         """
-        self.logger = logger or create_logger()
+        if logger:
+            self.logger = logger
+            # Ensure paramiko.transport has a console handler
+            check_paramiko_handlers()
+        else:
+            self.logger = create_logger()
 
         # ssh host port
         if 'ssh_address' in kwargs:
