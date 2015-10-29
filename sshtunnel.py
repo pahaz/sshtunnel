@@ -190,18 +190,21 @@ def create_logger(logger=None, loglevel=DEFAULT_LOGLEVEL):
     return logger
 
 
-def check_paramiko_handlers():
+def check_paramiko_handlers(logger=None):
     """
     Add a console handler for paramiko.transport's logger if not present
     """
     paramiko_logger = logging.getLogger('paramiko.transport')
     if not paramiko_logger.handlers:
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(
-            logging.Formatter('%(asctime)s | %(levelname)-8s| PARAMIKO: '
-                              '%(lineno)03d@%(module)-10s| %(message)s')
-        )
-        paramiko_logger.addHandler(console_handler)
+        if logger:
+            paramiko_logger.handlers = logger.handlers
+        else:
+            console_handler = logging.StreamHandler()
+            console_handler.setFormatter(
+                logging.Formatter('%(asctime)s | %(levelname)-8s| PARAMIKO: '
+                                  '%(lineno)03d@%(module)-10s| %(message)s')
+            )
+            paramiko_logger.addHandler(console_handler)
 
 
 def address_to_str(address):
@@ -510,7 +513,7 @@ class SSHTunnelForwarder(object):
         if logger:
             self.logger = logger
             # Ensure paramiko.transport has a console handler
-            check_paramiko_handlers()
+            check_paramiko_handlers(logger=logger)
         else:
             self.logger = create_logger()
 
