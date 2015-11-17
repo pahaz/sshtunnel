@@ -116,13 +116,13 @@ if sys.version_info.major < 3:
 else:
     import socketserver as SocketServer
 
-__version__ = '0.0.4.4'
+__version__ = '0.0.4.5'
 __author__ = 'pahaz'
 
 __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
            'HandlerSSHTunnelForwarderError', 'open_tunnel')
 
-DEFAULT_LOGLEVEL = 'DEBUG'  # Default level for logging, if no logger passed
+DEFAULT_LOGLEVEL = 40  # Default level (ERROR) for logging, if no logger passed
 LOCAL_CHECK_TIMEOUT = 1  # Timeout in seconds for local tunnel side detection
 _CONNECTION_COUNTER = 1
 _lock = threading.Lock()
@@ -542,6 +542,7 @@ class SSHTunnelForwarder(object):
             (ssh_host, ssh_port) = ssh_address_or_host
         else:
             ssh_host = ssh_address_or_host
+            ssh_port = ssh_port if 'ssh_port' in kwargs else None
 
         # remote binds
         if not remote_bind_address and not remote_bind_addresses:
@@ -891,6 +892,7 @@ def open_tunnel(**kwargs):
      threaded=False,
      ssh_port=22,
      ssh_config_file=~/.ssh/config,
+     debug_level=None,
      logger=None
 
     ** Example **
@@ -915,7 +917,7 @@ def open_tunnel(**kwargs):
     list(map(kwargs.pop, [item for item in kwargs if not kwargs[item]]))
 
     # LOGGER - Create a console handler if not passed as argument
-    loglevel = kwargs['debug_level'] if 'debug_level' in kwargs \
+    loglevel = kwargs.pop('debug_level') if 'debug_level' in kwargs \
         else DEFAULT_LOGLEVEL
 
     logger = kwargs.pop('logger') if 'logger' in kwargs else None
@@ -953,7 +955,7 @@ def bindlist(input_str):
         Returns a tuple (ip_address, port) whose elements are (str, int)
     """
     try:
-        _ip, _port = input_str.split(':')
+        (_ip, _port) = input_str.split(':')
         if not _ip and not _port:
             raise AssertionError
         elif not _port:
@@ -976,7 +978,9 @@ def main():
         argparse.ArgumentParser(description='sshtunnel',
                                 formatter_class=argparse.RawTextHelpFormatter)
     PARSER.add_argument('ssh_address', type=str,
-                        help='SSH server IP address (GW for ssh tunnels)')
+                        help='SSH server IP address (GW for ssh tunnels)\n'
+                             'set with "-- ssh_address" if immediately after '
+                             '-R or -L')
 
     PARSER.add_argument('-U', '--username', type=str, dest='ssh_username',
                         help='SSH server account username')
@@ -1017,18 +1021,20 @@ def main():
     PARSER.add_argument('-t', '--threaded', action='store_true',
                         help='Allow concurrent connections to each tunnel')
 
-    PARSER.add_argument('-d', '--debug_level', const=DEFAULT_LOGLEVEL,
-                        choices=['DEBUG',
-                                 'INFO',
-                                 'WARNING',
-                                 'ERROR',
-                                 'CRITICAL'],
-                        help='Debug level (default: %s)' % DEFAULT_LOGLEVEL,
-                        nargs='?')
+    PARSER.add_argument('-v', '--verbosity', action='count', default=0,
+                        help='Increase output verbosity (default: %s)' %
+                        DEFAULT_LOGLEVEL)
 
-    ARGS = PARSER.parse_args()
+    args = vars(PARSER.parse_args())
+    verbosity = args.pop('verbosity')
+    args.setdefault('debug_level',
+                    DEFAULT_LOGLEVEL - 10*verbosity if verbosity < 4 else 10)
+    # ERROR     40  <- DEFAULT
+    # WARNING   30
+    # INFO      20
+    # DEBUG     10
 
-    with open_tunnel(**vars(ARGS)):
+    with open_tunnel(**args):
         print('''
 
         Press <Ctrl-C> or <Enter> to stop!
