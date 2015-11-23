@@ -653,7 +653,7 @@ class SSHTunnelForwarder(object):
                         'suppress this exception by using the '
                         '`raise_exception_if_any_forwarder_have_a_problem` '
                         'argument'.format(address_to_str(loc),
-                                          address_to_str(loc))
+                                          address_to_str(rem))
                     )
 
         except paramiko.SSHException:
