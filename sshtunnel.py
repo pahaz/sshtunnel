@@ -104,12 +104,12 @@ import warnings
 from select import select
 from os.path import expanduser
 
-if sys.version_info.major < 3:
+if sys.version_info[0] < 3:
     string_types = basestring,
 else:
     string_types = str,
 
-if sys.version_info.major < 3:
+if sys.version_info[0] < 3:
     import SocketServer
 else:
     import socketserver as SocketServer
@@ -170,7 +170,7 @@ def create_logger(logger=None, loglevel=DEFAULT_LOGLEVEL):
     """
     Attaches or creates a new logger and creates console handlers if not present
     """
-    logger = logger or logging.getLogger('{}.SSHTunnelForwarder'. \
+    logger = logger or logging.getLogger('{0}.SSHTunnelForwarder'. \
                                          format(__name__))
 
     if not logger.handlers:  # if no handlers, add a new one (console)
@@ -1007,7 +1007,7 @@ def main():
         Press <Ctrl-C> or <Enter> to stop!
 
         ''')
-        if sys.version_info.major < 3:
+        if sys.version_info[0] < 3:
             raw_input('')
         else:
             input('')
