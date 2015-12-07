@@ -106,6 +106,7 @@ If true (default) and the user's `ssh_config` file contains a `ProxyCommand` dir
  - [J.M. Fernández](https://github.com/fernandezcuesta) - (big thanks!)
  - [Lewis Thompson](https://github.com/lewisthompson)
  - [Erik Rogers](https://github.com/ewrogers)
+ - [Mart Sõmermaa](https://github.com/mrts)
 
 # TODO #
 
@@ -115,6 +116,7 @@ If true (default) and the user's `ssh_config` file contains a `ProxyCommand` dir
 
 ## work in progress ##
  - add `ssh_proxy` argument, as well as `ssh_config(5)` `ProxyCommand` support (lewisthompson)
+ - add some python 2.6 compatibility fixes (mrts)
 
 ## v.0.0.4.4 ##
 
