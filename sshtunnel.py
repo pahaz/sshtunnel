@@ -106,12 +106,12 @@ from os.path import expanduser
 
 import paramiko
 
-if sys.version_info.major < 3:
-    string_types = basestring
+if sys.version_info[0] < 3:
+    string_types = basestring,
 else:
     string_types = str
 
-if sys.version_info.major < 3:
+if sys.version_info[0] < 3:
     import SocketServer
 else:
     import socketserver as SocketServer
@@ -122,7 +122,7 @@ __author__ = 'pahaz'
 __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
            'HandlerSSHTunnelForwarderError', 'open_tunnel')
 
-DEFAULT_LOGLEVEL = 40  # Default level (ERROR) for logging, if no logger passed
+DEFAULT_LOGLEVEL = logging.ERROR  # default level if no logger passed
 LOCAL_CHECK_TIMEOUT = 1  # Timeout in seconds for local tunnel side detection
 _CONNECTION_COUNTER = 1
 _lock = threading.Lock()
@@ -175,9 +175,8 @@ def create_logger(logger=None, loglevel=DEFAULT_LOGLEVEL):
     Attaches or creates a new logger and creates console handlers if not
     present
     """
-    logger = logger or logging.getLogger('{}.SSHTunnelForwarder'.
+    logger = logger or logging.getLogger('{0}.SSHTunnelForwarder'.
                                          format(__name__))
-
     if not logger.handlers:  # if no handlers, add a new one (console)
         logger.setLevel(loglevel)
         console_handler = logging.StreamHandler()
@@ -227,13 +226,11 @@ def get_connection_id():
 
 
 class BaseSSHTunnelForwarderError(Exception):
-
     """ Base exception for Tunnel forwarder errors """
     pass
 
 
 class HandlerSSHTunnelForwarderError(BaseSSHTunnelForwarderError):
-
     """ Handler exception for Tunnel forwarder errors """
     pass
 
@@ -246,7 +243,6 @@ class HandlerSSHTunnelForwarderError(BaseSSHTunnelForwarderError):
 
 
 class _ForwardHandler(SocketServer.BaseRequestHandler):
-
     """ Base handler for tunnel connections """
     remote_address = None
     ssh_transport = None
@@ -308,7 +304,6 @@ class _ForwardHandler(SocketServer.BaseRequestHandler):
 
 
 class _ForwardServer(SocketServer.TCPServer):  # Not Threading
-
     """
     Non-threading version of the forward server
     """
@@ -340,7 +335,6 @@ class _ForwardServer(SocketServer.TCPServer):  # Not Threading
 
 
 class _ThreadingForwardServer(SocketServer.ThreadingMixIn, _ForwardServer):
-
     """
     Allows concurrent connections to each tunnel
     """
@@ -349,7 +343,6 @@ class _ThreadingForwardServer(SocketServer.ThreadingMixIn, _ForwardServer):
 
 
 class SSHTunnelForwarder(object):
-
     """
     Class for forward remote server port throw SSH tunnel to local port.
 
@@ -428,7 +421,6 @@ class SSHTunnelForwarder(object):
             raise BaseSSHTunnelForwarderError(msg)
 
         class Handler(_Handler):
-
             """ handler class for remote tunnels """
             remote_address = remote_address_
             ssh_transport = self._transport
@@ -1040,7 +1032,7 @@ def main():
         Press <Ctrl-C> or <Enter> to stop!
 
         ''')
-        if sys.version_info.major < 3:
+        if sys.version_info[0] < 3:
             raw_input('')
         else:
             input('')
