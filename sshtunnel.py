@@ -124,6 +124,8 @@ __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
 
 DEFAULT_LOGLEVEL = logging.ERROR  # default level if no logger passed
 LOCAL_CHECK_TIMEOUT = 1  # Timeout in seconds for local tunnel side detection
+DAEMON = False
+TRACE = False
 _CONNECTION_COUNTER = 1
 _lock = threading.Lock()
 
@@ -250,6 +252,7 @@ class _ForwardHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         uid = get_connection_id()
+        info = 'In #{0} <-- {1}'.format(uid, self.client_address)
         try:
             assert isinstance(self.remote_address, tuple)
             chan = self.ssh_transport.open_channel('direct-tcpip',
@@ -261,28 +264,34 @@ class _ForwardHandler(SocketServer.BaseRequestHandler):
             self.logger.error(msg)
             raise HandlerSSHTunnelForwarderError(msg)
         except paramiko.SSHException as e:
-            msg = 'Incoming request #{0} to {1} failed: {2}' \
-                .format(uid, self.remote_address, repr(e))
-            self.logger.debug(msg)
-            raise HandlerSSHTunnelForwarderError(msg)
-
-        if chan is None:
-            msg = 'Incoming request #{0} to {1} was rejected ' \
-                  'by the SSH server.'.format(uid, self.remote_address)
+            msg = '{0} to {1} failed: {2}' \
+                .format(info, self.remote_address, repr(e))
             self.logger.error(msg)
             raise HandlerSSHTunnelForwarderError(msg)
 
-        self.logger.debug('Incoming request #{0}'.format(uid))
+        if chan is None:
+            msg = '{0} to {1} was rejected ' \
+                  'by the SSH server.'.format(info, self.remote_address)
+            self.logger.error(msg)
+            raise HandlerSSHTunnelForwarderError(msg)
+
+        self.logger.info('{0} connected'.format(info))
         try:
             while True:
                 rqst, _, _ = select([self.request, chan], [], [])
                 if self.request in rqst:
                     data = self.request.recv(1024)
+                    if TRACE:
+                        self.logger.info('{0} recv: {1}'
+                                         .format(info, repr(data)))
                     if len(data) == 0:
                         break
                     chan.send(data)
                 if chan in rqst:
                     data = chan.recv(1024)
+                    if TRACE:
+                        self.logger.info('{0} recv: {1}'
+                                         .format(info, repr(data)))
                     if len(data) == 0:
                         break
                     self.request.send(data)
@@ -291,16 +300,13 @@ class _ForwardHandler(SocketServer.BaseRequestHandler):
             # exception. It was seen that a 3way FIN is processed later on, so
             # no need to make an ordered close of the connection here or raise
             # the exception beyond this point...
-            self.logger.warning(
-                'Incoming request #{0} sending RST'.format(uid))
+            self.logger.warning('{0} sending RST'.format(info))
         except Exception as e:
-            self.logger.error('Incoming request #{0} error: {1}'
-                              .format(uid, repr(e)))
+            self.logger.error('{0} error: {1}'.format(info, repr(e)))
         finally:
             chan.close()
             self.request.close()
-            self.logger.debug('Incoming request #{0} connection closed.'
-                              .format(uid))
+            self.logger.info('{0} connection closed.'.format(info))
 
 
 class _ForwardServer(SocketServer.TCPServer):  # Not Threading
@@ -339,7 +345,7 @@ class _ThreadingForwardServer(SocketServer.ThreadingMixIn, _ForwardServer):
     Allows concurrent connections to each tunnel
     """
     # Will cleanly stop threads created by ThreadingMixIn when quitting
-    daemon_threads = True
+    daemon_threads = DAEMON
 
 
 class SSHTunnelForwarder(object):
@@ -355,7 +361,7 @@ class SSHTunnelForwarder(object):
     Example:
 
         >>> server = SSHTunnelForwarder(
-                        ssh_address=('pahaz.urfuclub.ru', 22),
+                        ('pahaz.urfuclub.ru', 22),
                         ssh_username="pahaz",
                         ssh_password="secret",
                         remote_bind_address=('127.0.0.1', 5555))
@@ -363,8 +369,9 @@ class SSHTunnelForwarder(object):
         >>> print(server.local_bind_port)
         >>> server.stop()
     """
-    daemon_forward_servers = True
-    daemon_transport = True
+    is_use_local_check_up = False
+    daemon_forward_servers = DAEMON
+    daemon_transport = DAEMON
 
     def local_is_up(self, target):
         """
@@ -401,9 +408,9 @@ class SSHTunnelForwarder(object):
         if reachable_from:
             reachable_from_text = ', '.join(['{0}:{1}'.format(h, p)
                                              for h, p in reachable_from])
-            self.logger.debug('Local side of the tunnel ({0[0]}:{0[1]}) '
-                              'is UP and reachable from ({1})'
-                              .format(target, reachable_from_text))
+            self.logger.info('Local side of the tunnel ({0[0]}:{0[1]}) '
+                             'is UP and reachable from ({1})'
+                             .format(target, reachable_from_text))
         else:
             self.logger.warning('Local side of tunnel ({0[0]}:{0[1]}) is DOWN,'
                                 ' we will not attempt to connect.'
@@ -534,7 +541,7 @@ class SSHTunnelForwarder(object):
             (ssh_host, ssh_port) = ssh_address_or_host
         else:
             ssh_host = ssh_address_or_host
-            ssh_port = ssh_port if 'ssh_port' in kwargs else None
+            ssh_port = kwargs.pop('ssh_port', None)
 
         # remote binds
         if not remote_bind_address and not remote_bind_addresses:
@@ -700,6 +707,9 @@ class SSHTunnelForwarder(object):
 
         self._threads = threads
         self._is_started = True
+
+        if not self.is_use_local_check_up:
+            return
 
         for _srv in self._server_list:
             self.tunnel_is_up[_srv.local_address] = \
@@ -868,6 +878,9 @@ class SSHTunnelForwarder(object):
     def __exit__(self, *args):
         self.stop()
 
+    def close(self):
+        self.stop()
+
 
 def open_tunnel(**kwargs):
     """
@@ -881,7 +894,7 @@ def open_tunnel(**kwargs):
      ssh_private_key=None,
      remote_bind_address=None,
      local_bind_address=None,
-     threaded=False,
+     threaded=True,
      ssh_port=22,
      ssh_config_file=~/.ssh/config,
      debug_level=None,
@@ -1018,13 +1031,9 @@ def main():
                         DEFAULT_LOGLEVEL)
 
     args = vars(PARSER.parse_args())
-    verbosity = args.pop('verbosity')
-    args.setdefault('debug_level',
-                    DEFAULT_LOGLEVEL - 10*verbosity if verbosity < 4 else 10)
-    # ERROR     40  <- DEFAULT
-    # WARNING   30
-    # INFO      20
-    # DEBUG     10
+    verbosity = min(args.pop('verbosity'), 3)
+    levels = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+    args.setdefault('debug_level', levels[verbosity])
 
     with open_tunnel(**args):
         print('''
@@ -1036,6 +1045,3 @@ def main():
             raw_input('')
         else:
             input('')
-
-if __name__ == '__main__':
-    main()
