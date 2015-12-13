@@ -1,0 +1,9 @@
+machine:
+  python:
+    version: 2.7.5
+dependencies:
+  override:
+    - pip install -r test_requirements.txt
+test:
+  override:
+    - tox
