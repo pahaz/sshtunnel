@@ -116,7 +116,7 @@ if sys.version_info[0] < 3:
 else:
     import socketserver as SocketServer
 
-__version__ = '0.0.4.5'
+__version__ = '0.0.5'
 __author__ = 'pahaz'
 
 __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
