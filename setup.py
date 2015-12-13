@@ -28,7 +28,7 @@ setup(
 #    py_modules=[appname],
     package_dir={'sshtunnel': ''},
     packages=['sshtunnel'],
-    install_requires=['paramiko>=1.12.3'],
+    install_requires=['paramiko>=1.15.2'],
     author='Pahaz Blinov',
     author_email='pahaz.blinov@gmail.com',
     url='https://github.com/pahaz/sshtunnel',
