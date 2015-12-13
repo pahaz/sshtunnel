@@ -117,7 +117,7 @@ If true (default) and the user's `ssh_config` file contains a `ProxyCommand` dir
 ## work in progres ##
  - tests??
 
-## v.0.0.0.5 ##
+## v.0.0.5 ##
  - add `ssh_proxy` argument, as well as `ssh_config(5)` `ProxyCommand` support (lewisthompson)
  - add some python 2.6 compatibility fixes (mrts)
  - `paramiko.transport` inherits handlers of loggers passed to `SSHTunnelForwarder` (fernandezcuesta)
