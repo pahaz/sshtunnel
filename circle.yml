@@ -1,12 +1,20 @@
+machine:
+  environment:
+    TOX_PY26: '2.6.8'
+    TOX_PY27: '2.7.10'
+    TOX_PY32: '3.2.5'
+    TOX_PY33: '3.3.3'
+    TOX_PY34: '3.4.3'
+
 dependencies:
   override:
-    - sudo apt-get install python3-dev python3-setuptools -y
-    - sudo easy_install3 pip
-    - sudo easy_install3 virtualenv
-    - sudo add-apt-repository ppa:fkrull/deadsnakes -y
-    - sudo apt-get update
-    - sudo apt-get install python2.7 python3.5 python3.4 -y
-    - pip install -r test_requirements.txt
+    - pip -V
+    - pip install -U pip
+    - pip install -U ipdb
+    - pip install --upgrade --editable tox
+    - pip install --upgrade --editable tox-pyenv
+    - pyenv local $TOX_PY34 $TOX_PY33 $TOX_PY32 $TOX_PY27 $TOX_PY26
+
 test:
   override:
-    - tox
+    - tox -v --recreate
