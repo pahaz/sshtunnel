@@ -1,6 +1,7 @@
 from __future__ import with_statement
 
 import logging
+import random
 import select
 import socket
 import threading
@@ -8,10 +9,31 @@ import time
 import unittest
 
 import paramiko
+from os import path
 
 import sshtunnel
 from sshtunnel import SSHTunnelForwarder
-from testutls import get_random_string
+
+# UTILS
+
+
+def get_random_string(length=12):
+    """
+    >>> r = get_random_string(1)
+    >>> r in asciis
+    True
+    >>> r = get_random_string(2)
+    >>> [r[0] in asciis, r[1] in asciis]
+    [True, True]
+    """
+    ascii_lowercase = 'abcdefghijklmnopqrstuvwxyz'
+    ascii_uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    digits = '0123456789'
+    asciis = ascii_lowercase + ascii_uppercase + digits
+    return ''.join([random.choice(asciis) for _ in range(length)])
+
+
+# TESTS
 
 SSH_USERNAME = get_random_string()
 SSH_PASSWORD = get_random_string()
@@ -24,7 +46,8 @@ FINGERPRINTS = {
     'ecdsa-sha2-nistp256': ECDSA,
 }
 
-test_path = lambda x: x
+here = path.abspath(path.dirname(__file__))
+get_test_data_path = lambda x: path.join(here, x)
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
@@ -120,7 +143,7 @@ class SSHClientTest(unittest.TestCase):
         self.socks, addr = self.ssockl.accept()
         self.ts = paramiko.Transport(self.socks)
         host_key = paramiko.RSAKey.from_private_key_file(
-            test_path('testrsa.key')
+            get_test_data_path('testrsa.key')
         )
         self.ts.add_server_key(host_key)
         server = NullServer(allowed_keys=FINGERPRINTS.keys())
@@ -228,7 +251,7 @@ class SSHClientTest(unittest.TestCase):
         server = SSHTunnelForwarder(
             (self.saddr, self.sport),
             ssh_username=SSH_USERNAME,
-            ssh_private_key=test_path('testrsa.key'),
+            ssh_private_key=get_test_data_path('testrsa.key'),
             remote_bind_address=(self.eaddr, self.eport),
             logger=log,
         )
@@ -247,7 +270,3 @@ class SSHClientTest(unittest.TestCase):
         z = (s.recv(1000))
         self.assertEqual(z, MESSAGE)
         s.close()
-
-
-if __name__ == '__main__':
-    unittest.main()
