@@ -121,6 +121,7 @@ If true (default) and the user's `ssh_config` file contains a `ProxyCommand` dir
  - fix #34, #33, code style and docs (fernandezcuesta)
  - add tests (pahaz)
  - add CI integration (pahaz)
+ - normal packaging (pahaz)
 
 ## v.0.0.4.4 ##
 
