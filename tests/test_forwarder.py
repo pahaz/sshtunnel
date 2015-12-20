@@ -47,11 +47,14 @@ FINGERPRINTS = {
 }
 
 here = path.abspath(path.dirname(__file__))
-get_test_data_path = lambda x: path.join(here, x)
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 log.addHandler(logging.StreamHandler())
 sshtunnel.TRACE = True
+
+
+def get_test_data_path(x):
+    return path.join(here, x)
 
 
 class NullServer (paramiko.ServerInterface):

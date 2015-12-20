@@ -103,11 +103,10 @@ import warnings
 import threading
 from select import select
 from os.path import expanduser
-
 import paramiko
 
 if sys.version_info[0] < 3:
-    string_types = basestring,
+    string_types = basestring,  # noqa
 else:
     string_types = str
 
@@ -177,8 +176,9 @@ def create_logger(logger=None, loglevel=DEFAULT_LOGLEVEL):
     Attaches or creates a new logger and creates console handlers if not
     present
     """
-    logger = logger or logging.getLogger('{0}.SSHTunnelForwarder'.
-                                         format(__name__))
+    logger = logger or logging.getLogger(
+        '{0}.SSHTunnelForwarder'.format(__name__)
+    )
     if not logger.handlers:  # if no handlers, add a new one (console)
         logger.setLevel(loglevel)
         console_handler = logging.StreamHandler()
@@ -588,23 +588,29 @@ class SSHTunnelForwarder(object):
             hostname_info = ssh_config.lookup(ssh_host)
             # gather settings for user, port and identity file
             # last resort: use the 'login name' of the user
-            ssh_username = ssh_username or hostname_info.get('user',
-                                                             getpass.getuser())
-            ssh_private_key = ssh_private_key or \
+            ssh_username = (
+                ssh_username or
+                hostname_info.get('user', getpass.getuser())
+            )
+            ssh_private_key = (
+                ssh_private_key or
                 hostname_info.get('identityfile', [None])[0]
+            )
             ssh_port = ssh_port or hostname_info.get('port')
-            ssh_proxy = ssh_proxy or paramiko.ProxyCommand(
-                            hostname_info.get('proxycommand')
-                        ) if hostname_info.get('proxycommand') else None
+            proxycommand = hostname_info.get('proxycommand')
+            ssh_proxy = (
+                ssh_proxy or
+                paramiko.ProxyCommand(proxycommand) if proxycommand else None
+            )
         except IOError:
             self.logger.warning('Could not read SSH configuration file: {0}'
                                 .format(ssh_config_file))
 
         if not ssh_password:
             ssh_private_key = paramiko.RSAKey.from_private_key_file(
-                                  ssh_private_key,
-                                  password=ssh_private_key_password
-                              ) if ssh_private_key else None
+                ssh_private_key,
+                password=ssh_private_key_password
+            ) if ssh_private_key else None
 
             # Check if a private key was supplied or found in ssh_config
             if not ssh_private_key:
@@ -697,9 +703,10 @@ class SSHTunnelForwarder(object):
         threads = [
             threading.Thread(
                 target=self.serve_forever_wrapper, args=(_srv,),
-                name="Srv-" + address_to_str(_srv.local_address))
+                name="Srv-" + address_to_str(_srv.local_address)
+            )
             for _srv in self._server_list
-            ]
+        ]
 
         for thread in threads:
             thread.daemon = self.daemon_forward_servers
@@ -979,56 +986,77 @@ def main():
         -U (username) is optional, we may gather it from ~/.ssh/config
         -L (local bind address list) is optional, default to 0.0.0.0:22
     """
-    PARSER = \
-        argparse.ArgumentParser(description='sshtunnel',
-                                formatter_class=argparse.RawTextHelpFormatter)
-    PARSER.add_argument('ssh_address', type=str,
-                        help='SSH server IP address (GW for ssh tunnels)\n'
-                             'set with "-- ssh_address" if immediately after '
-                             '-R or -L')
+    PARSER = argparse.ArgumentParser(
+        description='sshtunnel',
+        formatter_class=argparse.RawTextHelpFormatter
+    )
 
-    PARSER.add_argument('-U', '--username', type=str, dest='ssh_username',
-                        help='SSH server account username')
+    PARSER.add_argument(
+        'ssh_address', type=str,
+        help='SSH server IP address (GW for ssh tunnels)\n'
+             'set with "-- ssh_address" if immediately after '
+             '-R or -L'
+    )
 
-    PARSER.add_argument('-p', '--server_port', type=int, dest='ssh_port',
-                        help='SSH server TCP port (default: 22)')
+    PARSER.add_argument(
+        '-U', '--username', type=str, dest='ssh_username',
+        help='SSH server account username'
+    )
 
-    PARSER.add_argument('-P', '--password', type=str, dest='ssh_password',
-                        help='SSH server account password')
+    PARSER.add_argument(
+        '-p', '--server_port', type=int, dest='ssh_port',
+        help='SSH server TCP port (default: 22)'
+    )
 
-    PARSER.add_argument('-R', '--remote_bind_address', type=bindlist,
-                        nargs='+', default=[], metavar='IP:PORT',
-                        required=True,
-                        dest='remote_bind_addresses',
-                        help='Remote bind address sequence: '
-                             'ip_1:port_1 ip_2:port_2 ... ip_n:port_n\n'
-                             'Equivalent to ssh -Lxxxx:IP_ADDRESS:PORT\n'
-                             'If omitted, default port is 22.\n'
-                             'Example: -R 10.10.10.10: 10.10.10.10:5900')
+    PARSER.add_argument(
+        '-P', '--password', type=str, dest='ssh_password',
+        help='SSH server account password'
+    )
 
-    PARSER.add_argument('-L', '--local_bind_address', type=bindlist, nargs='*',
-                        dest='local_bind_addresses', metavar='IP:PORT',
-                        help='Local bind address sequence: '
-                             'ip_1:port_1 ip_2:port_2 ... ip_n:port_n\n'
-                             'Equivalent to ssh -LPORT:xxxxxxxxx:xxxx, '
-                             'being the local IP address optional.\n'
-                             'By default it will listen in all interfaces '
-                             '(0.0.0.0) and choose a random port.\n'
-                             'Example: -L :40000')
+    PARSER.add_argument(
+        '-R', '--remote_bind_address', type=bindlist,
+        nargs='+', default=[], metavar='IP:PORT',
+        required=True,
+        dest='remote_bind_addresses',
+        help='Remote bind address sequence: '
+             'ip_1:port_1 ip_2:port_2 ... ip_n:port_n\n'
+             'Equivalent to ssh -Lxxxx:IP_ADDRESS:PORT\n'
+             'If omitted, default port is 22.\n'
+             'Example: -R 10.10.10.10: 10.10.10.10:5900'
+    )
 
-    PARSER.add_argument('-k', '--ssh_host_key', type=str,
-                        help="Gateway's host key")
+    PARSER.add_argument(
+        '-L', '--local_bind_address', type=bindlist, nargs='*',
+        dest='local_bind_addresses', metavar='IP:PORT',
+        help='Local bind address sequence: '
+             'ip_1:port_1 ip_2:port_2 ... ip_n:port_n\n'
+             'Equivalent to ssh -LPORT:xxxxxxxxx:xxxx, '
+             'being the local IP address optional.\n'
+             'By default it will listen in all interfaces '
+             '(0.0.0.0) and choose a random port.\n'
+             'Example: -L :40000'
+    )
 
-    PARSER.add_argument('-K', '--private_key_file', dest='ssh_private_key',
-                        metavar='RSA_KEY_FILE',
-                        type=str, help='RSA private key file')
+    PARSER.add_argument(
+        '-k', '--ssh_host_key', type=str,
+        help="Gateway's host key"
+    )
 
-    PARSER.add_argument('-t', '--threaded', action='store_true',
-                        help='Allow concurrent connections to each tunnel')
+    PARSER.add_argument(
+        '-K', '--private_key_file', dest='ssh_private_key',
+        metavar='RSA_KEY_FILE',
+        type=str, help='RSA private key file'
+    )
 
-    PARSER.add_argument('-v', '--verbosity', action='count', default=0,
-                        help='Increase output verbosity (default: %s)' %
-                        DEFAULT_LOGLEVEL)
+    PARSER.add_argument(
+        '-t', '--threaded', action='store_true',
+        help='Allow concurrent connections to each tunnel'
+    )
+
+    PARSER.add_argument(
+        '-v', '--verbosity', action='count', default=0,
+        help='Increase output verbosity (default: %s)' % DEFAULT_LOGLEVEL
+    )
 
     args = vars(PARSER.parse_args())
     verbosity = min(args.pop('verbosity'), 3)
@@ -1042,7 +1070,7 @@ def main():
 
         ''')
         if sys.version_info[0] < 3:
-            raw_input('')
+            raw_input('')  # noqa
         else:
             input('')
 
