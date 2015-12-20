@@ -11,8 +11,8 @@ dependencies:
     - pip -V
     - pip install -U pip
     - pip install -U ipdb
-    - pip install --upgrade --editable tox
-    - pip install --upgrade --editable tox-pyenv
+    - pip install --upgrade tox
+    - pip install --upgrade tox-pyenv
     - pyenv local $TOX_PY34 $TOX_PY33 $TOX_PY32 $TOX_PY27 $TOX_PY26
 
 test:

@@ -1,3 +1,5 @@
+[![Circle CI](https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg)](https://circleci.com/gh/pahaz/sshtunnel)
+
 **Author**: **[Pahaz Blinov](https://github.com/pahaz)**
 
 **Repo**: https://github.com/pahaz/sshtunnel/
