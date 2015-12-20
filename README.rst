@@ -11,18 +11,14 @@ Require `paramiko`.
 
 # Install #
 
-    pip install sshtunnel
-
-or
-
-    easy_install sshtunnel
+`pip install sshtunnel` or `easy_install sshtunnel`
 
 # SSH tunnels to remote server #
 
 Useful when you need to connect to local port on remote server through ssh
 tunnel. It works by opening a port forwarding ssh connection in the
 background, using threads. The connection(s) are closed when explicitly
-calling the `close` method of the returned SSHTunnelForwarder object.
+calling the `close` method of the returned SSHTunnelForwarder object.::
 
     ----------------------------------------------------------------------
     
@@ -39,7 +35,7 @@ calling the `close` method of the returned SSHTunnelForwarder object.
 Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
 
 
-## Ex 1: ##
+## Ex 1: ## ::
 
     from sshtunnel import SSHTunnelForwarder
     
@@ -56,10 +52,10 @@ Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
     
     server.stop()
 
-# Ex 2: ##
+## Ex 2: ##
 
-Example of a port forwarding for the Vagrant MySQL local port:
-    
+Example of a port forwarding for the Vagrant MySQL local port::
+
     from sshtunnel import SSHTunnelForwarder
     from time import sleep
     
@@ -76,10 +72,9 @@ Example of a port forwarding for the Vagrant MySQL local port:
     
     print('FINISH!')
 
-Or simple use CLI:
+Or simple use CLI::
 
     python -m sshtunnel -U vagrant -P vagrant -L :3306 -R 127.0.0.1:3306 -p 2222 localhost
-
 
 # API/arguments #
 
@@ -117,7 +112,7 @@ If true (default) and the user's `ssh_config` file contains a `ProxyCommand` dir
 # CHANGELOG #
 
 ## work in progres ##
- - ??
+ - new feature
 
 ## v.0.0.5 ##
  - add `ssh_proxy` argument, as well as `ssh_config(5)` `ProxyCommand` support (lewisthompson)
