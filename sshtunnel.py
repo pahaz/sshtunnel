@@ -1045,3 +1045,7 @@ def main():
             raw_input('')
         else:
             input('')
+
+
+if __name__ == '__main__':
+    main()
