@@ -9,11 +9,19 @@ See also: https://github.com/paramiko/paramiko/blob/master/demos/forward.py
 
 Require `paramiko`.
 
-# Install #
+Install
+=======
 
-`pip install sshtunnel` or `easy_install sshtunnel`
+::
 
-# SSH tunnels to remote server #
+    pip install sshtunnel
+
+or :: 
+
+    easy_install sshtunnel
+
+SSH tunnels to remote server
+============================
 
 Useful when you need to connect to local port on remote server through ssh
 tunnel. It works by opening a port forwarding ssh connection in the
@@ -35,7 +43,10 @@ calling the `close` method of the returned SSHTunnelForwarder object.::
 Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
 
 
-## Ex 1: ## ::
+Ex 1
+----
+
+::
 
     from sshtunnel import SSHTunnelForwarder
     
@@ -52,7 +63,8 @@ Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
     
     server.stop()
 
-## Ex 2: ##
+Ex 2
+----
 
 Example of a port forwarding for the Vagrant MySQL local port::
 
@@ -76,13 +88,16 @@ Or simple use CLI::
 
     python -m sshtunnel -U vagrant -P vagrant -L :3306 -R 127.0.0.1:3306 -p 2222 localhost
 
-# API/arguments #
+API/arguments
+=============
 
-## `SSHTunnelForwarder` arguments ##
+`SSHTunnelForwarder` arguments
+------------------------------
 
 This is an incomplete list of arguments.  See `__init__()` method of `SSHTunnelForwarder` class in [sshtunnel.py](sshtunnel.py) for a full list.
 
-### `ssh_proxy = None`
+`ssh_proxy = None`
+------------------
 
 Accepts a [paramiko.ProxyCommand](http://paramiko-docs.readthedocs.org/en/latest/api/proxy.html) object which all SSH traffic will be passed through.  See either the [paramiko.ProxyCommand documentation](http://paramiko-docs.readthedocs.org/en/latest/api/proxy.html) or `ProxyCommand` in `ssh_config(5)` for more information.
 
@@ -90,12 +105,14 @@ Note `ssh_proxy` overrides any `ProxyCommand` sourced from the user's `ssh_confi
 
 Note `ssh_proxy` is ignored if `ssh_proxy_enabled != True`.
 
-### `ssh_proxy_enabled = True`
+`ssh_proxy_enabled = True`
+--------------------------
 
 If true (default) and the user's `ssh_config` file contains a `ProxyCommand` directive that matches the specified `ssh_address_or_host` (or first positional argument) `SSHTunnelForwarder` will create a [paramiko.ProxyCommand](http://paramiko-docs.readthedocs.org/en/latest/api/proxy.html) object which all SSH traffic will be passed through.  See the [ssh_proxy](#ssh_proxy) argument for more details.
 
 
-# CONTRIBUTORS #
+CONTRIBUTORS
+============
 
  - [Cameron Maske](https://github.com/cameronmaske)
  - [Gustavo Machado](https://github.com/gdmachado)
@@ -105,11 +122,13 @@ If true (default) and the user's `ssh_config` file contains a `ProxyCommand` dir
  - [Erik Rogers](https://github.com/ewrogers)
  - [Mart Sõmermaa](https://github.com/mrts)
 
-# TODO #
+TODO
+====
 
  - Write tests!
  
-# CHANGELOG #
+CHANGELOG
+=========
 
 ## work in progres ##
  - new feature
