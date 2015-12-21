@@ -140,6 +140,7 @@ class SSHClientTest(unittest.TestCase):
     def tearDown(self):
         for attr in "server tc ts socks ssockl esockl".split():
             if hasattr(self, attr):
+                log.info('tearDown() {0}'.format(attr))
                 getattr(self, attr).close()
 
     def _run_ssh_server(self, delay=0):
