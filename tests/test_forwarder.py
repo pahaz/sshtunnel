@@ -129,6 +129,7 @@ class SSHClientTest(unittest.TestCase):
         return s, addr, port
 
     def setUp(self):
+        log.info('setUp()')
         self.ssockl, self.saddr, self.sport = self.make_socket()
         self.esockl, self.eaddr, self.eport = self.make_socket()
         log.info("Sockets for SSH server: {0}:{1}"
@@ -136,12 +137,18 @@ class SSHClientTest(unittest.TestCase):
         log.info("Sockets for ECHO server: {0}:{1}"
                  .format(self.eaddr, self.eport))
         self.event = threading.Event()
+        self.threads = []
+        self.is_echo_server_working = False
 
     def tearDown(self):
+        log.info('tearDown()')
+        self.stop_echo_server()
         for attr in "server tc ts socks ssockl esockl".split():
             if hasattr(self, attr):
                 log.info('tearDown() {0}'.format(attr))
                 getattr(self, attr).close()
+        for x in self.threads:
+            log.info('thread {0} - is_alive={1}'.format(x, x.is_alive()))
 
     def _run_ssh_server(self, delay=0):
         self.socks, addr = self.ssockl.accept()
@@ -153,14 +160,27 @@ class SSHClientTest(unittest.TestCase):
         server = NullServer(allowed_keys=FINGERPRINTS.keys())
         if delay:
             time.sleep(delay)
-        threading.Thread(target=self._do_forwarding).start()
+        t = threading.Thread(target=self._do_forwarding, name='ssh-forwarding')
+        t.daemon = False
+        self.threads.append(t)
+        t.start()
         self.ts.start_server(self.event, server)
+
+    def stop_echo_server(self):
+        self.is_echo_server_working = False
+
+    def start_echo_server(self):
+        t = threading.Thread(target=self._run_echo_server, name='echo-server')
+        t.daemon = False
+        self.threads.append(t)
+        t.start()
 
     def _run_echo_server(self):
         socks = [self.esockl]
+        self.is_echo_server_working = True
         log.info('ECHO RUN on {0}'.format(self.esockl.getsockname()))
         try:
-            while 1:
+            while self.is_echo_server_working:
                 inputready, _, _ = select.select(socks, [], [])
                 for s in inputready:
                     if s == self.esockl:
@@ -175,19 +195,21 @@ class SSHClientTest(unittest.TestCase):
                         # handle all other sockets
                         try:
                             data = client.recv(1000)
-                            log.info('ECHO recv() {0}'.format(data))
-                            if data:
-                                client.send(data)
+                            log.info('ECHO recv({0}) send({0})'.format(data))
+                            client.send(data)
                         except OSError:
+                            log.warning('ECHO OSError')
                             continue
                         finally:
                             client.close()
                             socks.remove(client)
         except Exception as e:
-            log.info('ECHO down {0}'.format(repr(e)))
+            log.info('ECHO except {0}'.format(repr(e)))
         finally:
+            self.is_echo_server_working = False
             for s in socks:
                 s.close()
+            log.info('ECHO down')
 
     def _do_forwarding(self, timeout=None):
         schan = self.ts.accept(timeout=timeout)
@@ -202,15 +224,15 @@ class SSHClientTest(unittest.TestCase):
                 if schan in rqst:
                     data = schan.recv(1024)
                     log.debug('{0} -->: {1}'.format(info, repr(data)))
+                    echo.send(data)
                     if len(data) == 0:
                         break
-                    echo.send(data)
                 if echo in rqst:
                     data = echo.recv(1024)
                     log.debug('{0} <--: {1}'.format(info, repr(data)))
+                    schan.send(data)
                     if len(data) == 0:
                         break
-                    schan.send(data)
         except socket.error:
             # Sometimes a RST is sent and a socket error is raised, treat this
             # exception. It was seen that a 3way FIN is processed later on, so
@@ -225,8 +247,11 @@ class SSHClientTest(unittest.TestCase):
             log.debug('{0} connection closed.'.format(info))
 
     def _run_echo_and_ssh(self, server):
-        threading.Thread(target=self._run_echo_server).start()
-        threading.Thread(target=self._run_ssh_server).start()
+        self.start_echo_server()
+        t = threading.Thread(target=self._run_ssh_server, name='ssh-server')
+        t.daemon = False
+        self.threads.append(t)
+        t.start()
 
         self.server = server
         self.server.is_use_local_check_up = False
@@ -266,11 +291,12 @@ class SSHClientTest(unittest.TestCase):
         self._run_echo_and_ssh(server)
         MESSAGE = get_random_string().encode()
         LOCAL_BIND_ADDR = ('127.0.0.1', self.server.local_bind_port)
-        log.info('try connect!')
+        log.info('_test_server(): try connect!')
         s = socket.create_connection(LOCAL_BIND_ADDR)
-        log.info('connected from {0}! try send!'.format(s.getsockname()))
+        log.info('_test_server(): connected from {0}! try send!'
+                 .format(s.getsockname()))
         s.send(MESSAGE)
-        log.info('sent!')
+        log.info('_test_server(): sent!')
         z = (s.recv(1000))
         self.assertEqual(z, MESSAGE)
         s.close()
