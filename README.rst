@@ -133,6 +133,9 @@ CHANGELOG
 ## work in progres ##
  - new feature
 
+## v.0.0.6 ##
+ - add `-S` CLI options for ssh private key password support (pahaz)
+
 ## v.0.0.5 ##
  - add `ssh_proxy` argument, as well as `ssh_config(5)` `ProxyCommand` support (lewisthompson)
  - add some python 2.6 compatibility fixes (mrts)
@@ -177,4 +180,48 @@ CHANGELOG
 ## v.0.0.1 ##
  - `SSHTunnelForwarder` class (pahaz)
  - `open` function (pahaz)
+
+HELP
+====
+
+::
+
+    usage: sshtunnel    [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD] -R
+                        IP:PORT [IP:PORT ...] [-L [IP:PORT [IP:PORT ...]]]
+                        [-k SSH_HOST_KEY] [-K RSA_KEY_FILE]
+                        [-S RSA_KEY_FILE_PASSWORD] [-t] [-v]
+                        ssh_address
+
+    Pure python ssh tunnel utils
+
+    positional arguments:
+      ssh_address           SSH server IP address (GW for ssh tunnels)
+                            set with "-- ssh_address" if immediately after -R or -L
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -U SSH_USERNAME, --username SSH_USERNAME
+                            SSH server account username
+      -p SSH_PORT, --server_port SSH_PORT
+                            SSH server TCP port (default: 22)
+      -P SSH_PASSWORD, --password SSH_PASSWORD
+                            SSH server account password
+      -R IP:PORT [IP:PORT ...], --remote_bind_address IP:PORT [IP:PORT ...]
+                            Remote bind address sequence: ip_1:port_1 ip_2:port_2 ... ip_n:port_n
+                            Equivalent to ssh -Lxxxx:IP_ADDRESS:PORT
+                            If omitted, default port is 22.
+                            Example: -R 10.10.10.10: 10.10.10.10:5900
+      -L [IP:PORT [IP:PORT ...]], --local_bind_address [IP:PORT [IP:PORT ...]]
+                            Local bind address sequence: ip_1:port_1 ip_2:port_2 ... ip_n:port_n
+                            Equivalent to ssh -LPORT:xxxxxxxxx:xxxx, being the local IP address optional.
+                            By default it will listen in all interfaces (0.0.0.0) and choose a random port.
+                            Example: -L :40000
+      -k SSH_HOST_KEY, --ssh_host_key SSH_HOST_KEY
+                            Gateway's host key
+      -K RSA_KEY_FILE, --private_key_file RSA_KEY_FILE
+                            RSA private key file
+      -S RSA_KEY_FILE_PASSWORD, --private_key_file_password RSA_KEY_FILE_PASSWORD
+                            RSA private key file password
+      -t, --threaded        Allow concurrent connections to each tunnel
+      -v, --verbosity       Increase output verbosity (default: 40)
 

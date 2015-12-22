@@ -61,6 +61,7 @@ CLI usage: sshtunnel [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD]
                      [-R REMOTE_BIND_ADDRESS [REMOTE_BIND_ADDRESS ...]]
                      [-L [LOCAL_BIND_ADDRESS [LOCAL_BIND_ADDRESS_LIST ...]]]
                      [-k SSH_HOST_KEY] [-K SSH_PRIVATE_KEY]
+                     [-S RSA_KEY_FILE_PASSWORD]
                      server
 
 positional arguments:
@@ -90,6 +91,8 @@ optional arguments:
                        Gateway's host key
   -K, --private_key_file SSH_PRIVATE_KEY
                        RSA private key file
+  -S, --private_key_file_password RSA_KEY_FILE_PASSWORD
+                       RSA private key file password
   -t, --threaded       Allow concurrent connections to each tunnel
 
 """
@@ -115,7 +118,7 @@ if sys.version_info[0] < 3:
 else:
     import socketserver as SocketServer
 
-__version__ = '0.0.5'
+__version__ = '0.0.6'
 __author__ = 'pahaz'
 
 __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
@@ -987,7 +990,7 @@ def main():
         -L (local bind address list) is optional, default to 0.0.0.0:22
     """
     PARSER = argparse.ArgumentParser(
-        description='sshtunnel',
+        description='Pure python ssh tunnel utils',
         formatter_class=argparse.RawTextHelpFormatter
     )
 
@@ -1046,6 +1049,12 @@ def main():
         '-K', '--private_key_file', dest='ssh_private_key',
         metavar='RSA_KEY_FILE',
         type=str, help='RSA private key file'
+    )
+
+    PARSER.add_argument(
+        '-S', '--private_key_file_password', dest='ssh_private_key_password',
+        metavar='RSA_KEY_FILE_PASSWORD',
+        type=str, help='RSA private key file password'
     )
 
     PARSER.add_argument(
