@@ -1,6 +1,6 @@
 
 .. image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
-   :alt: https://circleci.com/gh/pahaz/sshtunnel
+   :target: https://circleci.com/gh/pahaz/sshtunnel
 
 **Author**: **[Pahaz Blinov](https://github.com/pahaz)**
 
