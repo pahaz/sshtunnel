@@ -181,7 +181,7 @@ class SSHClientTest(unittest.TestCase):
         log.info('ECHO RUN on {0}'.format(self.esockl.getsockname()))
         try:
             while self.is_echo_server_working:
-                inputready, _, _ = select.select(socks, [], [])
+                inputready, _, _ = select.select(socks, [], [], 10)
                 for s in inputready:
                     if s == self.esockl:
                         # handle the server socket
@@ -189,20 +189,21 @@ class SSHClientTest(unittest.TestCase):
                             client, address = self.esockl.accept()
                             log.info('ECHO accept() {0}'.format(address))
                         except OSError:
+                            log.info('ECHO accept() OSError')
                             break
                         socks.append(client)
                     else:
                         # handle all other sockets
                         try:
-                            data = client.recv(1000)
+                            data = s.recv(1000)
                             log.info('ECHO recv({0}) send({0})'.format(data))
-                            client.send(data)
+                            s.send(data)
                         except OSError:
                             log.warning('ECHO OSError')
                             continue
                         finally:
-                            client.close()
-                            socks.remove(client)
+                            s.close()
+                            socks.remove(s)
         except Exception as e:
             log.info('ECHO except {0}'.format(repr(e)))
         finally:
@@ -220,7 +221,7 @@ class SSHClientTest(unittest.TestCase):
         )
         try:
             while True:
-                rqst, _, _ = select.select([schan, echo], [], [])
+                rqst, _, _ = select.select([schan, echo], [], [], 10)
                 if schan in rqst:
                     data = schan.recv(1024)
                     log.debug('{0} -->: {1}'.format(info, repr(data)))

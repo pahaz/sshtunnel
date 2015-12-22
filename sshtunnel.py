@@ -278,23 +278,23 @@ class _ForwardHandler(SocketServer.BaseRequestHandler):
         self.logger.info('{0} connected'.format(info))
         try:
             while True:
-                rqst, _, _ = select([self.request, chan], [], [])
+                rqst, _, _ = select([self.request, chan], [], [], 5)
                 if self.request in rqst:
                     data = self.request.recv(1024)
                     if TRACE:
                         self.logger.info('{0} recv: {1}'
                                          .format(info, repr(data)))
+                    chan.send(data)
                     if len(data) == 0:
                         break
-                    chan.send(data)
                 if chan in rqst:
                     data = chan.recv(1024)
                     if TRACE:
                         self.logger.info('{0} recv: {1}'
                                          .format(info, repr(data)))
+                    self.request.send(data)
                     if len(data) == 0:
                         break
-                    self.request.send(data)
         except socket.error:
             # Sometimes a RST is sent and a socket error is raised, treat this
             # exception. It was seen that a 3way FIN is processed later on, so
