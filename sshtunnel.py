@@ -458,7 +458,6 @@ class SSHTunnelForwarder(object):
     def __init__(
             self,
             ssh_address_or_host=None,
-
             ssh_host_key=None,
             ssh_username=None,
             ssh_password=None,
@@ -470,7 +469,7 @@ class SSHTunnelForwarder(object):
             local_bind_address=None,
             remote_bind_addresses=None,
             local_bind_addresses=None,
-
+            set_keepalive=0,
             ssh_config_file="~/.ssh/config",
             logger=None,
             threaded=True,  # old version False
@@ -491,6 +490,7 @@ class SSHTunnelForwarder(object):
           threaded=True
           ssh_port=22
           ssh_host=None
+          set_keepalive=0,
           ssh_config_file=~/.ssh/config
           ssh_proxy=None
           ssh_proxy_enabled=True
@@ -650,6 +650,7 @@ class SSHTunnelForwarder(object):
                 self._transport = paramiko.Transport(ssh_proxy)
             else:
                 self._transport = paramiko.Transport((ssh_host, ssh_port))
+            self._transport.set_keepalive(self.set_keepalive)
             self._transport.daemon = self.daemon_transport
             for (rem, loc) in zip(remote_bind_addresses, local_bind_addresses):
                 ssh_forward_server = self.make_ssh_forward_server(rem, loc)
@@ -1070,6 +1071,11 @@ def main():
     PARSER.add_argument(
         '-v', '--verbosity', action='count', default=0,
         help='Increase output verbosity (default: %s)' % DEFAULT_LOGLEVEL
+    )
+
+    PARSER.add_argument(
+        '-V', '--version', action='version', version='%(prog)s {version}'.format(version=__version__),
+        help='Show version number'
     )
 
     args = vars(PARSER.parse_args())
