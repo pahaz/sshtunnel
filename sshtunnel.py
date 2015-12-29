@@ -718,9 +718,14 @@ class SSHTunnelForwarder(object):
         self._threads = threads
         self._is_started = True
 
-        if not self.is_use_local_check_up:
-            return
+        if self.is_use_local_check_up:
+            self.check_local_side_of_tunnels()
 
+    def check_local_side_of_tunnels(self):
+        """
+        Check the local side of the tunnels, updating self.tunnel_is_up with
+        the result of running self.local_is_up()
+        """
         for _srv in self._server_list:
             self.tunnel_is_up[_srv.local_address] = \
                 self.local_is_up(_srv.local_address)
