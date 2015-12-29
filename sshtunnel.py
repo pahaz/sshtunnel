@@ -641,6 +641,7 @@ class SSHTunnelForwarder(object):
         self.logger.info('Connecting to gateway: {0}:{1} as user "{2}".'
                          .format(ssh_host, ssh_port, ssh_username))
 
+        self.set_keepalive = set_keepalive
         # CREATE THE TUNNELS
         self.tunnel_is_up = {}  # handle status of the other side of the tunnel
         try:
