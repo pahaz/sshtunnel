@@ -1075,7 +1075,8 @@ def main():
     )
 
     PARSER.add_argument(
-        '-V', '--version', action='version', version='%(prog)s {version}'.format(version=__version__),
+        '-V', '--version', action='version',
+        version='%(prog)s {version}'.format(version=__version__),
         help='Show version number'
     )
 
