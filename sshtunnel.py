@@ -641,7 +641,6 @@ class SSHTunnelForwarder(object):
         self.logger.info('Connecting to gateway: {0}:{1} as user "{2}".'
                          .format(ssh_host, ssh_port, ssh_username))
 
-        self.set_keepalive = set_keepalive
         # CREATE THE TUNNELS
         self.tunnel_is_up = {}  # handle status of the other side of the tunnel
         try:
@@ -651,7 +650,7 @@ class SSHTunnelForwarder(object):
                 self._transport = paramiko.Transport(ssh_proxy)
             else:
                 self._transport = paramiko.Transport((ssh_host, ssh_port))
-            self._transport.set_keepalive(self.set_keepalive)
+            self._transport.set_keepalive(set_keepalive)
             self._transport.daemon = self.daemon_transport
             for (rem, loc) in zip(remote_bind_addresses, local_bind_addresses):
                 ssh_forward_server = self.make_ssh_forward_server(rem, loc)
