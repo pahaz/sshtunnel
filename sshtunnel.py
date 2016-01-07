@@ -474,6 +474,7 @@ class SSHTunnelForwarder(object):
             logger=None,
             threaded=True,  # old version False
             raise_exception_if_any_forwarder_have_a_problem=True,
+            use_ssh_config=True,
             **kwargs  # for backwards compatibility
     ):
         """
@@ -494,6 +495,7 @@ class SSHTunnelForwarder(object):
           ssh_config_file=~/.ssh/config
           ssh_proxy=None
           ssh_proxy_enabled=True
+          use_ssh_config=True
           logger=__name__
 
         ssh_address is (host, port) or host
@@ -522,7 +524,8 @@ class SSHTunnelForwarder(object):
         # ssh host port
         if 'ssh_address' in kwargs:
             warnings.warn("'ssh_address' is DEPRECATED use "
-                          "'ssh_address_or_host' or 1st positional argument")
+                          "'ssh_address_or_host' or 1st positional argument",
+                          DeprecationWarning)
             if ssh_address_or_host:
                 raise ValueError("You can't use 'ssh_address' and "
                                  "'ssh_address_or_host'. Please use one "
@@ -532,7 +535,8 @@ class SSHTunnelForwarder(object):
 
         if 'ssh_host' in kwargs:
             warnings.warn("'ssh_host' is DEPRECATED use "
-                          "'ssh_address_or_host' or 1st positional argument")
+                          "'ssh_address_or_host' or 1st positional argument",
+                          DeprecationWarning)
             if ssh_address_or_host:
                 raise ValueError("You can't use 'ssh_host' and "
                                  "'ssh_address_or_host'. Please use one "
@@ -581,33 +585,36 @@ class SSHTunnelForwarder(object):
 
         del ssh_address_or_host  # is this useful?
 
-        # Try to read ~/.ssh/config
-        ssh_config = paramiko.SSHConfig()
-        try:
-            # open the ssh config file
-            with open(expanduser(ssh_config_file), 'r') as f:
-                ssh_config.parse(f)
-            # looks for information for the destination system
-            hostname_info = ssh_config.lookup(ssh_host)
-            # gather settings for user, port and identity file
-            # last resort: use the 'login name' of the user
-            ssh_username = (
-                ssh_username or
-                hostname_info.get('user', getpass.getuser())
-            )
-            ssh_private_key = (
-                ssh_private_key or
-                hostname_info.get('identityfile', [None])[0]
-            )
-            ssh_port = ssh_port or hostname_info.get('port')
-            proxycommand = hostname_info.get('proxycommand')
-            ssh_proxy = (
-                ssh_proxy or
-                paramiko.ProxyCommand(proxycommand) if proxycommand else None
-            )
-        except IOError:
-            self.logger.warning('Could not read SSH configuration file: {0}'
-                                .format(ssh_config_file))
+        if use_ssh_config:
+            # Try to read ~/.ssh/config
+            ssh_config = paramiko.SSHConfig()
+            try:
+                # open the ssh config file
+                with open(expanduser(ssh_config_file), 'r') as f:
+                    ssh_config.parse(f)
+                # looks for information for the destination system
+                hostname_info = ssh_config.lookup(ssh_host)
+                # gather settings for user, port and identity file
+                # last resort: use the 'login name' of the user
+                ssh_username = (
+                    ssh_username or
+                    hostname_info.get('user', getpass.getuser())
+                )
+                ssh_private_key = (
+                    ssh_private_key or
+                    hostname_info.get('identityfile', [None])[0]
+                )
+                ssh_port = ssh_port or hostname_info.get('port')
+                proxycommand = hostname_info.get('proxycommand')
+                ssh_proxy = (
+                    ssh_proxy or paramiko.ProxyCommand(proxycommand)
+                    if proxycommand else None
+                )
+            except IOError:
+                self.logger.warning(
+                    'Could not read SSH configuration file: {0}'
+                    .format(ssh_config_file)
+                )
 
         if not ssh_password:
             ssh_private_key = paramiko.RSAKey.from_private_key_file(
@@ -783,24 +790,24 @@ class SSHTunnelForwarder(object):
                              ('127.0.0.1', 55551): False}
                             where 55550 and 55551 are the local bind ports
         """
-        if not self._is_started:
-            self.logger.warning('Try .stop() stopped!')
-            return
+        if self._is_started:
 
-        self.logger.info('Closing all open connections...')
-        opened_address_text = ', '.join([address_to_str(k) for k, v
-                                         in self.tunnel_is_up.items()
-                                         if v]) \
-                              or 'None'
-        self.logger.debug('Opened local addresses: ' + opened_address_text)
+            self.logger.info('Closing all open connections...')
+            opened_address_text = ', '.join([address_to_str(k) for k, v
+                                             in self.tunnel_is_up.items()
+                                             if v]) \
+                                  or 'None'
+            self.logger.debug('Opened local addresses: ' + opened_address_text)
 
-        for _srv in self._server_list:
-            is_opened = _srv.local_address in self.tunnel_is_up
-            local_address_text = address_to_str(_srv.local_address)
-            if is_opened:
-                self.logger.info('Shutting down tunnel ' + local_address_text)
-                _srv.shutdown()
-            _srv.server_close()
+            for _srv in self._server_list:
+                is_opened = _srv.local_address in self.tunnel_is_up \
+                            if self.is_use_local_check_up else True
+                local_address_text = address_to_str(_srv.local_address)
+                if is_opened:
+                    self.logger.info('Shutting down tunnel %s',
+                                     local_address_text)
+                    _srv.shutdown()
+                _srv.server_close()
 
         self._transport.close()
         self._transport.stop_thread()
@@ -956,7 +963,8 @@ def make_ssh_forward_server(remote_address, local_bind_address, ssh_transport,
     Not interesting for you.
     """
     warnings.warn("`make_ssh_forward_server` is *DEPRECATED*. Use "
-                  "SSHTunnelForwarder.make_ssh_forward_server")
+                  "SSHTunnelForwarder.make_ssh_forward_server",
+                  DeprecationWarning)
     raise NotImplementedError
 
 
@@ -967,7 +975,8 @@ def make_ssh_forward_handler(remote_address_, ssh_transport_,
     Not interesting for you.
     """
     warnings.warn("`make_ssh_forward_handler` is *DEPRECATED*. Use "
-                  "SSHTunnelForwarder.make_ssh_forward_handler_class")
+                  "SSHTunnelForwarder.make_ssh_forward_handler_class",
+                  DeprecationWarning)
     raise NotImplementedError
 
 
