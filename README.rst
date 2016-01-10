@@ -2,6 +2,15 @@
 .. image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
    :target: https://circleci.com/gh/pahaz/sshtunnel
 
+.. image:: https://img.shields.io/pypi/dm/sshtunnel.svg
+   :targer: pypi.python.org/pypi/sshtunnel
+
+.. image:: https://img.shields.io/pypi/dw/sshtunnel.svg
+   :targer: pypi.python.org/pypi/sshtunnel
+
+.. image:: https://img.shields.io/pypi/dd/sshtunnel.svg
+   :targer: pypi.python.org/pypi/sshtunnel
+
 **WORK WITH**: python 2.6, python 2.7, python 3.3, python 3.4
 
 **Author**: `Pahaz Blinov <https://github.com/pahaz>`_
