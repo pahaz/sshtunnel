@@ -2,7 +2,9 @@
 .. image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
    :target: https://circleci.com/gh/pahaz/sshtunnel
 
-**Author**: **[Pahaz Blinov](https://github.com/pahaz)**
+**WORK WITH**: python 2.6, python 2.7, python 3.3, python 3.4
+
+**Author**: `Pahaz Blinov <https://github.com/pahaz>`_
 
 **Repo**: https://github.com/pahaz/sshtunnel/
 
@@ -124,11 +126,6 @@ CONTRIBUTORS
  - [Erik Rogers](https://github.com/ewrogers)
  - [Mart Sõmermaa](https://github.com/mrts)
 
-TODO
-====
-
- - Write tests!
- 
 CHANGELOG
 =========
 
@@ -146,20 +143,20 @@ CHANGELOG
  - add tests (pahaz)
  - add CI integration (pahaz)
  - normal packaging (pahaz)
+ - disable check distenation socket connection by `SSHTunnelForwarder.local_is_up` (pahaz) [changed default behavior]
+ - use daemon mode = False in all threads by default. `detail <https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127>`_ (pahaz) [changed default behavior]
 
 ## v.0.0.4.4 ##
-
- - fix issuse [#24](https://github.com/pahaz/sshtunnel/issues/24) - hide ssh password in logs (pahaz)
+ - fix issuse `#24 <https://github.com/pahaz/sshtunnel/issues/24>`_ - hide ssh password in logs (pahaz)
 
 ## v.0.0.4.3 ##
-
- - fix default port issuse [#19](https://github.com/pahaz/sshtunnel/issues/19) (pahaz)
+ - fix default port issuse `#19 <https://github.com/pahaz/sshtunnel/issues/19>`_ (pahaz)
 
 ## v.0.0.4.2 ##
- - fix Thread.daemon mode for Python < 3.3 [#16](https://github.com/pahaz/sshtunnel/issues/16), [#21](https://github.com/pahaz/sshtunnel/issues/21) (lewisthompson, ewrogers)
+ - fix Thread.daemon mode for Python < 3.3 `#16 <https://github.com/pahaz/sshtunnel/issues/16>`_, `#21 <https://github.com/pahaz/sshtunnel/issues/21>`_ (lewisthompson, ewrogers)
 
 ## v.0.0.4.1 ##
- - fix CLI issues/13 (pahaz)
+ - fix CLI issues `#13 <https://github.com/pahaz/sshtunnel/issues/21>`_ (pahaz)
 
 ## v.0.0.4 ##
  - daemon mode by default for all threads (fernandezcuesta, pahaz) - *incompatible*
