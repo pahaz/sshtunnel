@@ -677,7 +677,7 @@ class SSHTunnelForwarder(object):
             self.logger.error(msg)
             raise BaseSSHTunnelForwarderError(msg)
         except socket.gaierror:  # raised by paramiko.Transport
-            msg = 'Could not resolve IP address for {}, aborting!' \
+            msg = 'Could not resolve IP address for {0}, aborting!' \
                 .format(ssh_host)
             self.logger.error(msg)
             raise BaseSSHTunnelForwarderError(msg)
@@ -686,7 +686,7 @@ class SSHTunnelForwarder(object):
             self.logger.error(msg)
             raise BaseSSHTunnelForwarderError(msg)
 
-        self.logger.debug('Concurrent connections allowed: {}'
+        self.logger.debug('Concurrent connections allowed: {0}'
                           .format(self._threaded))
         self._is_started = False
 
@@ -697,7 +697,7 @@ class SSHTunnelForwarder(object):
 
         try:
             if self._ssh_password:  # avoid conflict using both pass and pkey
-                self.logger.debug('Logging in with password {}'
+                self.logger.debug('Logging in with password {0}'
                                   .format('*' * len(self._ssh_password)))
                 self._transport.connect(hostkey=self._ssh_host_key,
                                         username=self._ssh_username,
@@ -805,7 +805,7 @@ class SSHTunnelForwarder(object):
                     self.is_use_local_check_up else True
                 local_address_text = address_to_str(_srv.local_address)
                 if is_opened:
-                    self.logger.info('Shutting down tunnel {}'
+                    self.logger.info('Shutting down tunnel {0}'
                                      .format(local_address_text))
                     _srv.shutdown()
                 _srv.server_close()
@@ -1080,7 +1080,9 @@ def main():
 
     PARSER.add_argument(
         '-v', '--verbosity', action='count', default=0,
-        help='Increase output verbosity (default: {})'.format(DEFAULT_LOGLEVEL)
+        help='Increase output verbosity (default: {0})'.format(
+            DEFAULT_LOGLEVEL
+        )
     )
 
     PARSER.add_argument(

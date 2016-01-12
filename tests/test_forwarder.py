@@ -4,16 +4,23 @@ import logging
 import random
 import select
 import socket
+import sys
 import threading
 import time
-import unittest
 import warnings
 
+import pytest
 import paramiko
 from os import path
 
 import sshtunnel
 from sshtunnel import SSHTunnelForwarder
+
+
+if sys.version_info < (2, 7):
+    import unittest2 as unittest
+else:
+    import unittest
 
 # UTILS
 
@@ -52,11 +59,11 @@ here = path.abspath(path.dirname(__file__))
 sshtunnel.TRACE = True
 
 
-def get_test_data_path(x):
+def get_tst_data_path(x):
     return path.join(here, x)
 
 
-class MockLoggingHandler(logging.Handler):
+class MockLoggingHandler(logging.Handler, object):
     """Mock logging handler to check for expected logs.
 
     Messages are available from an instance's `messages` dict, in order,
@@ -196,7 +203,7 @@ class SSHClientTest(unittest.TestCase):
         self.socks, addr = self.ssockl.accept()
         self.ts = paramiko.Transport(self.socks)
         host_key = paramiko.RSAKey.from_private_key_file(
-            get_test_data_path('testrsa.key')
+            get_tst_data_path('testrsa.key')
         )
         self.ts.add_server_key(host_key)
         server = NullServer(allowed_keys=FINGERPRINTS.keys(), log=self.log)
@@ -327,7 +334,7 @@ class SSHClientTest(unittest.TestCase):
         server = SSHTunnelForwarder(
             (self.saddr, self.sport),
             ssh_username=SSH_USERNAME,
-            ssh_private_key=get_test_data_path('testrsa.key'),
+            ssh_private_key=get_tst_data_path('testrsa.key'),
             remote_bind_address=(self.eaddr, self.eport),
             logger=self.log,
         )
@@ -457,6 +464,8 @@ class SSHClientTest(unittest.TestCase):
                 ssh_username=SSH_USERNAME
             )
 
+    @pytest.mark.skipif(sys.version_info < (2, 7),
+                        reason="Cannot intercept logging messages in py26")
     def test_reading_from_a_bad_sshconfigfile_does_not_raise_error(self):
         """
         Test that when a bad ssh_config file is found, a warning is shown
@@ -472,7 +481,7 @@ class SSHClientTest(unittest.TestCase):
             local_bind_address=('127.0.0.1', self.randomize_eport()),
             ssh_config_file=ssh_config_file
         )
-        logged_message = 'Could not read SSH configuration file: {}'.format(
+        logged_message = 'Could not read SSH configuration file: {0}'.format(
             ssh_config_file
         )
         self.assertIn(logged_message, self.sshtunnel_log_messages['warning'])
@@ -490,9 +499,12 @@ class SSHClientTest(unittest.TestCase):
                 use_ssh_config=False
             )
 
+    @pytest.mark.skipif(sys.version_info[0] == 3,
+                        reason="'ResourceWarning: unclosed' on py3")
     def test_deprecate_warnings_are_shown(self):
         """Test that when using deprecate arguments a warning is logged"""
         warnings.simplefilter("always")  # don't ignore DeprecationWarnings
+
         with warnings.catch_warnings(record=True) as w:
             for deprecated_arg in ['ssh_address', 'ssh_host']:
                 _kwargs = {deprecated_arg: (self.saddr, self.sport),
@@ -500,24 +512,29 @@ class SSHClientTest(unittest.TestCase):
                            'ssh_password': SSH_PASSWORD,
                            'remote_bind_address': (self.eaddr, self.eport)}
                 SSHTunnelForwarder(**_kwargs)
-                logged_message = "'{}' is DEPRECATED use " \
+                logged_message = "'{0}' is DEPRECATED use " \
                                  "'ssh_address_or_host' or 1st positional " \
                                  "argument".format(deprecated_arg)
-                self.assertTrue(issubclass(w[-1].category, DeprecationWarning))
-                self.assertEqual(logged_message, w[-1].message.message)
+                self.assertTrue(issubclass(w[-1].category,
+                                           DeprecationWarning))
+                self.assertEqual(logged_message, str(w[-1].message))
 
             with self.assertRaises(NotImplementedError):
                 sshtunnel.make_ssh_forward_server('remote_address',
                                                   'local_bind_address',
                                                   'ssh_transport')
-                self.assertTrue(issubclass(w[-1].category, DeprecationWarning))
-                self.assertEqual(logged_message, w[-1].message.message)
+                self.assertTrue(issubclass(w[-1].category,
+                                           DeprecationWarning))
+                self.assertEqual(logged_message,
+                                 str(w[-1].message))
 
             with self.assertRaises(NotImplementedError):
                 sshtunnel.make_ssh_forward_handler('remote_address',
                                                    'ssh_transport')
-                self.assertTrue(issubclass(w[-1].category, DeprecationWarning))
-                self.assertEqual(logged_message, w[-1].message.message)
+                self.assertTrue(issubclass(w[-1].category,
+                                           DeprecationWarning))
+                self.assertEqual(logged_message,
+                                 str(w[-1].message))
 
     def test_gateway_unreachable_raises_exception(self):
         """
@@ -547,6 +564,8 @@ class SSHClientTest(unittest.TestCase):
                 use_ssh_config=False
             )
 
+    @pytest.mark.skipif(sys.version_info < (2, 7),
+                        reason="Cannot intercept logging messages in py26")
     def test_running_start_twice_logs_warning(self):
         """Test that when running start() twice a warning is shown"""
         server = SSHTunnelForwarder(
@@ -562,6 +581,8 @@ class SSHClientTest(unittest.TestCase):
         self.assertIn('Already started!',
                       self.sshtunnel_log_messages['warning'])
 
+    @pytest.mark.skipif(sys.version_info < (2, 7),
+                        reason="Cannot intercept logging messages in py26")
     def test_wrong_auth_to_gateway_logs_error(self):
         """
         Test that when connecting to the ssh gateway with wrong credentials,
