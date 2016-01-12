@@ -413,7 +413,7 @@ class SSHClientTest(unittest.TestCase):
                 remote_bind_address=(self.eaddr, self.eport),
                 local_bind_addresses=[('127.0.0.1', self.eport),
                                       ('127.0.0.1', self.randomize_eport())]
-             )
+            )
 
     def test_localbindaddress_and_localbindaddresses_mutually_exclusive(self):
         """
@@ -454,8 +454,7 @@ class SSHClientTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             SSHTunnelForwarder(
                 (self.saddr, self.sport),
-                ssh_username=SSH_USERNAME,
-                use_ssh_config=False
+                ssh_username=SSH_USERNAME
             )
 
     def test_reading_from_a_bad_sshconfigfile_does_not_raise_error(self):
@@ -474,8 +473,8 @@ class SSHClientTest(unittest.TestCase):
             ssh_config_file=ssh_config_file
         )
         logged_message = 'Could not read SSH configuration file: {}'.format(
-                             ssh_config_file
-                         )
+            ssh_config_file
+        )
         self.assertIn(logged_message, self.sshtunnel_log_messages['warning'])
 
     def test_not_setting_password_or_pkey_raises_error(self):
@@ -496,15 +495,11 @@ class SSHClientTest(unittest.TestCase):
         warnings.simplefilter("always")  # don't ignore DeprecationWarnings
         with warnings.catch_warnings(record=True) as w:
             for deprecated_arg in ['ssh_address', 'ssh_host']:
-                eval(
-                    SSHTunnelForwarder.__name__ + '({}={})'.format(
-                        deprecated_arg,
-                        '(self.saddr, self.sport),'
-                        'ssh_username=SSH_USERNAME,'
-                        'ssh_password=SSH_PASSWORD,'
-                        'remote_bind_address=(self.eaddr, self.eport)'
-                    )
-                )
+                _kwargs = {deprecated_arg: (self.saddr, self.sport),
+                           'ssh_username': SSH_USERNAME,
+                           'ssh_password': SSH_PASSWORD,
+                           'remote_bind_address': (self.eaddr, self.eport)}
+                SSHTunnelForwarder(**_kwargs)
                 logged_message = "'{}' is DEPRECATED use " \
                                  "'ssh_address_or_host' or 1st positional " \
                                  "argument".format(deprecated_arg)
@@ -580,5 +575,5 @@ class SSHClientTest(unittest.TestCase):
                 remote_bind_address=(self.eaddr, self.randomize_eport())
             )
             self._test_server(server)
-            self.assertIn('Could not open connection to gateway',
-                          self.sshtunnel_log_messages['error'])
+        self.assertIn('Could not open connection to gateway',
+                      self.sshtunnel_log_messages['error'])

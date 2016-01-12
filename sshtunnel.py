@@ -677,7 +677,7 @@ class SSHTunnelForwarder(object):
             self.logger.error(msg)
             raise BaseSSHTunnelForwarderError(msg)
         except socket.gaierror:  # raised by paramiko.Transport
-            msg = 'Could not resolve IP address for %s, aborting!' \
+            msg = 'Could not resolve IP address for {}, aborting!' \
                 .format(ssh_host)
             self.logger.error(msg)
             raise BaseSSHTunnelForwarderError(msg)
@@ -686,7 +686,8 @@ class SSHTunnelForwarder(object):
             self.logger.error(msg)
             raise BaseSSHTunnelForwarderError(msg)
 
-        self.logger.debug('Concurrent connections allowed: %s', self._threaded)
+        self.logger.debug('Concurrent connections allowed: {}'
+                          .format(self._threaded))
         self._is_started = False
 
     def start(self):
@@ -696,8 +697,8 @@ class SSHTunnelForwarder(object):
 
         try:
             if self._ssh_password:  # avoid conflict using both pass and pkey
-                self.logger.debug('Logging in with password %s',
-                                  '*' * len(self._ssh_password))
+                self.logger.debug('Logging in with password {}'
+                                  .format('*' * len(self._ssh_password)))
                 self._transport.connect(hostkey=self._ssh_host_key,
                                         username=self._ssh_username,
                                         password=self._ssh_password)
@@ -800,12 +801,12 @@ class SSHTunnelForwarder(object):
             self.logger.debug('Opened local addresses: ' + opened_address_text)
 
             for _srv in self._server_list:
-                is_opened = _srv.local_address in self.tunnel_is_up \
-                            if self.is_use_local_check_up else True
+                is_opened = _srv.local_address in self.tunnel_is_up if \
+                    self.is_use_local_check_up else True
                 local_address_text = address_to_str(_srv.local_address)
                 if is_opened:
-                    self.logger.info('Shutting down tunnel %s',
-                                     local_address_text)
+                    self.logger.info('Shutting down tunnel {}'
+                                     .format(local_address_text))
                     _srv.shutdown()
                 _srv.server_close()
 
@@ -1079,7 +1080,7 @@ def main():
 
     PARSER.add_argument(
         '-v', '--verbosity', action='count', default=0,
-        help='Increase output verbosity (default: %s)' % DEFAULT_LOGLEVEL
+        help='Increase output verbosity (default: {})'.format(DEFAULT_LOGLEVEL)
     )
 
     PARSER.add_argument(
