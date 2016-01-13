@@ -230,7 +230,7 @@ class SSHClientTest(unittest.TestCase):
         self.log.info('ECHO RUN on {0}'.format(self.esockl.getsockname()))
         try:
             while self.is_echo_server_working:
-                inputready, _, _ = select.select(socks, [], [], 10)
+                inputready, _, _ = select.select(socks, [], [], 1.0)
                 for s in inputready:
                     if s == self.esockl:
                         # handle the server socket
@@ -394,7 +394,7 @@ class SSHClientTest(unittest.TestCase):
             ssh_password=SSH_PASSWORD,
             remote_bind_address=(self.eaddr, self.eport),
         )
-        self.assertEqual(server._transport.getpeername()[1], 22)
+        self.assertEqual(server.ssh_port, 22)
 
     def test_unknown_argument_raises_exception(self):
         """Test that an exception is raised when setting an invalid argument"""
@@ -407,7 +407,7 @@ class SSHClientTest(unittest.TestCase):
                 i_do_not_exist=0
             )
 
-    def test_more_local_than_remote_bind_sizes_raise_exception(self):
+    def test_more_local_than_remote_bind_sizes_raises_exception(self):
         """
         Test that when the number of local_bind_addresses exceed number of
         remote_bind_addresses, an exception is raised
@@ -499,8 +499,6 @@ class SSHClientTest(unittest.TestCase):
                 use_ssh_config=False
             )
 
-    @pytest.mark.skipif(sys.version_info[0] == 3,
-                        reason="'ResourceWarning: unclosed' on py3")
     def test_deprecate_warnings_are_shown(self):
         """Test that when using deprecate arguments a warning is logged"""
         warnings.simplefilter("always")  # don't ignore DeprecationWarnings
@@ -542,13 +540,14 @@ class SSHClientTest(unittest.TestCase):
         ssh gateway
         """
         with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
-            SSHTunnelForwarder(
+            server = SSHTunnelForwarder(
                 (self.saddr, self.randomize_eport()),
                 ssh_username=SSH_USERNAME,
                 ssh_password=SSH_PASSWORD,
                 remote_bind_address=(self.eaddr, self.eport),
                 use_ssh_config=False
             )
+            server.start()
 
     def test_gateway_ip_unresolvable_raises_exception(self):
         """
@@ -556,13 +555,14 @@ class SSHClientTest(unittest.TestCase):
         ssh gateway IP address
         """
         with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
-            SSHTunnelForwarder(
+            server = SSHTunnelForwarder(
                 (SSH_USERNAME, self.sport),
                 ssh_username=SSH_USERNAME,
                 ssh_password=SSH_PASSWORD,
                 remote_bind_address=(self.eaddr, self.eport),
                 use_ssh_config=False
             )
+            server.start()
 
     @pytest.mark.skipif(sys.version_info < (2, 7),
                         reason="Cannot intercept logging messages in py26")
