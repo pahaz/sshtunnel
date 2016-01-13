@@ -717,6 +717,7 @@ class SSHTunnelForwarder(object):
             self._connect_to_gateway()
         except paramiko.ssh_exception.AuthenticationException:
             self.logger.error('Could not open connection to gateway')
+            self._stop_transport()
             return
 
         threads = [
@@ -732,10 +733,9 @@ class SSHTunnelForwarder(object):
             thread.start()
 
         self._threads = threads
-        self._is_started = True
-
         if self.is_use_local_check_up:
             self.check_local_side_of_tunnels()
+        self._is_started = True
 
     def _connect_to_gateway(self):
         """Open connection to SSH gateway"""
@@ -830,16 +830,16 @@ class SSHTunnelForwarder(object):
                     )
                     _srv.shutdown()
                 _srv.server_close()
+            self._stop_transport()
+            self._is_started = False
         else:
             self.logger.warning('Already stopped!')
-        self._stop_transport()
 
     def _stop_transport(self):
         """Close the underlying transport when nothing more is needed"""
         self._transport.close()
         self._transport.stop_thread()
         self.logger.debug('Transport is closed')
-        self._is_started = False
 
     @property
     def local_bind_port(self):
