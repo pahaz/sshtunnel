@@ -94,6 +94,7 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
         'paramiko>=1.15.2',
+        'six>=1.10',
     ],
 
     # List additional groups of dependencies here (e.g. development

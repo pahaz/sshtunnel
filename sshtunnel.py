@@ -97,7 +97,6 @@ optional arguments:
 
 """
 
-import sys
 import socket
 import getpass
 import logging
@@ -106,17 +105,11 @@ import warnings
 import threading
 from select import select
 from os.path import expanduser
+
 import paramiko
+from six import string_types
 
-if sys.version_info[0] < 3:
-    string_types = basestring,  # noqa
-else:
-    string_types = str
-
-if sys.version_info[0] < 3:
-    import SocketServer
-else:
-    import socketserver as SocketServer
+from six.moves import input, socketserver
 
 __version__ = '0.0.6'
 __author__ = 'pahaz'
@@ -247,7 +240,7 @@ class HandlerSSHTunnelForwarderError(BaseSSHTunnelForwarderError):
 ########################
 
 
-class _ForwardHandler(SocketServer.BaseRequestHandler):
+class _ForwardHandler(socketserver.BaseRequestHandler):
     """ Base handler for tunnel connections """
     remote_address = None
     ssh_transport = None
@@ -312,7 +305,7 @@ class _ForwardHandler(SocketServer.BaseRequestHandler):
             self.logger.info('{0} connection closed.'.format(info))
 
 
-class _ForwardServer(SocketServer.TCPServer):  # Not Threading
+class _ForwardServer(socketserver.TCPServer):  # Not Threading
     """
     Non-threading version of the forward server
     """
@@ -343,7 +336,7 @@ class _ForwardServer(SocketServer.TCPServer):  # Not Threading
         return self.RequestHandlerClass.remote_address[1]
 
 
-class _ThreadingForwardServer(SocketServer.ThreadingMixIn, _ForwardServer):
+class _ThreadingForwardServer(socketserver.ThreadingMixIn, _ForwardServer):
     """
     Allows concurrent connections to each tunnel
     """
@@ -425,9 +418,9 @@ class SSHTunnelForwarder(object):
         Make SSH Handler class.
         """
         _Handler = _ForwardHandler
-        if not issubclass(_Handler, SocketServer.BaseRequestHandler):
+        if not issubclass(_Handler, socketserver.BaseRequestHandler):
             msg = "base_ssh_forward_handler is not a subclass " \
-                  "SocketServer.BaseRequestHandler"
+                  "socketserver.BaseRequestHandler"
             raise BaseSSHTunnelForwarderError(msg)
 
         class Handler(_Handler):
@@ -1102,11 +1095,7 @@ def main():
         Press <Ctrl-C> or <Enter> to stop!
 
         ''')
-        if sys.version_info[0] < 3:
-            raw_input('')  # noqa
-        else:
-            input('')
-
+        input('')
 
 if __name__ == '__main__':
     main()
