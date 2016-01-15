@@ -548,6 +548,7 @@ class SSHClientTest(unittest.TestCase):
                 use_ssh_config=False
             )
             server.start()
+            server.stop()
 
     def test_gateway_ip_unresolvable_raises_exception(self):
         """
@@ -563,6 +564,7 @@ class SSHClientTest(unittest.TestCase):
                 use_ssh_config=False
             )
             server.start()
+            server.stop()
 
     @pytest.mark.skipif(sys.version_info < (2, 7),
                         reason="Cannot intercept logging messages in py26")

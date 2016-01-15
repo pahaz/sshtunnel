@@ -342,7 +342,7 @@ class _ThreadingForwardServer(socketserver.ThreadingMixIn, _ForwardServer):
     """
     Allows concurrent connections to each tunnel
     """
-    # Will cleanly stop threads created by ThreadingMixIn when quitting
+    # If True, cleanly stop threads created by ThreadingMixIn when quitting
     daemon_threads = DAEMON
 
 
