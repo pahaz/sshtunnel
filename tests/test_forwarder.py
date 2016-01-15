@@ -55,7 +55,6 @@ FINGERPRINTS = {
 }
 
 here = path.abspath(path.dirname(__file__))
-
 sshtunnel.TRACE = True
 
 
@@ -171,6 +170,7 @@ class SSHClientTest(unittest.TestCase):
     def setUpClass(cls):
         super(SSHClientTest, cls).setUpClass()
         cls.log = logging.getLogger(sshtunnel.__name__)
+        cls.log = sshtunnel.create_logger(logger=cls.log, loglevel='DEBUG')
         cls._sshtunnel_log_handler = MockLoggingHandler(level='DEBUG')
         cls.log.addHandler(cls._sshtunnel_log_handler)
         cls.sshtunnel_log_messages = cls._sshtunnel_log_handler.messages
@@ -186,12 +186,12 @@ class SSHClientTest(unittest.TestCase):
                       .format(self.eaddr, self.eport))
         self.event = threading.Event()
         self.threads = []
-        self.is_echo_server_working = False
+        self.is_server_working = True
         self._sshtunnel_log_handler.reset()
 
     def tearDown(self):
         self.log.info('tearDown()')
-        self.stop_echo_server()
+        self.stop_echo_and_ssh_server()
         for attr in "server tc ts socks ssockl esockl".split():
             if hasattr(self, attr):
                 self.log.info('tearDown() {0}'.format(attr))
@@ -214,9 +214,10 @@ class SSHClientTest(unittest.TestCase):
         self.threads.append(t)
         t.start()
         self.ts.start_server(self.event, server)
+        t.join()  # wait for the ssh-forwarder thread to finish before leaving
 
-    def stop_echo_server(self):
-        self.is_echo_server_working = False
+    def stop_echo_and_ssh_server(self):
+        self.is_server_working = False
 
     def start_echo_server(self):
         t = threading.Thread(target=self._run_echo_server, name='echo-server')
@@ -226,10 +227,9 @@ class SSHClientTest(unittest.TestCase):
 
     def _run_echo_server(self):
         socks = [self.esockl]
-        self.is_echo_server_working = True
         self.log.info('ECHO RUN on {0}'.format(self.esockl.getsockname()))
         try:
-            while self.is_echo_server_working:
+            while self.is_server_working:
                 inputready, _, _ = select.select(socks, [], [], 1.0)
                 for s in inputready:
                     if s == self.esockl:
@@ -257,7 +257,7 @@ class SSHClientTest(unittest.TestCase):
         except Exception as e:
             self.log.info('ECHO except {0}'.format(repr(e)))
         finally:
-            self.is_echo_server_working = False
+            self.is_server_working = False
             for s in socks:
                 s.close()
             self.log.info('ECHO down')
@@ -270,7 +270,7 @@ class SSHClientTest(unittest.TestCase):
             (self.eaddr, self.eport)
         )
         try:
-            while True:
+            while self.is_server_working:
                 rqst, _, _ = select.select([schan, echo], [], [], 10)
                 if schan in rqst:
                     data = schan.recv(1024)
