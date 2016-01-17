@@ -610,14 +610,15 @@ class SSHTunnelForwarder(object):
                                 .format(ssh_config_file))
 
         if not ssh_password:
-            ssh_private_key = paramiko.RSAKey.from_private_key_file(
-                ssh_private_key,
-                password=ssh_private_key_password
-            ) if ssh_private_key else None
-
             # Check if a private key was supplied or found in ssh_config
             if not ssh_private_key:
                 raise ValueError('No password or private key available!')
+
+            if isinstance(ssh_private_key, string_types):
+                ssh_private_key = paramiko.RSAKey.from_private_key_file(
+                    ssh_private_key,
+                    password=ssh_private_key_password
+                )
 
         if not ssh_port:
             ssh_port = 22
