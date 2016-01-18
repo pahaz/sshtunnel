@@ -97,6 +97,7 @@ optional arguments:
 
 """
 
+import sys
 import socket
 import getpass
 import logging
@@ -107,9 +108,16 @@ from select import select
 from os.path import expanduser
 
 import paramiko
-from six import string_types
 
-from six.moves import input, socketserver
+if sys.version_info[0] < 3:
+    import SocketServer as socketserver
+    string_types = basestring,  # noqa
+    input_ = raw_input
+else:
+    import socketserver
+    string_types = str
+    input_ = input
+
 
 __version__ = '0.0.6'
 __author__ = 'pahaz'
@@ -167,7 +175,7 @@ def check_addresses(address_list):
         check_address(address)
 
 
-def create_logger(logger=None, loglevel=None):
+def create_logger(logger=None, loglevel=DEFAULT_LOGLEVEL):
     """
     Attaches or creates a new logger and creates console handlers if not
     present
@@ -176,7 +184,7 @@ def create_logger(logger=None, loglevel=None):
         '{0}.SSHTunnelForwarder'.format(__name__)
     )
     if not logger.handlers:  # if no handlers, add a new one (console)
-        logger.setLevel(loglevel or DEFAULT_LOGLEVEL)
+        logger.setLevel(loglevel)
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(
             logging.Formatter('%(asctime)s | %(levelname)-8s| %(message)s')
@@ -480,7 +488,6 @@ class SSHTunnelForwarder(object):
             remote_bind_addresses=None,
             set_keepalive=0,
             threaded=True,  # old version False
-            use_ssh_config=True,
             **kwargs  # for backwards compatibility
     ):
         """
@@ -501,7 +508,6 @@ class SSHTunnelForwarder(object):
           remote_bind_addresses=None,
           set_keepalive=0,
           threaded=True
-          use_ssh_config=True
           ssh_port=22  # DEPRECATED
           ssh_host=None  # DEPRECATED
 
@@ -525,45 +531,60 @@ class SSHTunnelForwarder(object):
         # Ensure paramiko.transport has a console handler
         check_paramiko_handlers(logger=logger)
 
-        self.ssh_address_or_host = ssh_address_or_host
-        self.use_ssh_config = use_ssh_config
-        self.ssh_config_file = ssh_config_file
-        self.ssh_username = ssh_username
-        self.ssh_password = ssh_password
         self.ssh_host_key = ssh_host_key
-        self.ssh_private_key_password = ssh_private_key_password
-        self.ssh_private_key = ssh_private_key
-        self.ssh_proxy = ssh_proxy
-        self.ssh_proxy_enabled = ssh_proxy_enabled
         self.set_keepalive = set_keepalive
+
         self._raise_fwd_exc = raise_exception_if_any_forwarder_have_a_problem
         self._threaded = threaded
         self._is_started = False
 
-        # ssh host port
-        self._get_ssh_address_or_host('ssh_address', kwargs)
-        self._get_ssh_address_or_host('ssh_host', kwargs)
+        # Check if deprecated arguments ssh_address or ssh_host were used
+        for deprecated_argument in ['ssh_address', 'ssh_host']:
+            ssh_address_or_host = self._get_ssh_address_or_host(
+                ssh_address_or_host,
+                deprecated_argument,
+                kwargs
+            )
 
-        if isinstance(self.ssh_address_or_host, tuple):
-            (self.ssh_host, self.ssh_port) = self.ssh_address_or_host
+        if isinstance(ssh_address_or_host, tuple):
+            (self.ssh_host, self.ssh_port) = ssh_address_or_host
         else:
-            self.ssh_host = self.ssh_address_or_host
+            self.ssh_host = ssh_address_or_host
             self.ssh_port = kwargs.pop('ssh_port', None)
 
         if kwargs:
             raise ValueError('Unknown arguments: {0}'.format(kwargs))
 
         # remote binds
-        self._get_binds(remote_bind_address, remote_bind_addresses)
+        self._remote_binds = self._get_binds(remote_bind_address,
+                                             remote_bind_addresses)
         # local binds
-        self._get_binds(local_bind_address, local_bind_addresses, remote=False)
+        self._local_binds = self._get_binds(local_bind_address,
+                                            local_bind_addresses,
+                                            remote=False)
+        self._local_binds = self._consolidate_binds(self._local_binds,
+                                                    self._remote_binds)
 
-        del self.ssh_address_or_host  # is this useful?
+        (self.ssh_username,
+         self.ssh_private_key,
+         self.ssh_port,
+         self.ssh_proxy) = self.read_ssh_config(
+             self.ssh_host,
+             ssh_config_file,
+             ssh_username,
+             ssh_private_key,
+             self.ssh_port,
+             ssh_proxy if ssh_proxy_enabled else None,
+             logger)
 
-        if use_ssh_config:
-            self.read_ssh_config()
+        (self.ssh_password, self.ssh_private_key) = self._consolidate_auth(
+            ssh_password,
+            ssh_private_key,
+            ssh_private_key_password
+        )
+        if not self.ssh_port:
+            self.ssh_port = 22  # fallback value
 
-        self._consolidate_settings()
         check_host(self.ssh_host)
         check_port(self.ssh_port)
         check_addresses(self._remote_binds)
@@ -578,82 +599,104 @@ class SSHTunnelForwarder(object):
         self.logger.debug('Concurrent connections allowed: {0}'
                           .format(self._threaded))
 
-    def read_ssh_config(self):
-        """Read ssh_config and populate SSHTunnelForwarder attributes"""
-        # Try to read ~/.ssh/config
+    @staticmethod
+    def read_ssh_config(ssh_host,
+                        ssh_config_file,
+                        ssh_username,
+                        ssh_private_key,
+                        ssh_port,
+                        ssh_proxy,
+                        logger):
+        """
+        Read ssh_config_file and tries to look for user (ssh_username),
+        identityfile (ssh_private_key), port (ssh_port) and proxycommand
+        (ssh_proxy) entries for ssh_host
+         """
         ssh_config = paramiko.SSHConfig()
+
+        # Try to read ~/.ssh/config
         try:
             # open the ssh config file
-            with open(expanduser(self.ssh_config_file), 'r') as f:
+            with open(expanduser(ssh_config_file), 'r') as f:
                 ssh_config.parse(f)
             # looks for information for the destination system
-            hostname_info = ssh_config.lookup(self.ssh_host)
+            hostname_info = ssh_config.lookup(ssh_host)
             # gather settings for user, port and identity file
             # last resort: use the 'login name' of the user
-            self.ssh_username = (
-                self.ssh_username or
+            ssh_username = (
+                ssh_username or
                 hostname_info.get('user', getpass.getuser())
             )
-            self.ssh_private_key = (
-                self.ssh_private_key or
+            ssh_private_key = (
+                ssh_private_key or
                 hostname_info.get('identityfile', [None])[0]
             )
-            self.ssh_port = self.ssh_port or hostname_info.get('port')
+            ssh_port = ssh_port or hostname_info.get('port')
             proxycommand = hostname_info.get('proxycommand')
-            self.ssh_proxy = (
-                self.ssh_proxy or paramiko.ProxyCommand(proxycommand)
+            ssh_proxy = (
+                ssh_proxy or paramiko.ProxyCommand(proxycommand)
                 if proxycommand else None
             )
         except IOError:
-            self.logger.warning(
+            logger.warning(
                 'Could not read SSH configuration file: {0}'
-                .format(self.ssh_config_file)
+                .format(ssh_config_file)
             )
+        finally:
+            return (ssh_username, ssh_private_key, ssh_port, ssh_proxy)
 
-    def _consolidate_settings(self):
-        """Get sure everything is in place"""
-        count = len(self._remote_binds) - len(self._local_binds)
-
+    @staticmethod
+    def _consolidate_binds(local_binds, remote_binds):
+        """
+        Fill local_binds with defaults when no value/s were specified,
+        leaving paramiko to decide in which local port the tunnel will be open
+        """
+        count = len(remote_binds) - len(local_binds)
         if count < 0:
             raise ValueError('Too many local bind addresses '
                              '(local_bind_addresses > remote_bind_addresses)')
-        self._local_binds.extend([('0.0.0.0', 0) for x in range(count)])
-        if not self.ssh_password:
-            self.ssh_private_key = paramiko.RSAKey.from_private_key_file(
-                self.ssh_private_key,
-                password=self.ssh_private_key_password
-            ) if self.ssh_private_key else None
+        local_binds.extend([('0.0.0.0', 0) for x in range(count)])
+        return local_binds
 
-            # Check if a private key was supplied or found in ssh_config
-            if not self.ssh_private_key:
-                raise ValueError('No password or private key available!')
+    @staticmethod
+    def _consolidate_auth(ssh_password=None,
+                          ssh_private_key=None,
+                          ssh_private_key_password=None):
+        """Get sure authentication information is in place"""
+        # Check if a private key is found in ssh_config
+        if ssh_private_key:
+            ssh_private_key = paramiko.RSAKey.from_private_key_file(
+                ssh_private_key,
+                password=ssh_private_key_password
+            )
+        if not ssh_password and not ssh_private_key:
+            raise ValueError('No password or private key available!')
 
-        if not self.ssh_port:
-            self.ssh_port = 22
+        return (ssh_password, ssh_private_key)
 
     def _raise(self, exception, reason):
         if self._raise_fwd_exc:
             raise exception(reason)
 
     def _get_transport(self):
-        """Create self._transport"""
-        if self.ssh_proxy and self.ssh_proxy_enabled:
+        """Return the SSH transport to the remote gateway"""
+        if self.ssh_proxy:
             self.logger.debug('Connecting with ProxyCommand {0}'
                               .format(repr(self.ssh_proxy.cmd)))
-            self._transport = paramiko.Transport(self.ssh_proxy)
+            transport = paramiko.Transport(self.ssh_proxy)
         else:
-            self._transport = paramiko.Transport((self.ssh_host,
-                                                  self.ssh_port))
-        self._transport.set_keepalive(self.set_keepalive)
-        self._transport.daemon = self.daemon_transport
+            transport = paramiko.Transport((self.ssh_host,
+                                            self.ssh_port))
+        transport.set_keepalive(self.set_keepalive)
+        transport.daemon = DAEMON
+
+        return transport
 
     def create_tunnels(self):
-        """
-        """
-        # CREATE THE TUNNELS
+        """Create SSH tunnels on top of a transport to the remote gateway"""
         self.tunnel_is_up = {}  # handle status of the other side of the tunnel
         try:
-            self._get_transport()
+            self._transport = self._get_transport()
             for (rem, loc) in zip(self._remote_binds, self._local_binds):
                 self.make_ssh_forward_server(rem, loc)
         except paramiko.SSHException:
@@ -670,7 +713,8 @@ class SSHTunnelForwarder(object):
             self.logger.error(msg)
             raise BaseSSHTunnelForwarderError(msg)
 
-    def _get_binds(self, bind_address, bind_addresses, remote=True):
+    @staticmethod
+    def _get_binds(bind_address, bind_addresses, remote=True):
         """
         """
         addr_kind = 'remote' if remote else 'local'
@@ -681,18 +725,18 @@ class SSHTunnelForwarder(object):
                                  "'{0}_bind_address' or '{0}_bind_addresses'"
                                  " argument".format(addr_kind))
             else:
-                self.__setattr__('_{0}_binds'.format(addr_kind), [])
-                return
+                return []
         elif bind_address and bind_addresses:
             raise ValueError("You can't use both '{0}_bind_address' and "
                              "'{0}_bind_addresses' arguments. Use one of "
                              "them.".format(addr_kind))
         if bind_address:
-            self.__setattr__('_{0}_binds'.format(addr_kind), [bind_address])
-            return
-        self.__setattr__('_{0}_binds'.format(addr_kind), bind_addresses)
+            return [bind_address]
+        else:
+            return bind_addresses
 
-    def _get_ssh_address_or_host(self, arg_name, kwargs):
+    @staticmethod
+    def _get_ssh_address_or_host(ssh_address_or_host, arg_name, kwargs):
         """
         Processes optional deprecate arguments to set up ssh_address_or_host
         """
@@ -700,12 +744,13 @@ class SSHTunnelForwarder(object):
             warnings.warn("'{0}' is DEPRECATED use 'ssh_address_or_host' or "
                           "1st positional argument".format(arg_name),
                           DeprecationWarning)
-            if self.ssh_address_or_host:
+            if ssh_address_or_host:
                 raise ValueError("You can't use both '{0}' and "
                                  "'ssh_address_or_host'. Please only use one "
                                  "of them".format(arg_name))
             else:
-                self.ssh_address_or_host = kwargs.pop(arg_name)
+                return kwargs.pop(arg_name)
+        return ssh_address_or_host
 
     def start(self):
         if self._is_started:
@@ -729,7 +774,7 @@ class SSHTunnelForwarder(object):
         ]
 
         for thread in threads:
-            thread.daemon = self.daemon_forward_servers
+            thread.daemon = DAEMON
             thread.start()
 
         self._threads = threads
@@ -1128,7 +1173,7 @@ def main():
         Press <Ctrl-C> or <Enter> to stop!
 
         ''')
-        input('')
+        input_('')
 
 if __name__ == '__main__':
     main()

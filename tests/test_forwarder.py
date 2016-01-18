@@ -9,7 +9,6 @@ import threading
 import time
 import warnings
 
-import pytest
 import paramiko
 from os import path
 
@@ -464,8 +463,8 @@ class SSHClientTest(unittest.TestCase):
                 ssh_username=SSH_USERNAME
             )
 
-    @pytest.mark.skipif(sys.version_info < (2, 7),
-                        reason="Cannot intercept logging messages in py26")
+    @unittest.skipIf(sys.version_info < (2, 7),
+                     reason="Cannot intercept logging messages in py26")
     def test_reading_from_a_bad_sshconfigfile_does_not_raise_error(self):
         """
         Test that when a bad ssh_config file is found, a warning is shown
@@ -479,6 +478,7 @@ class SSHClientTest(unittest.TestCase):
             ssh_password=SSH_PASSWORD,
             remote_bind_address=(self.eaddr, self.eport),
             local_bind_address=('127.0.0.1', self.randomize_eport()),
+            logger=self.log,
             ssh_config_file=ssh_config_file
         )
         logged_message = 'Could not read SSH configuration file: {0}'.format(
@@ -496,7 +496,7 @@ class SSHClientTest(unittest.TestCase):
                 (self.saddr, self.sport),
                 ssh_username=SSH_USERNAME,
                 remote_bind_address=(self.eaddr, self.eport),
-                use_ssh_config=False
+                ssh_config_file=None
             )
 
     def test_deprecate_warnings_are_shown(self):
@@ -545,7 +545,7 @@ class SSHClientTest(unittest.TestCase):
                 ssh_username=SSH_USERNAME,
                 ssh_password=SSH_PASSWORD,
                 remote_bind_address=(self.eaddr, self.eport),
-                use_ssh_config=False
+                ssh_config_file=None
             )
             server.start()
             server.stop()
@@ -561,13 +561,13 @@ class SSHClientTest(unittest.TestCase):
                 ssh_username=SSH_USERNAME,
                 ssh_password=SSH_PASSWORD,
                 remote_bind_address=(self.eaddr, self.eport),
-                use_ssh_config=False
+                ssh_config_file=None
             )
             server.start()
             server.stop()
 
-    @pytest.mark.skipif(sys.version_info < (2, 7),
-                        reason="Cannot intercept logging messages in py26")
+    @unittest.skipIf(sys.version_info < (2, 7),
+                     reason="Cannot intercept logging messages in py26")
     def test_running_start_twice_logs_warning(self):
         """Test that when running start() twice a warning is shown"""
         server = SSHTunnelForwarder(
@@ -583,8 +583,8 @@ class SSHClientTest(unittest.TestCase):
         self.assertIn('Already started!',
                       self.sshtunnel_log_messages['warning'])
 
-    @pytest.mark.skipif(sys.version_info < (2, 7),
-                        reason="Cannot intercept logging messages in py26")
+    @unittest.skipIf(sys.version_info < (2, 7),
+                     reason="Cannot intercept logging messages in py26")
     def test_wrong_auth_to_gateway_logs_error(self):
         """
         Test that when connecting to the ssh gateway with wrong credentials,
