@@ -197,6 +197,10 @@ class SSHClientTest(unittest.TestCase):
                 getattr(self, attr).close()
         for x in self.threads:
             self.log.info('thread {0} - is_alive={1}'.format(x, x.is_alive()))
+        for x in self.threads:
+            if x.is_alive():
+                x.join()
+                self.log.info('thread {0} now stopped'.format(x))
 
     def _run_ssh_server(self, delay=0):
         self.socks, addr = self.ssockl.accept()
