@@ -2,11 +2,20 @@
 .. image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
    :target: https://circleci.com/gh/pahaz/sshtunnel
 
-**Author**: **[Pahaz Blinov](https://github.com/pahaz)**
+.. image:: https://img.shields.io/pypi/dm/sshtunnel.svg
+
+.. image:: https://img.shields.io/pypi/dw/sshtunnel.svg
+
+.. image:: https://img.shields.io/pypi/dd/sshtunnel.svg
+
+**WORKS WITH**: python 2.6, python 2.7, python 3.3, python 3.4, python 3.5
+
+**Author**: `Pahaz Blinov <https://github.com/pahaz>`_
 
 **Repo**: https://github.com/pahaz/sshtunnel/
 
-Inspired by https://github.com/jmagnusson/bgtunnel but it doesn't work on Windows.  
+Inspired by https://github.com/jmagnusson/bgtunnel but it doesn't work on
+Windows.
 See also: https://github.com/paramiko/paramiko/blob/master/demos/forward.py
 
 Require `paramiko`.
@@ -18,9 +27,15 @@ Install
 
     pip install sshtunnel
 
-or :: 
+or ::
 
     easy_install sshtunnel
+
+
+Install from source::
+
+    git clone https://github.com/pahaz/sshtunnel.git
+    python sshtunnel/setup.py develop
 
 SSH tunnels to remote server
 ============================
@@ -31,7 +46,7 @@ background, using threads. The connection(s) are closed when explicitly
 calling the `close` method of the returned SSHTunnelForwarder object.::
 
     ----------------------------------------------------------------------
-    
+
                                 |
     -------------+              |    +----------+               +---------
         LOCAL    |              |    |  REMOTE  |               | PRIVATE
@@ -39,7 +54,7 @@ calling the `close` method of the returned SSHTunnelForwarder object.::
     -------------+              |    +----------+               +---------
                                 |
                              FIREWALL
-    
+
     ----------------------------------------------------------------------
 
 Fig1: How to connect to PRIVATE SERVER throw SSH tunnel.
@@ -51,18 +66,18 @@ Ex 1
 ::
 
     from sshtunnel import SSHTunnelForwarder
-    
+
     server = SSHTunnelForwarder(
         ('pahaz.urfuclub.ru', 22),
         ssh_username="pahaz",
         ssh_password="secret",
         remote_bind_address=('127.0.0.1', 5555))
-    
+
     server.start()
-    
+
     print(server.local_bind_port)
     # work with `SECRET SERVICE` throw `server.local_bind_port`.
-    
+
     server.stop()
 
 Ex 2
@@ -72,18 +87,18 @@ Example of a port forwarding for the Vagrant MySQL local port::
 
     from sshtunnel import SSHTunnelForwarder
     from time import sleep
-    
+
     with SSHTunnelForwarder(
         ('localhost', 2222),
         ssh_username="vagrant",
         ssh_password="vagrant",
         remote_bind_address=('127.0.0.1', 3306)) as server:
-    
+
         print(server.local_bind_port)
         while True:
             # press Ctrl-C for stopping
             sleep(1)
-    
+
     print('FINISH!')
 
 Or simple use CLI::
@@ -124,15 +139,10 @@ CONTRIBUTORS
  - [Erik Rogers](https://github.com/ewrogers)
  - [Mart Sõmermaa](https://github.com/mrts)
 
-TODO
-====
-
- - Write tests!
- 
 CHANGELOG
 =========
 
-## work in progres ##
+## work in progress ##
  - new feature
 
 ## v.0.0.6 ##
@@ -146,20 +156,20 @@ CHANGELOG
  - add tests (pahaz)
  - add CI integration (pahaz)
  - normal packaging (pahaz)
+ - disable check destination socket connection by `SSHTunnelForwarder.local_is_up` (pahaz) [changed default behavior]
+ - use daemon mode = False in all threads by default. `detail <https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127>`_ (pahaz) [changed default behavior]
 
 ## v.0.0.4.4 ##
-
- - fix issuse [#24](https://github.com/pahaz/sshtunnel/issues/24) - hide ssh password in logs (pahaz)
+ - fix issue `#24 <https://github.com/pahaz/sshtunnel/issues/24>`_ - hide ssh password in logs (pahaz)
 
 ## v.0.0.4.3 ##
-
- - fix default port issuse [#19](https://github.com/pahaz/sshtunnel/issues/19) (pahaz)
+ - fix default port issue `#19 <https://github.com/pahaz/sshtunnel/issues/19>`_ (pahaz)
 
 ## v.0.0.4.2 ##
- - fix Thread.daemon mode for Python < 3.3 [#16](https://github.com/pahaz/sshtunnel/issues/16), [#21](https://github.com/pahaz/sshtunnel/issues/21) (lewisthompson, ewrogers)
+ - fix Thread.daemon mode for Python < 3.3 `#16 <https://github.com/pahaz/sshtunnel/issues/16>`_, `#21 <https://github.com/pahaz/sshtunnel/issues/21>`_ (lewisthompson, ewrogers)
 
 ## v.0.0.4.1 ##
- - fix CLI issues/13 (pahaz)
+ - fix CLI issues `#13 <https://github.com/pahaz/sshtunnel/issues/21>`_ (pahaz)
 
 ## v.0.0.4 ##
  - daemon mode by default for all threads (fernandezcuesta, pahaz) - *incompatible*
