@@ -105,7 +105,7 @@ import argparse
 import warnings
 import threading
 from select import select
-from os.path import expanduser
+from os.path import exists, expanduser
 
 import paramiko
 
@@ -566,7 +566,7 @@ class SSHTunnelForwarder(object):
                                                     self._remote_binds)
 
         (self.ssh_username,
-         self.ssh_private_key,
+         ssh_private_key,  # still needs to go through _consolidate_auth
          self.ssh_port,
          self.ssh_proxy) = self.read_ssh_config(
              self.ssh_host,
@@ -578,9 +578,10 @@ class SSHTunnelForwarder(object):
              logger)
 
         (self.ssh_password, self.ssh_private_key) = self._consolidate_auth(
-            ssh_password,
-            ssh_private_key,
-            ssh_private_key_password
+            ssh_password=ssh_password,
+            ssh_private_key=ssh_private_key,
+            ssh_private_key_password=ssh_private_key_password,
+            logger=logger
         )
         if not self.ssh_port:
             self.ssh_port = 22  # fallback value
@@ -661,14 +662,20 @@ class SSHTunnelForwarder(object):
     @staticmethod
     def _consolidate_auth(ssh_password=None,
                           ssh_private_key=None,
-                          ssh_private_key_password=None):
+                          ssh_private_key_password=None,
+                          logger=None):
         """Get sure authentication information is in place"""
         # Check if a private key is found in ssh_config
         if ssh_private_key:
-            ssh_private_key = paramiko.RSAKey.from_private_key_file(
-                ssh_private_key,
-                password=ssh_private_key_password
-            )
+            if exists(ssh_private_key):
+                ssh_private_key = paramiko.RSAKey.from_private_key_file(
+                    ssh_private_key,
+                    password=ssh_private_key_password
+                )
+            elif logger:
+                logger.warning('Private key not found: {0}'
+                               .format(ssh_private_key))
+                ssh_private_key = None
         if not ssh_password and not ssh_private_key:
             raise ValueError('No password or private key available!')
 
@@ -1152,7 +1159,7 @@ def main():
     PARSER.add_argument(
         '-v', '--verbosity', action='count', default=0,
         help='Increase output verbosity (default: {0})'.format(
-            DEFAULT_LOGLEVEL
+            logging.getLevelName(DEFAULT_LOGLEVEL)
         )
     )
 

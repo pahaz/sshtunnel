@@ -323,6 +323,20 @@ class SSHClientTest(unittest.TestCase):
     def randomize_eport(self):
         return self.eport + random.randint(1, 999)
 
+    def _test_server(self, server):
+        self._run_echo_and_ssh(server)
+        MESSAGE = get_random_string().encode()
+        LOCAL_BIND_ADDR = ('127.0.0.1', self.server.local_bind_port)
+        self.log.info('_test_server(): try connect!')
+        s = socket.create_connection(LOCAL_BIND_ADDR)
+        self.log.info('_test_server(): connected from {0}! try send!'
+                      .format(s.getsockname()))
+        s.send(MESSAGE)
+        self.log.info('_test_server(): sent!')
+        z = (s.recv(1000))
+        self.assertEqual(z, MESSAGE)
+        s.close()
+
     def test_connect_by_username_password(self):
         server = SSHTunnelForwarder(
             (self.saddr, self.sport),
@@ -343,20 +357,6 @@ class SSHClientTest(unittest.TestCase):
         )
 
         self._test_server(server)
-
-    def _test_server(self, server):
-        self._run_echo_and_ssh(server)
-        MESSAGE = get_random_string().encode()
-        LOCAL_BIND_ADDR = ('127.0.0.1', self.server.local_bind_port)
-        self.log.info('_test_server(): try connect!')
-        s = socket.create_connection(LOCAL_BIND_ADDR)
-        self.log.info('_test_server(): connected from {0}! try send!'
-                      .format(s.getsockname()))
-        s.send(MESSAGE)
-        self.log.info('_test_server(): sent!')
-        z = (s.recv(1000))
-        self.assertEqual(z, MESSAGE)
-        s.close()
 
     def test_sshaddress_and_sshaddresssorhost_mutually_exclusive(self):
         """
@@ -604,3 +604,22 @@ class SSHClientTest(unittest.TestCase):
             self._test_server(server)
         self.assertIn('Could not open connection to gateway',
                       self.sshtunnel_log_messages['error'])
+
+    @unittest.skipIf(sys.version_info < (2, 7),
+                     reason="Cannot intercept logging messages in py26")
+    def test_missing_pkey_file_logs_warning(self):
+        """
+        Test that when the private key file is missing, a warning is logged
+        """
+        bad_pkey = 'this_file_does_not_exist'
+        server = SSHTunnelForwarder(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            ssh_private_key=bad_pkey,
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log
+        )
+        self._test_server(server)
+        self.assertIn('Private key not found: {0}'.format(bad_pkey),
+                      self.sshtunnel_log_messages['warning'])
