@@ -131,7 +131,7 @@ DAEMON = False
 TRACE = False
 _CONNECTION_COUNTER = 1
 _lock = threading.Lock()
-
+SSH_TIMEOUT = None  # timeout (seconds) for the connection to the SSH gateway
 
 ########################
 #                      #
@@ -690,10 +690,13 @@ class SSHTunnelForwarder(object):
         if self.ssh_proxy:
             self.logger.debug('Connecting with ProxyCommand {0}'
                               .format(repr(self.ssh_proxy.cmd)))
-            transport = paramiko.Transport(self.ssh_proxy)
+            _socket = self.ssh_proxy
+            _socket.settimeout(SSH_TIMEOUT or 1.0)
         else:
-            transport = paramiko.Transport((self.ssh_host,
-                                            self.ssh_port))
+            _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            _socket.settimeout(SSH_TIMEOUT)
+            _socket.connect((self.ssh_host, self.ssh_port))
+        transport = paramiko.Transport(_socket)
         transport.set_keepalive(self.set_keepalive)
         transport.daemon = DAEMON
 
@@ -706,8 +709,9 @@ class SSHTunnelForwarder(object):
             self._transport = self._get_transport()
             for (rem, loc) in zip(self._remote_binds, self._local_binds):
                 self.make_ssh_forward_server(rem, loc)
-        except paramiko.SSHException:
-            msg = 'Could not connect to gateway: {0}'.format(self.ssh_host)
+        except (paramiko.SSHException, socket.error) as e:
+            template = 'Could not connect to gateway: {0} ({1})'
+            msg = template.format(self.ssh_host, e.args)
             self.logger.error(msg)
             raise BaseSSHTunnelForwarderError(msg)
         except socket.gaierror:  # raised by paramiko.Transport
@@ -975,6 +979,8 @@ class SSHTunnelForwarder(object):
 
     def __enter__(self):
         self.start()
+        # if not self._is_started:
+        #     self.__exit__()
         return self
 
     def __exit__(self, *args):
@@ -1174,13 +1180,14 @@ def main():
     levels = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
     args.setdefault('debug_level', levels[verbosity])
 
-    with open_tunnel(**args):
-        print('''
+    with open_tunnel(**args) as tunnel:
+        if not tunnel._is_started:
+            return
+        input_('''
 
         Press <Ctrl-C> or <Enter> to stop!
 
         ''')
-        input_('')
 
 if __name__ == '__main__':
     main()

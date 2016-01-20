@@ -6,7 +6,6 @@ import select
 import socket
 import sys
 import threading
-import time
 import warnings
 
 import paramiko
@@ -202,7 +201,7 @@ class SSHClientTest(unittest.TestCase):
                 x.join()
                 self.log.info('thread {0} now stopped'.format(x))
 
-    def _run_ssh_server(self, delay=0):
+    def _run_ssh_server(self):
         self.socks, addr = self.ssockl.accept()
         self.ts = paramiko.Transport(self.socks)
         host_key = paramiko.RSAKey.from_private_key_file(
@@ -210,8 +209,6 @@ class SSHClientTest(unittest.TestCase):
         )
         self.ts.add_server_key(host_key)
         server = NullServer(allowed_keys=FINGERPRINTS.keys(), log=self.log)
-        if delay:
-            time.sleep(delay)
         t = threading.Thread(target=self._do_forwarding, name='ssh-forwarding')
         t.daemon = False
         self.threads.append(t)
