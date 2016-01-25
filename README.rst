@@ -8,7 +8,7 @@
 
 .. image:: https://img.shields.io/pypi/dd/sshtunnel.svg
 
-**WORK WITH**: python 2.6, python 2.7, python 3.3, python 3.4
+**WORK WITH**: python 2.6, python 2.7, python 3.3, python 3.4, python 3.5
 
 **Author**: `Pahaz Blinov <https://github.com/pahaz>`_
 
