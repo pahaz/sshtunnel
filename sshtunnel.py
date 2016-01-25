@@ -979,8 +979,8 @@ class SSHTunnelForwarder(object):
 
     def __enter__(self):
         self.start()
-        # if not self._is_started:
-        #     self.__exit__()
+        if not self._is_started:
+            self.stop()
         return self
 
     def __exit__(self, *args):
