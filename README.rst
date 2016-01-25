@@ -8,14 +8,13 @@
 
 .. image:: https://img.shields.io/pypi/dd/sshtunnel.svg
 
-**WORKS WITH**: python 2.6, python 2.7, python 3.3, python 3.4, python 3.5
+**WORK WITH**: python 2.6, python 2.7, python 3.3, python 3.4
 
 **Author**: `Pahaz Blinov <https://github.com/pahaz>`_
 
 **Repo**: https://github.com/pahaz/sshtunnel/
 
-Inspired by https://github.com/jmagnusson/bgtunnel but it doesn't work on
-Windows.
+Inspired by https://github.com/jmagnusson/bgtunnel but it doesn't work on Windows.
 See also: https://github.com/paramiko/paramiko/blob/master/demos/forward.py
 
 Require `paramiko`.
@@ -30,12 +29,6 @@ Install
 or ::
 
     easy_install sshtunnel
-
-
-Install from source::
-
-    git clone https://github.com/pahaz/sshtunnel.git
-    python sshtunnel/setup.py develop
 
 SSH tunnels to remote server
 ============================
@@ -142,7 +135,7 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
-## work in progress ##
+## work in progres ##
  - new feature
 
 ## v.0.0.6 ##
@@ -156,14 +149,14 @@ CHANGELOG
  - add tests (pahaz)
  - add CI integration (pahaz)
  - normal packaging (pahaz)
- - disable check destination socket connection by `SSHTunnelForwarder.local_is_up` (pahaz) [changed default behavior]
+ - disable check distenation socket connection by `SSHTunnelForwarder.local_is_up` (pahaz) [changed default behavior]
  - use daemon mode = False in all threads by default. `detail <https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127>`_ (pahaz) [changed default behavior]
 
 ## v.0.0.4.4 ##
- - fix issue `#24 <https://github.com/pahaz/sshtunnel/issues/24>`_ - hide ssh password in logs (pahaz)
+ - fix issuse `#24 <https://github.com/pahaz/sshtunnel/issues/24>`_ - hide ssh password in logs (pahaz)
 
 ## v.0.0.4.3 ##
- - fix default port issue `#19 <https://github.com/pahaz/sshtunnel/issues/19>`_ (pahaz)
+ - fix default port issuse `#19 <https://github.com/pahaz/sshtunnel/issues/19>`_ (pahaz)
 
 ## v.0.0.4.2 ##
  - fix Thread.daemon mode for Python < 3.3 `#16 <https://github.com/pahaz/sshtunnel/issues/16>`_, `#21 <https://github.com/pahaz/sshtunnel/issues/21>`_ (lewisthompson, ewrogers)
