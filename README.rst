@@ -159,9 +159,9 @@ CHANGELOG
 =========
 
 - v.0.0.7
-    + Tunnels can now be stopped and started safely (\#41_)
-    + Add timeout to SSH gateway and keep-alive messages (\#29_)
-    + Allow sending a pkey directly (\#43_)
+    + Tunnels can now be stopped and started safely (:ref:`#41`)
+    + Add timeout to SSH gateway and keep-alive messages (:ref:`#29`)
+    + Allow sending a pkey directly (:ref:`#43`)
     + Add ``-V`` CLI option to show current version
     + Refactoring
 
@@ -262,16 +262,16 @@ HELP
 .. |paramiko.ProxyCommand| replace:: ``paramiko.ProxyCommand``
 .. _paramiko.ProxyCommand: http://paramiko-docs.readthedocs.org/en/latest/api/proxy.html
 
-.. _\#13: https://github.com/pahaz/sshtunnel/issues/13
-.. _\#16: https://github.com/pahaz/sshtunnel/issues/16
-.. _\#19: https://github.com/pahaz/sshtunnel/issues/19
-.. _\#21: https://github.com/pahaz/sshtunnel/issues/21
-.. _\#24: https://github.com/pahaz/sshtunnel/issues/24
-.. _\#29: https://github.com/pahaz/sshtunnel/issues/29
-.. _\#33: https://github.com/pahaz/sshtunnel/issues/33
-.. _\#34: https://github.com/pahaz/sshtunnel/issues/34
-.. _\#41: https://github.com/pahaz/sshtunnel/issues/41
-.. _\#43: https://github.com/pahaz/sshtunnel/issues/43
+.. _#13: https://github.com/pahaz/sshtunnel/issues/13
+.. _#16: https://github.com/pahaz/sshtunnel/issues/16
+.. _#19: https://github.com/pahaz/sshtunnel/issues/19
+.. _#21: https://github.com/pahaz/sshtunnel/issues/21
+.. _#24: https://github.com/pahaz/sshtunnel/issues/24
+.. _#29: https://github.com/pahaz/sshtunnel/issues/29
+.. _#33: https://github.com/pahaz/sshtunnel/issues/33
+.. _#34: https://github.com/pahaz/sshtunnel/issues/34
+.. _#41: https://github.com/pahaz/sshtunnel/issues/41
+.. _#43: https://github.com/pahaz/sshtunnel/issues/43
 .. _detail: https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127
 
 .. |CircleCI| image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
