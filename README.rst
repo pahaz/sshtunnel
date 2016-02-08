@@ -56,7 +56,7 @@ calling the `close` method of the returned SSHTunnelForwarder object.::
 
     ----------------------------------------------------------------------
 
-Fig1: How to connect to PRIVATE SERVER through SSH tunnel.
+**Fig1**: How to connect to ``PRIVATE SERVER`` through SSH tunnel.
 
 
 Example 1
@@ -70,7 +70,8 @@ Example 1
         ('pahaz.urfuclub.ru', 22),
         ssh_username="pahaz",
         ssh_password="secret",
-        remote_bind_address=('127.0.0.1', 5555))
+        remote_bind_address=('127.0.0.1', 5555)
+    )
 
     server.start()
 
@@ -93,7 +94,8 @@ Example of a port forwarding for the Vagrant MySQL local port:
         ('localhost', 2222),
         ssh_username="vagrant",
         ssh_password="vagrant",
-        remote_bind_address=('127.0.0.1', 3306)) as server:
+        remote_bind_address=('127.0.0.1', 3306)
+    ) as server:
 
         print(server.local_bind_port)
         while True:
@@ -157,9 +159,9 @@ CHANGELOG
 =========
 
 - v.0.0.7
-    + Tunnels can now be stopped and started safely (#41_)
-    + Add timeout to SSH gateway and keep-alive messages (#29_)
-    + Allow sending a pkey directly (#43_)
+    + Tunnels can now be stopped and started safely (\#41_)
+    + Add timeout to SSH gateway and keep-alive messages (\#29_)
+    + Allow sending a pkey directly (\#43_)
     + Add ``-V`` CLI option to show current version
     + Refactoring
 
@@ -170,7 +172,7 @@ CHANGELOG
     + add ``ssh_proxy`` argument, as well as ``ssh_config(5)`` ``ProxyCommand`` support (lewisthompson)
     + add some python 2.6 compatibility fixes (mrts)
     + ``paramiko.transport`` inherits handlers of loggers passed to ``SSHTunnelForwarder`` (fernandezcuesta)
-    + fix #34_, #33_, code style and docs (fernandezcuesta)
+    + fix \#34_, \#33_, code style and docs (fernandezcuesta)
     + add tests (pahaz)
     + add CI integration (pahaz)
     + normal packaging (pahaz)
@@ -178,16 +180,16 @@ CHANGELOG
     + use daemon mode = False in all threads by default; detail_ (pahaz) [changed default behavior]
 
 - v.0.0.4.4
-   + fix issue #24_ - hide ssh password in logs (pahaz)
+   + fix issue \#24_ - hide ssh password in logs (pahaz)
 
 - v.0.0.4.3
-    + fix default port issue #19_ (pahaz)
+    + fix default port issue \#19_ (pahaz)
 
 - v.0.0.4.2
-    + fix Thread.daemon mode for Python < 3.3 #16_, #21_ (lewisthompson, ewrogers)
+    + fix Thread.daemon mode for Python < 3.3 \#16_, \#21_ (lewisthompson, ewrogers)
 
 - v.0.0.4.1
-    + fix CLI issues #13_ (pahaz)
+    + fix CLI issues \#13_ (pahaz)
 
 - v.0.0.4
     + daemon mode by default for all threads (fernandezcuesta, pahaz) - *incompatible*
@@ -260,16 +262,16 @@ HELP
 .. |paramiko.ProxyCommand| replace:: ``paramiko.ProxyCommand``
 .. _paramiko.ProxyCommand: http://paramiko-docs.readthedocs.org/en/latest/api/proxy.html
 
-.. _13: https://github.com/pahaz/sshtunnel/issues/13
-.. _16: https://github.com/pahaz/sshtunnel/issues/16
-.. _19: https://github.com/pahaz/sshtunnel/issues/19
-.. _21: https://github.com/pahaz/sshtunnel/issues/21
-.. _24: https://github.com/pahaz/sshtunnel/issues/24
-.. _29: https://github.com/pahaz/sshtunnel/issues/29
-.. _33: https://github.com/pahaz/sshtunnel/issues/33
-.. _34: https://github.com/pahaz/sshtunnel/issues/34
-.. _41: https://github.com/pahaz/sshtunnel/issues/41
-.. _43: https://github.com/pahaz/sshtunnel/issues/43
+.. _\#13: https://github.com/pahaz/sshtunnel/issues/13
+.. _\#16: https://github.com/pahaz/sshtunnel/issues/16
+.. _\#19: https://github.com/pahaz/sshtunnel/issues/19
+.. _\#21: https://github.com/pahaz/sshtunnel/issues/21
+.. _\#24: https://github.com/pahaz/sshtunnel/issues/24
+.. _\#29: https://github.com/pahaz/sshtunnel/issues/29
+.. _\#33: https://github.com/pahaz/sshtunnel/issues/33
+.. _\#34: https://github.com/pahaz/sshtunnel/issues/34
+.. _\#41: https://github.com/pahaz/sshtunnel/issues/41
+.. _\#43: https://github.com/pahaz/sshtunnel/issues/43
 .. _detail: https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127
 
 .. |CircleCI| image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
