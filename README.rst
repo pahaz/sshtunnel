@@ -17,7 +17,8 @@ See also: https://github.com/paramiko/paramiko/blob/master/demos/forward.py
 
 Requirements
 -------------
- * `paramiko`_
+
+* `paramiko`_
 
 Installation
 ============
@@ -124,33 +125,33 @@ object where all SSH traffic will be passed through.
 See either the |paramiko.ProxyCommand|_ documentation
 or ``ProxyCommand`` in ``ssh_config(5)`` for more information.
 
-> Note: ``ssh_proxy`` overrides any ``ProxyCommand`` sourced from the user
+ Note: ``ssh_proxy`` overrides any ``ProxyCommand`` sourced from the user
 ``ssh_config``.
 
-> Note: ``ssh_proxy`` is ignored if ``ssh_proxy_enabled != True``.
+ Note: ``ssh_proxy`` is ignored if ``ssh_proxy_enabled != True``.
 
 ``ssh_proxy_enabled = True``
 ----------------------------
 
-If True (default) and the user's ``ssh_config`` file contains a
-``ProxyCommand`` directive that matches the specified
-``ssh_address_or_host`` (or first positional argument),
-``SSHTunnelForwarder`` will create a |paramiko.ProxyCommand|_ object where all
-SSH traffic will be passed through.
+If True (default) and user's ``ssh_config`` file contains a ``ProxyCommand``
+directive that matches the specified ``ssh_address_or_host`` (or first
+positional argument), ``SSHTunnelForwarder`` will create a
+|paramiko.ProxyCommand|_ object where all SSH traffic will be passed through.
+
 See the ``ssh_proxy`` argument for more details.
 
 
 CONTRIBUTORS
 ============
 
- - `Cameron Maske <https://github.com/cameronmaske>`_
- - `Gustavo Machado <https://github.com/gdmachado>`_
- - `Colin Jermain <https://github.com/cjermain>`_
- - `J.M. Fernández <https://github.com/fernandezcuesta>`_ - (big thanks!)
- - `Lewis Thompson <https://github.com/lewisthompson>`_
- - `Erik Rogers <https://github.com/ewrogers>`_
- - `Mart Sõmermaa <https://github.com/mrts>`_
- - `Chronial <https://github.com/Chronial>`_
+- `Cameron Maske <https://github.com/cameronmaske>`_
+- `Gustavo Machado <https://github.com/gdmachado>`_
+- `Colin Jermain <https://github.com/cjermain>`_
+- `J.M. Fernández <https://github.com/fernandezcuesta>`_ - (big thanks!)
+- `Lewis Thompson <https://github.com/lewisthompson>`_
+- `Erik Rogers <https://github.com/ewrogers>`_
+- `Mart Sõmermaa <https://github.com/mrts>`_
+- `Chronial <https://github.com/Chronial>`_
 
 CHANGELOG
 =========
@@ -258,20 +259,22 @@ HELP
 .. _paramiko: http://www.paramiko.org/
 .. |paramiko.ProxyCommand| replace:: ``paramiko.ProxyCommand``
 .. _paramiko.ProxyCommand: http://paramiko-docs.readthedocs.org/en/latest/api/proxy.html
-.. _#13: https://github.com/pahaz/sshtunnel/issues/13
-.. _#16: https://github.com/pahaz/sshtunnel/issues/16
-.. _#19: https://github.com/pahaz/sshtunnel/issues/19
-.. _#21: https://github.com/pahaz/sshtunnel/issues/21
-.. _#24: https://github.com/pahaz/sshtunnel/issues/24
-.. _#29: https://github.com/pahaz/sshtunnel/issues/29
-.. _#33: https://github.com/pahaz/sshtunnel/issues/33
-.. _#34: https://github.com/pahaz/sshtunnel/issues/34
-.. _#41: https://github.com/pahaz/sshtunnel/issues/41
-.. _#43: https://github.com/pahaz/sshtunnel/issues/43
+
+.. _13: https://github.com/pahaz/sshtunnel/issues/13
+.. _16: https://github.com/pahaz/sshtunnel/issues/16
+.. _19: https://github.com/pahaz/sshtunnel/issues/19
+.. _21: https://github.com/pahaz/sshtunnel/issues/21
+.. _24: https://github.com/pahaz/sshtunnel/issues/24
+.. _29: https://github.com/pahaz/sshtunnel/issues/29
+.. _33: https://github.com/pahaz/sshtunnel/issues/33
+.. _34: https://github.com/pahaz/sshtunnel/issues/34
+.. _41: https://github.com/pahaz/sshtunnel/issues/41
+.. _43: https://github.com/pahaz/sshtunnel/issues/43
 .. _detail: https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127
 
 .. |CircleCI| image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
    :target: https://circleci.com/gh/pahaz/sshtunnel
+
 .. |DwnMonth| image:: https://img.shields.io/pypi/dm/sshtunnel.svg
 .. |DwnWeek| image:: https://img.shields.io/pypi/dw/sshtunnel.svg
 .. |DwnDay| image:: https://img.shields.io/pypi/dd/sshtunnel.svg
