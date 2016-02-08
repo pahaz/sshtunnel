@@ -126,7 +126,7 @@ See either the |paramiko.ProxyCommand|_ documentation
 or ``ProxyCommand`` in ``ssh_config(5)`` for more information.
 
  Note: ``ssh_proxy`` overrides any ``ProxyCommand`` sourced from the user
-``ssh_config``.
+ ``ssh_config``.
 
  Note: ``ssh_proxy`` is ignored if ``ssh_proxy_enabled != True``.
 
