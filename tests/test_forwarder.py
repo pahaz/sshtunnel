@@ -277,11 +277,24 @@ class SSHClientTest(unittest.TestCase):
 
         self._test_server(server)
 
-    def test_connect_by_rsa_key(self):
+    def test_connect_by_rsa_key_file(self):
         server = SSHTunnelForwarder(
             (self.saddr, self.sport),
             ssh_username=SSH_USERNAME,
             ssh_private_key=get_test_data_path('testrsa.key'),
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=log,
+        )
+
+        self._test_server(server)
+
+    def test_connect_by_paramiko_key(self):
+        ssh_key = paramiko.RSAKey.from_private_key_file(
+            get_test_data_path('testrsa.key'))
+        server = SSHTunnelForwarder(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_private_key=ssh_key,
             remote_bind_address=(self.eaddr, self.eport),
             logger=log,
         )
