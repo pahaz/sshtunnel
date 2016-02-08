@@ -1,8 +1,6 @@
 |CircleCI|
 
-|DwnMonth|
-|DwnWeek|
-|DwnDay|
+|DwnMonth| |DwnWeek| |DwnDay|
 
 
 **WORKS WITH**: python 2.6, python 2.7, python 3.2, python 3.3, python 3.4,
@@ -17,10 +15,12 @@ Windows.
 
 See also: https://github.com/paramiko/paramiko/blob/master/demos/forward.py
 
-**Requires**: `paramiko`_.
+Requirements
+-------------
+ * `paramiko`_
 
-Install
-=======
+Installation
+============
 
 ::
 
@@ -61,7 +61,7 @@ Fig1: How to connect to PRIVATE SERVER through SSH tunnel.
 Example 1
 ---------
 
-.. code-block: py
+.. code-block:: py
 
     from sshtunnel import SSHTunnelForwarder
 
@@ -83,7 +83,7 @@ Example 2
 
 Example of a port forwarding for the Vagrant MySQL local port:
 
-.. code-block: py
+.. code-block:: py
 
     from sshtunnel import SSHTunnelForwarder
     from time import sleep
@@ -103,7 +103,7 @@ Example of a port forwarding for the Vagrant MySQL local port:
 
 Or simply using the CLI:
 
-.. code-block: bash
+.. code-block:: bash
 
     python -m sshtunnel -U vagrant -P vagrant -L :3306 -R 127.0.0.1:3306 -p 2222 localhost
 
@@ -114,7 +114,7 @@ API/arguments
 --------------------------------
 
 This is an incomplete list of arguments.  See ``__init__()`` method of
-``SSHTunnelForwarder`` class in [sshtunnel.py](sshtunnel.py) for a full list.
+``SSHTunnelForwarder`` class in ``sshtunnel.py`` for a full list.
 
 ``ssh_proxy = None``
 --------------------
@@ -127,7 +127,7 @@ or ``ProxyCommand`` in ``ssh_config(5)`` for more information.
 > Note: ``ssh_proxy`` overrides any ``ProxyCommand`` sourced from the user
 ``ssh_config``.
 
-> Note: ``ssh_proxy` is ignored if ``ssh_proxy_enabled != True``.
+> Note: ``ssh_proxy`` is ignored if ``ssh_proxy_enabled != True``.
 
 ``ssh_proxy_enabled = True``
 ----------------------------
@@ -156,59 +156,59 @@ CHANGELOG
 =========
 
 - v.0.0.7
-  + Tunnels can now be stopped and started safely (#41_)
-  + Add timeout to SSH gateway and keep-alive messages (#29_)
-  + Allow sending a pkey directly (#43_)
-  + Add ``-V`` CLI option to show current version
-  + Refactoring
+    + Tunnels can now be stopped and started safely (#41_)
+    + Add timeout to SSH gateway and keep-alive messages (#29_)
+    + Allow sending a pkey directly (#43_)
+    + Add ``-V`` CLI option to show current version
+    + Refactoring
 
 - v.0.0.6
-  + add ``-S`` CLI options for ssh private key password support (pahaz)
+    + add ``-S`` CLI options for ssh private key password support (pahaz)
 
 - v.0.0.5
-  + add ``ssh_proxy`` argument, as well as ``ssh_config(5)`` ``ProxyCommand`` support (lewisthompson)
-  + add some python 2.6 compatibility fixes (mrts)
-  + ``paramiko.transport`` inherits handlers of loggers passed to ``SSHTunnelForwarder`` (fernandezcuesta)
-  + fix #34_, #33_, code style and docs (fernandezcuesta)
-  + add tests (pahaz)
-  + add CI integration (pahaz)
-  + normal packaging (pahaz)
-  + disable check distenation socket connection by ``SSHTunnelForwarder.local_is_up`` (pahaz) [changed default behavior]
-  + use daemon mode = False in all threads by default; detail_ (pahaz) [changed default behavior]
+    + add ``ssh_proxy`` argument, as well as ``ssh_config(5)`` ``ProxyCommand`` support (lewisthompson)
+    + add some python 2.6 compatibility fixes (mrts)
+    + ``paramiko.transport`` inherits handlers of loggers passed to ``SSHTunnelForwarder`` (fernandezcuesta)
+    + fix #34_, #33_, code style and docs (fernandezcuesta)
+    + add tests (pahaz)
+    + add CI integration (pahaz)
+    + normal packaging (pahaz)
+    + disable check distenation socket connection by ``SSHTunnelForwarder.local_is_up`` (pahaz) [changed default behavior]
+    + use daemon mode = False in all threads by default; detail_ (pahaz) [changed default behavior]
 
 - v.0.0.4.4
-  + fix issue #24_ - hide ssh password in logs (pahaz)
+   + fix issue #24_ - hide ssh password in logs (pahaz)
 
 - v.0.0.4.3
-  + fix default port issue #19_ (pahaz)
+    + fix default port issue #19_ (pahaz)
 
 - v.0.0.4.2
-  + fix Thread.daemon mode for Python < 3.3 #16_, #21_ (lewisthompson, ewrogers)
+    + fix Thread.daemon mode for Python < 3.3 #16_, #21_ (lewisthompson, ewrogers)
 
 - v.0.0.4.1
-  + fix CLI issues #13_ (pahaz)
+    + fix CLI issues #13_ (pahaz)
 
 - v.0.0.4
-  + daemon mode by default for all threads (fernandezcuesta, pahaz) - *incompatible*
-  + move ``make_ssh_forward_server`` to ``SSHTunnelForwarder.make_ssh_forward_server`` (pahaz, fernandezcuesta) - *incompatible*
-  + move ``make_ssh_forward_handler`` to ``SSHTunnelForwarder.make_ssh_forward_handler_class`` (pahaz, fernandezcuesta) - *incompatible*
-  + rename ``open`` to ``open_tunnel`` (fernandezcuesta) - *incompatible*
-  + add CLI interface (fernandezcuesta)
-  + support opening several tunnels at once (fernandezcuesta)
-  + improve stability and readability (fernandezcuesta, pahaz)
-  + improve logging (fernandezcuesta, pahaz)
-  + add ``raise_exception_if_any_forwarder_have_a_problem`` argument for opening several tunnels at once (pahaz)
-  + add ``ssh_config_file`` argument support (fernandezcuesta)
-  + add Python 3 support (fernandezcuesta, pahaz)
+    + daemon mode by default for all threads (fernandezcuesta, pahaz) - *incompatible*
+    + move ``make_ssh_forward_server`` to ``SSHTunnelForwarder.make_ssh_forward_server`` (pahaz, fernandezcuesta) - *incompatible*
+    + move ``make_ssh_forward_handler`` to ``SSHTunnelForwarder.make_ssh_forward_handler_class`` (pahaz, fernandezcuesta) - *incompatible*
+    + rename ``open`` to ``open_tunnel`` (fernandezcuesta) - *incompatible*
+    + add CLI interface (fernandezcuesta)
+    + support opening several tunnels at once (fernandezcuesta)
+    + improve stability and readability (fernandezcuesta, pahaz)
+    + improve logging (fernandezcuesta, pahaz)
+    + add ``raise_exception_if_any_forwarder_have_a_problem`` argument for opening several tunnels at once (pahaz)
+    + add ``ssh_config_file`` argument support (fernandezcuesta)
+    + add Python 3 support (fernandezcuesta, pahaz)
 
 - v.0.0.3
-  + add ``threaded`` options (cameronmaske)
-  + fix exception error message, correctly printing destination address (gdmachado)
-  + fix pip install fails (cjermain, pahaz)
+    + add ``threaded`` options (cameronmaske)
+    + fix exception error message, correctly printing destination address (gdmachado)
+    + fix pip install fails (cjermain, pahaz)
 
 - v.0.0.1
-  + ``SSHTunnelForwarder`` class (pahaz)
-  + ``open`` function (pahaz)
+    + ``SSHTunnelForwarder`` class (pahaz)
+    + ``open`` function (pahaz)
 
 HELP
 ====
