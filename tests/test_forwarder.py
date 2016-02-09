@@ -52,9 +52,9 @@ FINGERPRINTS = {
     'ecdsa-sha2-nistp256': ECDSA,
 }
 
-DAEMON_THREADS = True
+DAEMON_THREADS = False
 HERE = path.abspath(path.dirname(__file__))
-sshtunnel.TRACE = False
+sshtunnel.TRACE = True
 sshtunnel.SSH_TIMEOUT = 1.0
 
 
