@@ -5,12 +5,13 @@ https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
 """
 
-# Always prefer setuptools over distutils
-from setuptools import setup
-# To use a consistent encoding
-from codecs import open
-from os import path
 import re
+import sys
+from os import path
+from codecs import open  # To use a consistent encoding
+
+from setuptools import setup  # Always prefer setuptools over distutils
+from setuptools.command.test import test as TestCommand
 
 here = path.abspath(path.dirname(__file__))
 name = 'sshtunnel'
@@ -27,6 +28,20 @@ with open(path.join(here, name + '.py'), encoding='utf-8') as f:
     data = f.read()
     version = eval(re.search("__version__[ ]*=[ ]*([^\r\n]+)", data).group(1))
 
+
+class Tox(TestCommand):
+    """ Integration with tox """
+
+    def finalize_options(self):
+        TestCommand.finalize_options(self)
+        self.test_args = ['--recreate', '-v']
+        self.test_suite = True
+
+    def run_tests(self):
+        # import here, otherwise eggs aren't loaded
+        import tox
+        errcode = tox.cmdline(self.test_args)
+        sys.exit(errcode)
 
 setup(
     name=name,
@@ -71,8 +86,10 @@ setup(
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ],
 
     platforms=['unix', 'macos', 'windows'],
@@ -104,9 +121,6 @@ setup(
         'dev': ['check-manifest'],
         'test': [
             'tox>=1.8.1',
-            'pytest>=2.6.4',
-            'pytest-xdist>=1.11',
-            'pytest-cov>=1.8.1',
         ],
     },
 
@@ -124,5 +138,8 @@ setup(
         'console_scripts': [
             'sshtunnel=sshtunnel:main',
         ]
-    }
+    },
+
+    # Integrate tox with setuptools
+    cmdclass={'test': Tox},
 )
