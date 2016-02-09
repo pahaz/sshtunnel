@@ -52,13 +52,14 @@ FINGERPRINTS = {
     'ecdsa-sha2-nistp256': ECDSA,
 }
 
-here = path.abspath(path.dirname(__file__))
-sshtunnel.TRACE = True
+DAEMON_THREADS = True
+HERE = path.abspath(path.dirname(__file__))
+sshtunnel.TRACE = False
 sshtunnel.SSH_TIMEOUT = 1.0
 
 
 def get_test_data_path(x):
-    return path.join(here, x)
+    return path.join(HERE, x)
 
 
 class MockLoggingHandler(logging.Handler, object):
@@ -177,6 +178,7 @@ class SSHClientTest(unittest.TestCase):
 
     def setUp(self):
         super(SSHClientTest, self).setUp()
+        self.log.debug('*' * 80)
         self.log.info('setUp for: {0}()'.format(self._testMethodName.upper()))
         self.ssockl, self.saddr, self.sport = self.make_socket()
         self.esockl, self.eaddr, self.eport = self.make_socket()
@@ -185,7 +187,13 @@ class SSHClientTest(unittest.TestCase):
         self.log.info("Sockets for ECHO server: {0}:{1}"
                       .format(self.eaddr, self.eport))
         self.event = threading.Event()
-        self.threads = []
+        # This tries to emulate collections.OrderedDict, not available in 2.6
+        # thread names in reverse order of execution
+        # self.running_threads will contain the names in order of execution
+        self.thread_names = ['ssh-forwarding', 'ssh-server', 'echo-server']
+        self.running_threads = []
+        self.threads = {}
+
         self.is_server_working = True
         self._sshtunnel_log_handler.reset()
 
@@ -197,13 +205,58 @@ class SSHClientTest(unittest.TestCase):
             if hasattr(self, attr):
                 self.log.info('tearDown() {0}'.format(attr))
                 getattr(self, attr).close()
-        for x in self.threads:
-            self.log.info('thread {0} - is_alive={1}'.format(x, x.is_alive()))
-        for x in self.threads:
+        for thread in self.running_threads:
+            x = self.threads[thread]
+            self.log.info('thread {0} ({1})'
+                          .format(thread,
+                                  'alive' if x.is_alive() else 'defunct'))
+
+        for thread in self.running_threads:
+            x = self.threads[thread]
             if x.is_alive():
-                self.log.info('Waiting for {0} to finish'.format(x))
+                self.log.debug('Waiting for {0} to finish'.format(x.name))
                 x.join()
-                self.log.info('thread {0} now stopped'.format(x))
+                self.log.info('thread {0} now stopped'.format(x.name))
+
+    def wait_for_thread(self, thread):
+        if thread.is_alive():
+            self.log.debug('wait for {0} to end before leaving'
+                           .format(thread.name))
+            thread.join()
+
+    def stop_echo_and_ssh_server(self):
+        self.log.info('Sending STOP signal')
+        self.is_server_working = False
+
+    def _run_echo_and_ssh(self, server):
+        self.start_echo_server()
+        t = threading.Thread(target=self._run_ssh_server,
+                             name=self.thread_names.pop())
+        t.daemon = DAEMON_THREADS
+        self.running_threads.append(t.name)
+        self.threads[t.name] = t
+        t.start()
+
+        self.server = server
+        self.server.is_use_local_check_up = False
+
+        self.server.start()
+
+        # Authentication successful?
+        self.event.wait(sshtunnel.SSH_TIMEOUT)
+        self.assertTrue(self.event.is_set())
+        self.assertTrue(self.ts.is_active())
+        self.assertEqual(self.ts.get_username(),
+                         SSH_USERNAME)
+        self.assertTrue(self.ts.is_authenticated())
+
+    def start_echo_server(self):
+        t = threading.Thread(target=self._run_echo_server,
+                             name=self.thread_names.pop())
+        t.daemon = DAEMON_THREADS
+        self.running_threads.append(t.name)
+        self.threads[t.name] = t
+        t.start()
 
     def _run_ssh_server(self):
         self.log.info('Starting ssh_server (socket timeout: {0})'
@@ -220,21 +273,13 @@ class SSHClientTest(unittest.TestCase):
         self.ts.add_server_key(host_key)
         server = NullServer(allowed_keys=FINGERPRINTS.keys(), log=self.log)
         t = threading.Thread(target=self._do_forwarding,
-                             name='ssh-forwarding')
-        t.daemon = False
-        self.threads.append(t)
+                             name=self.thread_names.pop())
+        t.daemon = DAEMON_THREADS
+        self.running_threads.append(t.name)
+        self.threads[t.name] = t
         t.start()
         self.ts.start_server(self.event, server)
-        t.join()  # wait for the ssh-forwarder thread to finish before leaving
-
-    def stop_echo_and_ssh_server(self):
-        self.is_server_working = False
-
-    def start_echo_server(self):
-        t = threading.Thread(target=self._run_echo_server, name='echo-server')
-        t.daemon = False
-        self.threads.append(t)
-        t.start()
+        self.wait_for_thread(t)
 
     def _run_echo_server(self):
         socks = [self.esockl]
@@ -273,6 +318,8 @@ class SSHClientTest(unittest.TestCase):
             self.log.info('ECHO server exception: {0}'.format(repr(e)))
         finally:
             self.is_server_working = False
+            t = self.threads[self.running_threads[-1]]
+            self.wait_for_thread(t)
             for s in socks:
                 s.close()
             self.log.info('ECHO server down')
@@ -286,7 +333,10 @@ class SSHClientTest(unittest.TestCase):
         )
         try:
             while self.is_server_working:
-                rqst, _, _ = select.select([schan, echo], [], [], 10)
+                rqst, _, _ = select.select([schan, echo],
+                                           [],
+                                           [],
+                                           sshtunnel.SSH_TIMEOUT)
                 if schan in rqst:
                     data = schan.recv(1024)
                     self.log.debug('{0} -->: {1}'.format(info, repr(data)))
@@ -309,35 +359,28 @@ class SSHClientTest(unittest.TestCase):
         except Exception as e:
             self.log.error('{0} error: {1}'.format(info, repr(e)))
         finally:
+            self.log.debug('{0} closing connection...'.format(info))
             if schan:
                 schan.close()
             echo.close()
             self.log.debug('{0} connection closed.'.format(info))
-
-    def _run_echo_and_ssh(self, server):
-        self.start_echo_server()
-        t = threading.Thread(target=self._run_ssh_server, name='ssh-server')
-        t.daemon = False
-        self.threads.append(t)
-        t.start()
-
-        self.server = server
-        self.server.is_use_local_check_up = False
-
-        self.server.start()
-
-        # Authentication successful?
-        self.event.wait(1.0)
-        self.assertTrue(self.event.is_set())
-        self.assertTrue(self.ts.is_active())
-        self.assertEqual(SSH_USERNAME, self.ts.get_username())
-        self.assertEqual(True, self.ts.is_authenticated())
 
     def randomize_eport(self):
         return self.eport + random.randint(1, 999)
 
     def _test_server(self, server):
         self._run_echo_and_ssh(server)
+        MESSAGE = get_random_string().encode()
+        LOCAL_BIND_ADDR = ('127.0.0.1', self.server.local_bind_port)
+        self.log.info('_test_server(): try connect!')
+        s = socket.create_connection(LOCAL_BIND_ADDR)
+        self.log.info('_test_server(): connected from {0}! try send!'
+                      .format(s.getsockname()))
+        s.send(MESSAGE)
+        self.log.info('_test_server(): sent!')
+        z = (s.recv(1000))
+        self.assertEqual(z, MESSAGE)
+        s.close()
 
     def test_connect_by_username_password(self):
         """ Test connecting using username/password as authentication """
@@ -361,28 +404,6 @@ class SSHClientTest(unittest.TestCase):
         )
 
         self._test_server(server)
-
-    def test_echo_server(self):
-        """Test that echo server sends back the same data that was received"""
-        server = SSHTunnelForwarder(
-            (self.saddr, self.sport),
-            ssh_username=SSH_USERNAME,
-            ssh_password=SSH_PASSWORD,
-            remote_bind_address=(self.eaddr, self.eport),
-            logger=self.log,
-        )
-        self._test_server(server)
-        MESSAGE = get_random_string().encode()
-        LOCAL_BIND_ADDR = ('127.0.0.1', self.server.local_bind_port)
-        self.log.info('_test_server(): try connect!')
-        s = socket.create_connection(LOCAL_BIND_ADDR)
-        self.log.info('_test_server(): connected from {0}! try send!'
-                      .format(s.getsockname()))
-        s.send(MESSAGE)
-        self.log.info('_test_server(): sent!')
-        z = (s.recv(1000))
-        self.assertEqual(z, MESSAGE)
-        s.close()
 
     def test_connect_by_paramiko_key(self):
         """ Test connecting when ssh_private_key is a paramiko.RSAKey """
