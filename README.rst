@@ -283,9 +283,8 @@ HELP
 
 .. |CircleCI| image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
    :target: https://circleci.com/gh/pahaz/sshtunnel
-.. |coveralls| image:: https://coveralls.io/repos/github/fernandezcuesta/sshtunnel/badge.svg?branch=devel
-   :target: https://coveralls.io/github/fernandezcuesta/sshtunnel?branch=devel
-
+.. |coveralls| image:: https://coveralls.io/repos/github/pahaz/sshtunnel/badge.svg?branch=master
+   :target: https://coveralls.io/github/pahaz/sshtunnel?branch=master
 .. |DwnMonth| image:: https://img.shields.io/pypi/dm/sshtunnel.svg
 .. |DwnWeek| image:: https://img.shields.io/pypi/dw/sshtunnel.svg
 .. |DwnDay| image:: https://img.shields.io/pypi/dd/sshtunnel.svg
