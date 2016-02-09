@@ -1,4 +1,4 @@
-|CircleCI|
+|CircleCI| |coveralls|
 
 |DwnMonth| |DwnWeek| |DwnDay|
 
@@ -35,6 +35,13 @@ Install from source::
 
     python setup.py develop
 
+Testing the package
+-------------------
+
+.. code-block:: bash
+
+    pip install -r requirements-test.txt
+    python setup.py test
 
 Usage examples: SSH tunnel to remote server
 ===========================================
@@ -276,7 +283,10 @@ HELP
 
 .. |CircleCI| image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
    :target: https://circleci.com/gh/pahaz/sshtunnel
+.. |coveralls| image:: https://coveralls.io/repos/github/fernandezcuesta/sshtunnel/badge.svg?branch=devel
+   :target: https://coveralls.io/github/fernandezcuesta/sshtunnel?branch=devel
 
 .. |DwnMonth| image:: https://img.shields.io/pypi/dm/sshtunnel.svg
 .. |DwnWeek| image:: https://img.shields.io/pypi/dw/sshtunnel.svg
 .. |DwnDay| image:: https://img.shields.io/pypi/dd/sshtunnel.svg
+

@@ -119,7 +119,7 @@ else:
     input_ = input
 
 
-__version__ = '0.0.6'
+__version__ = '0.0.7'
 __author__ = 'pahaz'
 
 __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
@@ -691,7 +691,7 @@ class SSHTunnelForwarder(object):
             self.logger.debug('Connecting with ProxyCommand {0}'
                               .format(repr(self.ssh_proxy.cmd)))
             _socket = self.ssh_proxy
-            _socket.settimeout(SSH_TIMEOUT or 1.0)
+            _socket.settimeout(SSH_TIMEOUT)
         else:
             _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             _socket.settimeout(SSH_TIMEOUT)

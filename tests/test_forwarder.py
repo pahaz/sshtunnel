@@ -54,6 +54,7 @@ FINGERPRINTS = {
 
 here = path.abspath(path.dirname(__file__))
 sshtunnel.TRACE = True
+sshtunnel.SSH_TIMEOUT = 1.0
 
 
 def get_tst_data_path(x):
@@ -167,6 +168,7 @@ class SSHClientTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super(SSHClientTest, cls).setUpClass()
+        socket.setdefaulttimeout(2.0)
         cls.log = logging.getLogger(sshtunnel.__name__)
         cls.log = sshtunnel.create_logger(logger=cls.log, loglevel='DEBUG')
         cls._sshtunnel_log_handler = MockLoggingHandler(level='DEBUG')
@@ -175,7 +177,7 @@ class SSHClientTest(unittest.TestCase):
 
     def setUp(self):
         super(SSHClientTest, self).setUp()
-        self.log.info('setUp()')
+        self.log.info('setUp for: {0}()'.format(self._testMethodName.upper()))
         self.ssockl, self.saddr, self.sport = self.make_socket()
         self.esockl, self.eaddr, self.eport = self.make_socket()
         self.log.info("Sockets for SSH server: {0}:{1}"
@@ -188,9 +190,10 @@ class SSHClientTest(unittest.TestCase):
         self._sshtunnel_log_handler.reset()
 
     def tearDown(self):
-        self.log.info('tearDown()')
+        self.log.info('tearDown for: {0}()'
+                      .format(self._testMethodName.upper()))
         self.stop_echo_and_ssh_server()
-        for attr in "server tc ts socks ssockl esockl".split():
+        for attr in ['server', 'tc', 'ts', 'socks', 'ssockl', 'esockl']:
             if hasattr(self, attr):
                 self.log.info('tearDown() {0}'.format(attr))
                 getattr(self, attr).close()
@@ -198,18 +201,26 @@ class SSHClientTest(unittest.TestCase):
             self.log.info('thread {0} - is_alive={1}'.format(x, x.is_alive()))
         for x in self.threads:
             if x.is_alive():
+                self.log.info('Waiting for {0} to finish'.format(x))
                 x.join()
                 self.log.info('thread {0} now stopped'.format(x))
 
     def _run_ssh_server(self):
-        self.socks, addr = self.ssockl.accept()
+        self.log.info('Starting ssh_server (socket timeout: {0})'
+                      .format(socket.getdefaulttimeout()))
+        try:
+            self.socks, addr = self.ssockl.accept()
+        except socket.timeout:
+            self.log.error('SSH server connection timeout!')
+            return
         self.ts = paramiko.Transport(self.socks)
         host_key = paramiko.RSAKey.from_private_key_file(
             get_tst_data_path('testrsa.key')
         )
         self.ts.add_server_key(host_key)
         server = NullServer(allowed_keys=FINGERPRINTS.keys(), log=self.log)
-        t = threading.Thread(target=self._do_forwarding, name='ssh-forwarding')
+        t = threading.Thread(target=self._do_forwarding,
+                             name='ssh-forwarding')
         t.daemon = False
         self.threads.append(t)
         t.start()
@@ -254,13 +265,14 @@ class SSHClientTest(unittest.TestCase):
                         finally:
                             s.close()
                             socks.remove(s)
+            self.log.info('<<< Echo server received STOP signal')
         except Exception as e:
-            self.log.info('ECHO except {0}'.format(repr(e)))
+            self.log.info('ECHO server exception: {0}'.format(repr(e)))
         finally:
             self.is_server_working = False
             for s in socks:
                 s.close()
-            self.log.info('ECHO down')
+            self.log.info('ECHO server down')
 
     def _do_forwarding(self, timeout=None):
         schan = self.ts.accept(timeout=timeout)
@@ -284,6 +296,7 @@ class SSHClientTest(unittest.TestCase):
                     schan.send(data)
                     if len(data) == 0:
                         break
+            self.log.info('<<< Forwarding server received STOP signal')
         except socket.error:
             # Sometimes a RST is sent and a socket error is raised, treat this
             # exception. It was seen that a 3way FIN is processed later on, so
@@ -322,17 +335,6 @@ class SSHClientTest(unittest.TestCase):
 
     def _test_server(self, server):
         self._run_echo_and_ssh(server)
-        MESSAGE = get_random_string().encode()
-        LOCAL_BIND_ADDR = ('127.0.0.1', self.server.local_bind_port)
-        self.log.info('_test_server(): try connect!')
-        s = socket.create_connection(LOCAL_BIND_ADDR)
-        self.log.info('_test_server(): connected from {0}! try send!'
-                      .format(s.getsockname()))
-        s.send(MESSAGE)
-        self.log.info('_test_server(): sent!')
-        z = (s.recv(1000))
-        self.assertEqual(z, MESSAGE)
-        s.close()
 
     def test_connect_by_username_password(self):
         server = SSHTunnelForwarder(
@@ -354,6 +356,27 @@ class SSHClientTest(unittest.TestCase):
         )
 
         self._test_server(server)
+
+    def test_echo_server(self):
+        server = SSHTunnelForwarder(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+        )
+        self._test_server(server)
+        MESSAGE = get_random_string().encode()
+        LOCAL_BIND_ADDR = ('127.0.0.1', self.server.local_bind_port)
+        self.log.info('_test_server(): try connect!')
+        s = socket.create_connection(LOCAL_BIND_ADDR)
+        self.log.info('_test_server(): connected from {0}! try send!'
+                      .format(s.getsockname()))
+        s.send(MESSAGE)
+        self.log.info('_test_server(): sent!')
+        z = (s.recv(1000))
+        self.assertEqual(z, MESSAGE)
+        s.close()
 
     def test_sshaddress_and_sshaddresssorhost_mutually_exclusive(self):
         """
@@ -548,8 +571,7 @@ class SSHClientTest(unittest.TestCase):
                 remote_bind_address=(self.eaddr, self.eport),
                 ssh_config_file=None
             )
-            server.start()
-            server.stop()
+            self._test_server(server)
 
     def test_gateway_ip_unresolvable_raises_exception(self):
         """
@@ -564,8 +586,7 @@ class SSHClientTest(unittest.TestCase):
                 remote_bind_address=(self.eaddr, self.eport),
                 ssh_config_file=None
             )
-            server.start()
-            server.stop()
+            self._test_server(server)
 
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
