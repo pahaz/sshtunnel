@@ -57,7 +57,7 @@ sshtunnel.TRACE = True
 sshtunnel.SSH_TIMEOUT = 1.0
 
 
-def get_tst_data_path(x):
+def get_test_data_path(x):
     return path.join(here, x)
 
 
@@ -168,7 +168,7 @@ class SSHClientTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super(SSHClientTest, cls).setUpClass()
-        socket.setdefaulttimeout(2.0)
+        socket.setdefaulttimeout(sshtunnel.SSH_TIMEOUT)
         cls.log = logging.getLogger(sshtunnel.__name__)
         cls.log = sshtunnel.create_logger(logger=cls.log, loglevel='DEBUG')
         cls._sshtunnel_log_handler = MockLoggingHandler(level='DEBUG')
@@ -215,7 +215,7 @@ class SSHClientTest(unittest.TestCase):
             return
         self.ts = paramiko.Transport(self.socks)
         host_key = paramiko.RSAKey.from_private_key_file(
-            get_tst_data_path('testrsa.key')
+            get_test_data_path('testrsa.key')
         )
         self.ts.add_server_key(host_key)
         server = NullServer(allowed_keys=FINGERPRINTS.keys(), log=self.log)
@@ -241,7 +241,10 @@ class SSHClientTest(unittest.TestCase):
         self.log.info('ECHO RUN on {0}'.format(self.esockl.getsockname()))
         try:
             while self.is_server_working:
-                inputready, _, _ = select.select(socks, [], [], 1.0)
+                inputready, _, _ = select.select(socks,
+                                                 [],
+                                                 [],
+                                                 sshtunnel.SSH_TIMEOUT)
                 for s in inputready:
                     if s == self.esockl:
                         # handle the server socket
@@ -337,6 +340,7 @@ class SSHClientTest(unittest.TestCase):
         self._run_echo_and_ssh(server)
 
     def test_connect_by_username_password(self):
+        """ Test connecting using username/password as authentication """
         server = SSHTunnelForwarder(
             (self.saddr, self.sport),
             ssh_username=SSH_USERNAME,
@@ -346,11 +350,12 @@ class SSHClientTest(unittest.TestCase):
         )
         self._test_server(server)
 
-    def test_connect_by_rsa_key(self):
+    def test_connect_by_rsa_key_file(self):
+        """ Test connecting using a RSA key file """
         server = SSHTunnelForwarder(
             (self.saddr, self.sport),
             ssh_username=SSH_USERNAME,
-            ssh_private_key=get_tst_data_path('testrsa.key'),
+            ssh_private_key=get_test_data_path('testrsa.key'),
             remote_bind_address=(self.eaddr, self.eport),
             logger=self.log,
         )
@@ -358,6 +363,7 @@ class SSHClientTest(unittest.TestCase):
         self._test_server(server)
 
     def test_echo_server(self):
+        """Test that echo server sends back the same data that was received"""
         server = SSHTunnelForwarder(
             (self.saddr, self.sport),
             ssh_username=SSH_USERNAME,
@@ -377,6 +383,20 @@ class SSHClientTest(unittest.TestCase):
         z = (s.recv(1000))
         self.assertEqual(z, MESSAGE)
         s.close()
+
+    def test_connect_by_paramiko_key(self):
+        """ Test connecting when ssh_private_key is a paramiko.RSAKey """
+        ssh_key = paramiko.RSAKey.from_private_key_file(
+            get_test_data_path('testrsa.key'))
+        server = SSHTunnelForwarder(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_private_key=ssh_key,
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+        )
+
+        self._test_server(server)
 
     def test_sshaddress_and_sshaddresssorhost_mutually_exclusive(self):
         """
@@ -639,5 +659,5 @@ class SSHClientTest(unittest.TestCase):
             logger=self.log
         )
         self._test_server(server)
-        self.assertIn('Private key not found: {0}'.format(bad_pkey),
+        self.assertIn('Private key file not found: {0}'.format(bad_pkey),
                       self.sshtunnel_log_messages['warning'])

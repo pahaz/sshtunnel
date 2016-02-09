@@ -665,15 +665,14 @@ class SSHTunnelForwarder(object):
                           ssh_private_key_password=None,
                           logger=None):
         """Get sure authentication information is in place"""
-        # Check if a private key is found in ssh_config
-        if ssh_private_key:
+        if isinstance(ssh_private_key, string_types):
             if exists(ssh_private_key):
                 ssh_private_key = paramiko.RSAKey.from_private_key_file(
                     ssh_private_key,
                     password=ssh_private_key_password
                 )
             elif logger:
-                logger.warning('Private key not found: {0}'
+                logger.warning('Private key file not found: {0}'
                                .format(ssh_private_key))
                 ssh_private_key = None
         if not ssh_password and not ssh_private_key:
