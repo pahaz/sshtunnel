@@ -52,10 +52,11 @@ FINGERPRINTS = {
     'ecdsa-sha2-nistp256': ECDSA,
 }
 
-DAEMON_THREADS = True
+DAEMON_THREADS = False
 HERE = path.abspath(path.dirname(__file__))
 sshtunnel.TRACE = True
 sshtunnel.SSH_TIMEOUT = 1.0
+THREADS_TIMEOUT = 5.0
 
 
 def get_test_data_path(x):
@@ -186,11 +187,8 @@ class SSHClientTest(unittest.TestCase):
                       .format(self.saddr, self.sport))
         self.log.info("Sockets for ECHO server: {0}:{1}"
                       .format(self.eaddr, self.eport))
-        self.event = threading.Event()
-        # This tries to emulate collections.OrderedDict, not available in 2.6
-        # thread names in reverse order of execution
-        # self.running_threads will contain the names in order of execution
-        self.thread_names = ['ssh-forwarding', 'ssh-server', 'echo-server']
+        self.ssh_event = threading.Event()
+
         self.running_threads = []
         self.threads = {}
 
@@ -201,37 +199,39 @@ class SSHClientTest(unittest.TestCase):
         self.log.info('tearDown for: {0}()'
                       .format(self._testMethodName.upper()))
         self.stop_echo_and_ssh_server()
-        for attr in ['server', 'tc', 'ts', 'socks', 'ssockl', 'esockl']:
-            if hasattr(self, attr):
-                self.log.info('tearDown() {0}'.format(attr))
-                getattr(self, attr).close()
         for thread in self.running_threads:
             x = self.threads[thread]
             self.log.info('thread {0} ({1})'
                           .format(thread,
                                   'alive' if x.is_alive() else 'defunct'))
 
-        for thread in self.running_threads:
-            x = self.threads[thread]
-            if x.is_alive():
-                self.log.debug('Waiting for {0} to finish'.format(x.name))
-                x.join()
-                self.log.info('thread {0} now stopped'.format(x.name))
+        while self.running_threads:
+            for thread in self.running_threads:
+                x = self.threads[thread]
+                self.wait_for_thread(self.threads[thread], who='tearDown')
+                if not x.is_alive():
+                    self.log.info('thread {0} now stopped'.format(thread))
 
-    def wait_for_thread(self, thread):
+        for attr in ['server', 'tc', 'ts', 'socks', 'ssockl', 'esockl']:
+            if hasattr(self, attr):
+                self.log.info('tearDown() {0}'.format(attr))
+                getattr(self, attr).close()
+
+    def wait_for_thread(self, thread, timeout=THREADS_TIMEOUT, who=None):
         if thread.is_alive():
-            self.log.debug('wait for {0} to end before leaving'
-                           .format(thread.name))
-            thread.join()
+            self.log.debug('{0}waiting for {1} to end...'
+                           .format('{0} '.format(who) if who else '',
+                                   thread.name))
+            thread.join(timeout)
 
     def stop_echo_and_ssh_server(self):
         self.log.info('Sending STOP signal')
         self.is_server_working = False
 
-    def _run_echo_and_ssh(self, server):
+    def _test_server(self, server):
         self.start_echo_server()
         t = threading.Thread(target=self._run_ssh_server,
-                             name=self.thread_names.pop())
+                             name='ssh-server')
         t.daemon = DAEMON_THREADS
         self.running_threads.append(t.name)
         self.threads[t.name] = t
@@ -243,8 +243,8 @@ class SSHClientTest(unittest.TestCase):
         self.server.start()
 
         # Authentication successful?
-        self.event.wait(sshtunnel.SSH_TIMEOUT)
-        self.assertTrue(self.event.is_set())
+        self.ssh_event.wait(sshtunnel.SSH_TIMEOUT)  # wait for transport
+        self.assertTrue(self.ssh_event.is_set())
         self.assertTrue(self.ts.is_active())
         self.assertEqual(self.ts.get_username(),
                          SSH_USERNAME)
@@ -252,19 +252,18 @@ class SSHClientTest(unittest.TestCase):
 
     def start_echo_server(self):
         t = threading.Thread(target=self._run_echo_server,
-                             name=self.thread_names.pop())
+                             name='echo-server')
         t.daemon = DAEMON_THREADS
         self.running_threads.append(t.name)
         self.threads[t.name] = t
         t.start()
 
     def _run_ssh_server(self):
-        self.log.info('Starting ssh_server (socket timeout: {0})'
-                      .format(socket.getdefaulttimeout()))
+        self.log.info('ssh-server Start')
         try:
             self.socks, addr = self.ssockl.accept()
         except socket.timeout:
-            self.log.error('SSH server connection timeout!')
+            self.log.error('ssh-server connection timed out!')
             return
         self.ts = paramiko.Transport(self.socks)
         host_key = paramiko.RSAKey.from_private_key_file(
@@ -273,17 +272,20 @@ class SSHClientTest(unittest.TestCase):
         self.ts.add_server_key(host_key)
         server = NullServer(allowed_keys=FINGERPRINTS.keys(), log=self.log)
         t = threading.Thread(target=self._do_forwarding,
-                             name=self.thread_names.pop())
+                             name='forward-server')
         t.daemon = DAEMON_THREADS
         self.running_threads.append(t.name)
         self.threads[t.name] = t
         t.start()
-        self.ts.start_server(self.event, server)
-        self.wait_for_thread(t)
+        self.ts.start_server(self.ssh_event, server)
+        self.wait_for_thread(t, timeout=None, who='ssh-server')
+        self.log.info('ssh-server shutting down')
+        self.running_threads.remove('ssh-server')
 
     def _run_echo_server(self):
+        self.log.info('echo-server Started')
+        self.ssh_event.wait(sshtunnel.SSH_TIMEOUT)  # wait for transport
         socks = [self.esockl]
-        self.log.info('ECHO RUN on {0}'.format(self.esockl.getsockname()))
         try:
             while self.is_server_working:
                 inputready, _, _ = select.select(socks,
@@ -313,18 +315,23 @@ class SSHClientTest(unittest.TestCase):
                         finally:
                             s.close()
                             socks.remove(s)
-            self.log.info('<<< Echo server received STOP signal')
+            self.log.info('<<< echo server received STOP signal')
         except Exception as e:
-            self.log.info('ECHO server exception: {0}'.format(repr(e)))
+            self.log.info('echo-server got Exception: {0}'.format(repr(e)))
         finally:
             self.is_server_working = False
-            t = self.threads[self.running_threads[-1]]
-            self.wait_for_thread(t)
+            if 'forward-server' in self.threads:
+                t = self.threads['forward-server']
+                self.wait_for_thread(t, timeout=None, who='echo-server')
+                self.running_threads.remove('forward-server')
             for s in socks:
                 s.close()
-            self.log.info('ECHO server down')
+            self.log.info('echo-server shutting down')
+            self.running_threads.remove('echo-server')
 
-    def _do_forwarding(self, timeout=None):
+    def _do_forwarding(self, timeout=sshtunnel.SSH_TIMEOUT):
+        self.log.debug('forward-server Start')
+        self.ssh_event.wait(THREADS_TIMEOUT)  # wait for SSH server's transport
         schan = self.ts.accept(timeout=timeout)
         info = "FORWARDING schan <> echo"
         self.log.info(info + " accept()")
@@ -357,7 +364,8 @@ class SSHClientTest(unittest.TestCase):
             # the exception beyond this point...
             self.log.warning('{0} sending RST'.format(info))
         except Exception as e:
-            self.log.error('{0} error: {1}'.format(info, repr(e)))
+            # we reach this point usually when schan is None (paramiko bug?)
+            self.log.error(repr(e))
         finally:
             self.log.debug('{0} closing connection...'.format(info))
             if schan:
@@ -368,8 +376,15 @@ class SSHClientTest(unittest.TestCase):
     def randomize_eport(self):
         return self.eport + random.randint(1, 999)
 
-    def _test_server(self, server):
-        self._run_echo_and_ssh(server)
+    def test_echo_server(self):
+        server = SSHTunnelForwarder(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+        )
+        self._test_server(server)
         MESSAGE = get_random_string().encode()
         LOCAL_BIND_ADDR = ('127.0.0.1', self.server.local_bind_port)
         self.log.info('_test_server(): try connect!')
@@ -612,7 +627,8 @@ class SSHClientTest(unittest.TestCase):
                 remote_bind_address=(self.eaddr, self.eport),
                 ssh_config_file=None
             )
-            self._test_server(server)
+            server.start()
+            server.stop()
 
     def test_gateway_ip_unresolvable_raises_exception(self):
         """
@@ -627,7 +643,8 @@ class SSHClientTest(unittest.TestCase):
                 remote_bind_address=(self.eaddr, self.eport),
                 ssh_config_file=None
             )
-            self._test_server(server)
+            server.start()
+            server.stop()
 
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
