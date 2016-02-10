@@ -225,11 +225,11 @@ HELP
 
 ::
 
-    usage: sshtunnel    [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD] -R
-                        IP:PORT [IP:PORT ...] [-L [IP:PORT [IP:PORT ...]]]
-                        [-k SSH_HOST_KEY] [-K RSA_KEY_FILE]
-                        [-S RSA_KEY_FILE_PASSWORD] [-t] [-v]
-                        ssh_address
+    usage: sshtunnel [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD] -R
+                     IP:PORT [IP:PORT ...] [-L [IP:PORT [IP:PORT ...]]]
+                     [-k SSH_HOST_KEY] [-K RSA_KEY_FILE]
+                     [-S RSA_KEY_FILE_PASSWORD] [-t] [-v] [-V]
+                     ssh_address
 
     Pure python ssh tunnel utils
 
@@ -262,7 +262,8 @@ HELP
       -S RSA_KEY_FILE_PASSWORD, --private_key_file_password RSA_KEY_FILE_PASSWORD
                             RSA private key file password
       -t, --threaded        Allow concurrent connections to each tunnel
-      -v, --verbosity       Increase output verbosity (default: 40)
+      -v, --verbosity       Increase output verbosity (default: ERROR)
+      -V, --version         Show version number
 
 
 .. _paramiko: http://www.paramiko.org/
