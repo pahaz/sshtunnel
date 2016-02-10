@@ -165,17 +165,17 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
-- v.0.0.7
-    + Tunnels can now be stopped and started safely (`#41`_)
-    + Add timeout to SSH gateway and keep-alive messages (`#29`_)
-    + Allow sending a pkey directly (`#43`_)
-    + Add ``-V`` CLI option to show current version
-    + Refactoring
+- v.0.0.7 (fernandezcuesta)
+    + Tunnels can now be stopped and started safely (`#41`_) (fernandezcuesta)
+    + Add timeout to SSH gateway and keep-alive messages (`#29`_) (fernandezcuesta)
+    + Allow sending a pkey directly (`#43`_) (fernandezcuesta)
+    + Add ``-V`` CLI option to show current version (fernandezcuesta)
+    + Refactoring (fernandezcuesta)
 
-- v.0.0.6
+- v.0.0.6 (pahaz)
     + add ``-S`` CLI options for ssh private key password support (pahaz)
 
-- v.0.0.5
+- v.0.0.5 (pahaz)
     + add ``ssh_proxy`` argument, as well as ``ssh_config(5)`` ``ProxyCommand`` support (lewisthompson)
     + add some python 2.6 compatibility fixes (mrts)
     + ``paramiko.transport`` inherits handlers of loggers passed to ``SSHTunnelForwarder`` (fernandezcuesta)
@@ -186,19 +186,19 @@ CHANGELOG
     + disable check distenation socket connection by ``SSHTunnelForwarder.local_is_up`` (pahaz) [changed default behavior]
     + use daemon mode = False in all threads by default; detail_ (pahaz) [changed default behavior]
 
-- v.0.0.4.4
+- v.0.0.4.4 (pahaz)
    + fix issue `#24`_ - hide ssh password in logs (pahaz)
 
-- v.0.0.4.3
+- v.0.0.4.3 (pahaz)
     + fix default port issue `#19`_ (pahaz)
 
-- v.0.0.4.2
+- v.0.0.4.2 (pahaz)
     + fix Thread.daemon mode for Python < 3.3 `#16`_, `#21`_ (lewisthompson, ewrogers)
 
-- v.0.0.4.1
+- v.0.0.4.1 (pahaz)
     + fix CLI issues `#13`_ (pahaz)
 
-- v.0.0.4
+- v.0.0.4 (pahaz)
     + daemon mode by default for all threads (fernandezcuesta, pahaz) - *incompatible*
     + move ``make_ssh_forward_server`` to ``SSHTunnelForwarder.make_ssh_forward_server`` (pahaz, fernandezcuesta) - *incompatible*
     + move ``make_ssh_forward_handler`` to ``SSHTunnelForwarder.make_ssh_forward_handler_class`` (pahaz, fernandezcuesta) - *incompatible*
@@ -211,12 +211,12 @@ CHANGELOG
     + add ``ssh_config_file`` argument support (fernandezcuesta)
     + add Python 3 support (fernandezcuesta, pahaz)
 
-- v.0.0.3
+- v.0.0.3 (pahaz)
     + add ``threaded`` options (cameronmaske)
     + fix exception error message, correctly printing destination address (gdmachado)
     + fix pip install fails (cjermain, pahaz)
 
-- v.0.0.1
+- v.0.0.1 (pahaz)
     + ``SSHTunnelForwarder`` class (pahaz)
     + ``open`` function (pahaz)
 
@@ -225,11 +225,11 @@ HELP
 
 ::
 
-    usage: sshtunnel    [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD] -R
-                        IP:PORT [IP:PORT ...] [-L [IP:PORT [IP:PORT ...]]]
-                        [-k SSH_HOST_KEY] [-K RSA_KEY_FILE]
-                        [-S RSA_KEY_FILE_PASSWORD] [-t] [-v]
-                        ssh_address
+    usage: sshtunnel [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD] -R
+                     IP:PORT [IP:PORT ...] [-L [IP:PORT [IP:PORT ...]]]
+                     [-k SSH_HOST_KEY] [-K RSA_KEY_FILE]
+                     [-S RSA_KEY_FILE_PASSWORD] [-t] [-v] [-V]
+                     ssh_address
 
     Pure python ssh tunnel utils
 
@@ -262,7 +262,8 @@ HELP
       -S RSA_KEY_FILE_PASSWORD, --private_key_file_password RSA_KEY_FILE_PASSWORD
                             RSA private key file password
       -t, --threaded        Allow concurrent connections to each tunnel
-      -v, --verbosity       Increase output verbosity (default: 40)
+      -v, --verbosity       Increase output verbosity (default: ERROR)
+      -V, --version         Show version number
 
 
 .. _paramiko: http://www.paramiko.org/
