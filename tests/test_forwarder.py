@@ -947,6 +947,8 @@ class SSHClientTest(unittest.TestCase):
     def test_main_exits_when_pressing_enter(self, input):
         """ Test that main() function quits when Enter is pressed """
         sshtunnel.main(args=[self.saddr,
+                             '-U', SSH_USERNAME,
+                             '-P', SSH_PASSWORD,
                              '-R', '10.0.0.1:8080'])
 
 
