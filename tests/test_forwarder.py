@@ -13,20 +13,23 @@ from os import path, linesep
 
 from contextlib import contextmanager
 
+import mock
 import paramiko
 import sshtunnel
 from sshtunnel import SSHTunnelForwarder
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-    from StringIO import StringIO
+if sys.version_info[0] == 2:
+    from cStringIO import StringIO
+    if sys.version_info < (2, 7):
+        import unittest2 as unittest
+    else:
+        import unittest
 else:
     import unittest
-    from unittest import mock
     from io import StringIO
 
-# UTILS
 
+# UTILS
 
 def get_random_string(length=12):
     """
@@ -44,7 +47,24 @@ def get_random_string(length=12):
     return ''.join([random.choice(asciis) for _ in range(length)])
 
 
-# TESTS
+def get_test_data_path(x):
+    return path.join(HERE, x)
+
+
+@contextmanager
+def capture_stdout_stderr():
+    (old_out, old_err) = (sys.stdout, sys.stderr)
+    try:
+        out = [StringIO(), StringIO()]
+        (sys.stdout, sys.stderr) = out
+        yield out
+    finally:
+        (sys.stdout, sys.stderr) = (old_out, old_err)
+        out[0] = out[0].getvalue()
+        out[1] = out[1].getvalue()
+
+
+# CONSTANTS
 
 SSH_USERNAME = get_random_string()
 SSH_PASSWORD = get_random_string()
@@ -64,20 +84,7 @@ sshtunnel.SSH_TIMEOUT = 1.0
 THREADS_TIMEOUT = 5.0
 
 
-def get_test_data_path(x):
-    return path.join(HERE, x)
-
-
-@contextmanager
-def captured_output():
-    (new_out, new_err) = (StringIO(), StringIO())
-    (old_out, old_err) = (sys.stdout, sys.stderr)
-    try:
-        (sys.stdout, sys.stderr) = (new_out, new_err)
-        yield (sys.stdout, sys.stderr)
-    finally:
-        (sys.stdout, sys.stderr) = (old_out, old_err)
-
+# TESTS
 
 class MockLoggingHandler(logging.Handler, object):
     """Mock logging handler to check for expected logs.
@@ -927,9 +934,9 @@ class SSHClientTest(unittest.TestCase):
                       'an integer (i.e. 40000).',
                       self.sshtunnel_log_messages['warning'])
 
+    @mock.patch('sshtunnel.input_', return_value=linesep)
     @unittest.skipIf(sys.version_info < (3, 3),
                      reason="mock in standard library since py33")
-    @mock.patch('sshtunnel.input_', return_value=linesep)
     def test_main_exits_when_pressing_enter(self, input):
         """ Test that main() function quits when Enter is pressed """
         sshtunnel.main(args=[self.saddr,
@@ -957,12 +964,13 @@ class AuxiliaryTest(unittest.TestCase):
         parser = sshtunnel._parse_arguments(args)
         self._test_parser(parser)
 
-        # First argument is mandatory
-        with self.assertRaises(SystemExit):
-            parser = sshtunnel._parse_arguments(args[1:])
-        # -R argument is mandatory
-        with self.assertRaises(SystemExit):
-            parser = sshtunnel._parse_arguments(args[:4] + args[5:])
+        with capture_stdout_stderr():  # silent stderr
+            # First argument is mandatory
+            with self.assertRaises(SystemExit):
+                parser = sshtunnel._parse_arguments(args[1:])
+            # -R argument is mandatory
+            with self.assertRaises(SystemExit):
+                parser = sshtunnel._parse_arguments(args[:4] + args[5:])
 
     def test_parse_arguments_long(self):
         """ Test CLI argument parsing with long parameter names """
@@ -1031,8 +1039,12 @@ class AuxiliaryTest(unittest.TestCase):
 
     def test_show_running_version(self):
         """ Test that main() function quits when Enter is pressed """
-        with captured_output() as (out, err):
+        with capture_stdout_stderr() as (out, err):
             with self.assertRaises(SystemExit):
                 sshtunnel.main(args=['-V'])
-        self.assertEqual(out.getvalue().split()[-1],
+        if sys.version_info < (3, 4):
+            version = err.getvalue().split()[-1]
+        else:
+            version = out.getvalue().split()[-1]
+        self.assertEqual(version,
                          sshtunnel.__version__)
