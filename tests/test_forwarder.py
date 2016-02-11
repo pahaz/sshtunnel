@@ -562,7 +562,8 @@ class SSHClientTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             SSHTunnelForwarder(
                 (self.saddr, self.sport),
-                ssh_username=SSH_USERNAME
+                ssh_username=SSH_USERNAME,
+                ssh_config_file=None,
             )
 
     @unittest.skipIf(sys.version_info < (2, 7),
@@ -699,6 +700,8 @@ class SSHClientTest(unittest.TestCase):
         """
         server = SSHTunnelForwarder(
             '10.10.10.10',
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
             remote_bind_address=('10.0.0.1', 8080),
             raise_exception_if_any_forwarder_have_a_problem=False,
             logger=self.log,
@@ -748,6 +751,8 @@ class SSHClientTest(unittest.TestCase):
         """ Test connecting using a ProxyCommand """
         server = SSHTunnelForwarder(
             self.saddr,
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
             remote_bind_address=(self.eaddr, self.eport),
             ssh_proxy=paramiko.proxy.ProxyCommand(
                 'ssh proxy -W {0}:{1}'.format(self.saddr, self.sport)
@@ -1027,6 +1032,8 @@ class AuxiliaryTest(unittest.TestCase):
         """ Test that we can silent the exceptions on sshtunnel creation """
         server = SSHTunnelForwarder(
             '10.10.10.10',
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
             remote_bind_address=('10.0.0.1', 8080),
             raise_exception_if_any_forwarder_have_a_problem=False,
         )
