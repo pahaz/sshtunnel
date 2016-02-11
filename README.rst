@@ -6,7 +6,7 @@
 **WORKS WITH**: python 2.6, python 2.7, python 3.2, python 3.3, python 3.4,
 python 3.5
 
-**Author**: `Pahaz Blinov <https://github.com/pahaz>`_
+**Author**: `Pahaz Blinov`_
 
 **Repo**: https://github.com/pahaz/sshtunnel/
 
@@ -153,72 +153,78 @@ See the ``ssh_proxy`` argument for more details.
 CONTRIBUTORS
 ============
 
-- `Cameron Maske <https://github.com/cameronmaske>`_
-- `Gustavo Machado <https://github.com/gdmachado>`_
-- `Colin Jermain <https://github.com/cjermain>`_
-- `J.M. Fernández <https://github.com/fernandezcuesta>`_ - (big thanks!)
-- `Lewis Thompson <https://github.com/lewisthompson>`_
-- `Erik Rogers <https://github.com/ewrogers>`_
-- `Mart Sõmermaa <https://github.com/mrts>`_
-- `Chronial <https://github.com/Chronial>`_
+- `Cameron Maske`_
+- `Gustavo Machado`_
+- `Colin Jermain`_
+- `JM Fernández`_ - (big thanks!)
+- `Lewis Thompson`_
+- `Erik Rogers`_
+- `Mart Sõmermaa`_
+- `Chronial`_
 
 CHANGELOG
 =========
 
-- v.0.0.7 (fernandezcuesta)
-    + Tunnels can now be stopped and started safely (`#41`_) (fernandezcuesta)
-    + Add timeout to SSH gateway and keep-alive messages (`#29`_) (fernandezcuesta)
-    + Allow sending a pkey directly (`#43`_) (fernandezcuesta)
-    + Add ``-V`` CLI option to show current version (fernandezcuesta)
-    + Refactoring (fernandezcuesta)
+- v.0.0.7.1 (`JM Fernández`_)
+    + Add test functions (`JM Fernández`_)
+    + Fix default username when not provided and ssh_config file is skipped (`JM Fernández`_)
+    + Fix gateway IP unresolvable exception catching (`JM Fernández`_)
+    + Minor fixes (`JM Fernández`_)
+- v.0.0.7 (`JM Fernández`_)
+    + Tunnels can now be stopped and started safely (`#41`_) (`JM Fernández`_)
+    + Add timeout to SSH gateway and keep-alive messages (`#29`_) (`JM Fernández`_)
+    + Allow sending a pkey directly (`#43`_) (`Chronial`_)
+    + Add ``-V`` CLI option to show current version (`JM Fernández`_)
+    + Add coverage (`JM Fernández`_)
+    + Refactoring (`JM Fernández`_)
 
-- v.0.0.6 (pahaz)
-    + add ``-S`` CLI options for ssh private key password support (pahaz)
+- v.0.0.6 (`Pahaz Blinov`_)
+    + add ``-S`` CLI options for ssh private key password support (`Pahaz Blinov`_)
 
-- v.0.0.5 (pahaz)
-    + add ``ssh_proxy`` argument, as well as ``ssh_config(5)`` ``ProxyCommand`` support (lewisthompson)
-    + add some python 2.6 compatibility fixes (mrts)
-    + ``paramiko.transport`` inherits handlers of loggers passed to ``SSHTunnelForwarder`` (fernandezcuesta)
-    + fix `#34`_, `#33`_, code style and docs (fernandezcuesta)
-    + add tests (pahaz)
-    + add CI integration (pahaz)
-    + normal packaging (pahaz)
-    + disable check distenation socket connection by ``SSHTunnelForwarder.local_is_up`` (pahaz) [changed default behavior]
-    + use daemon mode = False in all threads by default; detail_ (pahaz) [changed default behavior]
+- v.0.0.5 (`Pahaz Blinov`_)
+    + add ``ssh_proxy`` argument, as well as ``ssh_config(5)`` ``ProxyCommand`` support (`Lewis Thompson`_)
+    + add some python 2.6 compatibility fixes (`Mart Sõmermaa`)
+    + ``paramiko.transport`` inherits handlers of loggers passed to ``SSHTunnelForwarder`` (`JM Fernández`_)
+    + fix `#34`_, `#33`_, code style and docs (`JM Fernández`_)
+    + add tests (`Pahaz Blinov`_)
+    + add CI integration (`Pahaz Blinov`_)
+    + normal packaging (`Pahaz Blinov`_)
+    + disable check distenation socket connection by ``SSHTunnelForwarder.local_is_up`` (`Pahaz Blinov`_) [changed default behavior]
+    + use daemon mode = False in all threads by default; detail_ (`Pahaz Blinov`_) [changed default behavior]
 
-- v.0.0.4.4 (pahaz)
-   + fix issue `#24`_ - hide ssh password in logs (pahaz)
+- v.0.0.4.4 (`Pahaz Blinov`_)
+   + fix issue `#24`_ - hide ssh password in logs (`Pahaz Blinov`_)
 
-- v.0.0.4.3 (pahaz)
-    + fix default port issue `#19`_ (pahaz)
+- v.0.0.4.3 (`Pahaz Blinov`_)
+    + fix default port issue `#19`_ (`Pahaz Blinov`_)
 
-- v.0.0.4.2 (pahaz)
-    + fix Thread.daemon mode for Python < 3.3 `#16`_, `#21`_ (lewisthompson, ewrogers)
+- v.0.0.4.2 (`Pahaz Blinov`_)
+    + fix Thread.daemon mode for Python < 3.3 `#16`_, `#21`_ (`Lewis Thompson`_, `Erik Rogers`_)
 
-- v.0.0.4.1 (pahaz)
-    + fix CLI issues `#13`_ (pahaz)
+- v.0.0.4.1 (`Pahaz Blinov`_)
+    + fix CLI issues `#13`_ (`Pahaz Blinov`_)
 
-- v.0.0.4 (pahaz)
-    + daemon mode by default for all threads (fernandezcuesta, pahaz) - *incompatible*
-    + move ``make_ssh_forward_server`` to ``SSHTunnelForwarder.make_ssh_forward_server`` (pahaz, fernandezcuesta) - *incompatible*
-    + move ``make_ssh_forward_handler`` to ``SSHTunnelForwarder.make_ssh_forward_handler_class`` (pahaz, fernandezcuesta) - *incompatible*
-    + rename ``open`` to ``open_tunnel`` (fernandezcuesta) - *incompatible*
-    + add CLI interface (fernandezcuesta)
-    + support opening several tunnels at once (fernandezcuesta)
-    + improve stability and readability (fernandezcuesta, pahaz)
-    + improve logging (fernandezcuesta, pahaz)
-    + add ``raise_exception_if_any_forwarder_have_a_problem`` argument for opening several tunnels at once (pahaz)
-    + add ``ssh_config_file`` argument support (fernandezcuesta)
-    + add Python 3 support (fernandezcuesta, pahaz)
+- v.0.0.4 (`Pahaz Blinov`_)
+    + daemon mode by default for all threads (`JM Fernández`_, `Pahaz Blinov`_) - *incompatible*
+    + move ``make_ssh_forward_server`` to ``SSHTunnelForwarder.make_ssh_forward_server`` (`Pahaz Blinov`_, `JM Fernández`_) - *incompatible*
+    + move ``make_ssh_forward_handler`` to ``SSHTunnelForwarder.make_ssh_forward_handler_class`` (`Pahaz Blinov`_, `JM Fernández`_) - *incompatible*
+    + rename ``open`` to ``open_tunnel`` (`JM Fernández`_) - *incompatible*
+    + add CLI interface (`JM Fernández`_)
+    + support opening several tunnels at once (`JM Fernández`_)
+    + improve stability and readability (`JM Fernández`_, `Pahaz Blinov`_)
+    + improve logging (`JM Fernández`_, `Pahaz Blinov`_)
+    + add ``raise_exception_if_any_forwarder_have_a_problem`` argument for opening several tunnels at once (`Pahaz Blinov`_)
+    + add ``ssh_config_file`` argument support (`JM Fernández`_)
+    + add Python 3 support (`JM Fernández`_, `Pahaz Blinov`_)
 
-- v.0.0.3 (pahaz)
-    + add ``threaded`` options (cameronmaske)
-    + fix exception error message, correctly printing destination address (gdmachado)
-    + fix pip install fails (cjermain, pahaz)
+- v.0.0.3 (`Pahaz Blinov`_)
+    + add ``threaded`` options (`Cameron Maske`_)
+    + fix exception error message, correctly printing destination address (`Gustavo Machado`_)
+    + fix pip install fails (`Colin Jermain`_, `Pahaz Blinov`_)
 
-- v.0.0.1 (pahaz)
-    + ``SSHTunnelForwarder`` class (pahaz)
-    + ``open`` function (pahaz)
+- v.0.0.1 (`Pahaz Blinov`_)
+    + ``SSHTunnelForwarder`` class (`Pahaz Blinov`_)
+    + ``open`` function (`Pahaz Blinov`_)
 
 HELP
 ====
@@ -265,6 +271,16 @@ HELP
       -v, --verbosity       Increase output verbosity (default: ERROR)
       -V, --version         Show version number
 
+
+.. _Pahaz Blinov: https://github.com/pahaz
+.. _Cameron Maske: https://github.com/cameronmaske
+.. _Gustavo Machado: https://github.com/gdmachado
+.. _Colin Jermain: https://github.com/cjermain
+.. _JM Fernández: https://github.com/fernandezcuesta
+.. _Lewis Thompson: https://github.com/lewisthompson
+.. _Erik Rogers: https://github.com/ewrogers
+.. _Mart Sõmermaa: https://github.com/mrts
+.. _Chronial: https://github.com/Chronial
 
 .. _paramiko: http://www.paramiko.org/
 .. |paramiko.ProxyCommand| replace:: ``paramiko.ProxyCommand``
