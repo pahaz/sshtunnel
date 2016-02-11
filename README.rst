@@ -40,7 +40,6 @@ Testing the package
 
 .. code-block:: bash
 
-    pip install -r requirements-test.txt
     python setup.py test
 
 Usage examples: SSH tunnel to remote server
