@@ -183,7 +183,7 @@ CHANGELOG
 
 - v.0.0.5 (`Pahaz Blinov`_)
     + add ``ssh_proxy`` argument, as well as ``ssh_config(5)`` ``ProxyCommand`` support (`Lewis Thompson`_)
-    + add some python 2.6 compatibility fixes (`Mart Sõmermaa`)
+    + add some python 2.6 compatibility fixes (`Mart Sõmermaa`_)
     + ``paramiko.transport`` inherits handlers of loggers passed to ``SSHTunnelForwarder`` (`JM Fernández`_)
     + fix `#34`_, `#33`_, code style and docs (`JM Fernández`_)
     + add tests (`Pahaz Blinov`_)
