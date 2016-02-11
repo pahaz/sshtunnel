@@ -764,6 +764,8 @@ class SSHClientTest(unittest.TestCase):
         with self.assertRaises(AssertionError):
             server = SSHTunnelForwarder(
                 self.saddr,
+                ssh_username=SSH_USERNAME,
+                ssh_password=SSH_PASSWORD,
                 remote_bind_address=(self.eaddr, self.eport),
                 ssh_proxy=('proxy', 22),
                 logger=self.log,
