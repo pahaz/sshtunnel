@@ -23,7 +23,7 @@ Fig1: How to connect to PRIVATE HOST through SSH tunnel.
 
 See: `sshtunnel.open_tunnel` function and `sshtunnel.SSHTunnelForwarder` class.
 
-Ex 1:
+Example 1:
 
     from sshtunnel import open_tunnel
     with open_tunnel(
@@ -40,7 +40,7 @@ Ex 1:
         print("LOCAL PORTS:", server.local_bind_ports)
         do_something(server.local_bind_ports)
 
-Ex 2:
+Example 2:
 
     import sshtunnel
 
@@ -57,15 +57,17 @@ Ex 2:
 
 
 
-CLI usage: sshtunnel [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD]
-                     [-R REMOTE_BIND_ADDRESS [REMOTE_BIND_ADDRESS ...]]
-                     [-L [LOCAL_BIND_ADDRESS [LOCAL_BIND_ADDRESS_LIST ...]]]
-                     [-k SSH_HOST_KEY] [-K SSH_PRIVATE_KEY]
-                     [-S RSA_KEY_FILE_PASSWORD]
-                     server
+CLI usage: sshtunnel [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD] -R
+                     IP:PORT [IP:PORT ...] [-L [IP:PORT [IP:PORT ...]]]
+                     [-k SSH_HOST_KEY] [-K RSA_KEY_FILE]
+                     [-S RSA_KEY_FILE_PASSWORD] [-t] [-v] [-V] [-x IP:PORT]
+                     [-c SSH_CONFIG_FILE] [-z]
+                     ssh_address
+
 
 positional arguments:
-  server               SSH server IP address (GW for ssh tunnels)
+  ssh_address          SSH server IP address (GW for SSH tunnels)
+                       set with '-- ssh_address' if immediately after -R or -L
 
 optional arguments:
   -h, --help           show this help message and exit
@@ -75,7 +77,7 @@ optional arguments:
                        SSH server TCP port (default: 22)
   -P, --password SSH_PASSWORD
                        SSH server account password
-  -R, --remote_bind_address [IP:PORT [IP:PORT ...]]
+  -R, --remote_bind_address IP:PORT [IP:PORT ...]
                        Remote bind address sequence: ip1:port1 ... ip_n:port_n
                        Equivalent to ssh -Lxxxx:IP_ADDRESS:PORT
                        If omitted, default port is 22.
@@ -94,6 +96,13 @@ optional arguments:
   -S, --private_key_file_password RSA_KEY_FILE_PASSWORD
                        RSA private key file password
   -t, --threaded       Allow concurrent connections to each tunnel
+  -v, --verbosity      Increase output verbosity (default: ERROR)
+  -V, --version        Show version number and quit
+  -x, --proxy IP:PORT
+                       IP and port of SSH proxy to destination
+  -c, --config SSH_CONFIG_FILE
+                       SSH configuration file, defaults to SSH_CONFIG_FILE
+  -z, --compress       Request server for compression over SSH transport
 
 """
 
@@ -101,11 +110,11 @@ import sys
 import socket
 import getpass
 import logging
+import os
 import argparse
 import warnings
 import threading
 from select import select
-from os.path import exists, expanduser
 
 import paramiko
 
@@ -119,7 +128,7 @@ else:
     input_ = input
 
 
-__version__ = '0.0.7.1'
+__version__ = '0.0.7.2'
 __author__ = 'pahaz'
 
 __all__ = ('SSHTunnelForwarder', 'BaseSSHTunnelForwarderError',
@@ -132,6 +141,7 @@ TRACE = False
 _CONNECTION_COUNTER = 1
 _lock = threading.Lock()
 SSH_TIMEOUT = None  # timeout (seconds) for the connection to the SSH gateway
+SSH_CONFIG_FILE = '~/.ssh/config'
 
 ########################
 #                      #
@@ -175,7 +185,7 @@ def check_addresses(address_list):
         check_address(address)
 
 
-def create_logger(logger=None, loglevel=DEFAULT_LOGLEVEL):
+def create_logger(logger=None, loglevel=None):
     """
     Attaches or creates a new logger and creates console handlers if not
     present
@@ -184,14 +194,17 @@ def create_logger(logger=None, loglevel=DEFAULT_LOGLEVEL):
         '{0}.SSHTunnelForwarder'.format(__name__)
     )
     if not logger.handlers:  # if no handlers, add a new one (console)
-        logger.setLevel(loglevel)
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(
             logging.Formatter('%(asctime)s | %(levelname)-8s| %(message)s')
         )
+        logger.setLevel(loglevel or DEFAULT_LOGLEVEL)
+        console_handler.setLevel(loglevel or DEFAULT_LOGLEVEL)
         logger.addHandler(console_handler)
     elif loglevel:  # only override if loglevel was set
         logger.setLevel(loglevel)
+        for handler in logger.handlers:
+            handler.setLevel(loglevel)
 
     check_paramiko_handlers()
     return logger
@@ -214,6 +227,28 @@ def check_paramiko_handlers(logger=None):
             paramiko_logger.addHandler(console_handler)
 
 
+def _read_private_key_file(pkey_file,
+                           pkey_password=None,
+                           logger=None):
+    """ Get SSH private key from a file given an optional password """
+    ssh_private_key = None
+    try:
+        ssh_private_key = paramiko.RSAKey.from_private_key_file(
+            pkey_file,
+            password=pkey_password
+        )
+    except paramiko.PasswordRequiredException:
+        if logger:
+            logger.error('Password is required for key {0}'
+                         .format(pkey_file))
+    except paramiko.SSHException:
+        if logger:
+            logger.error('Private key file could not be loaded. '
+                         'Bad key password?')
+    finally:
+        return ssh_private_key
+
+
 def address_to_str(address):
     return "{0[0]}:{0[1]}".format(address)
 
@@ -225,6 +260,11 @@ def get_connection_id():
         _CONNECTION_COUNTER += 1
     return uid
 
+
+def remove_none_values(dictionary):
+    """ Remove dict keys whose value is None """
+    return list(map(dictionary.pop,
+                    [i for i in dictionary if dictionary[i] is None]))
 
 ########################
 #                      #
@@ -472,7 +512,7 @@ class SSHTunnelForwarder(object):
     def __init__(
             self,
             ssh_address_or_host=None,
-            ssh_config_file="~/.ssh/config",
+            ssh_config_file=SSH_CONFIG_FILE,
             ssh_host_key=None,
             ssh_password=None,
             ssh_private_key=None,
@@ -488,12 +528,13 @@ class SSHTunnelForwarder(object):
             remote_bind_addresses=None,
             set_keepalive=0,
             threaded=True,  # old version False
+            compression=False,  # paramiko default
             **kwargs  # for backwards compatibility
     ):
         """
         ssh_arguments:
           (ssh_address or ssh_host)
-          ssh_config_file=~/.ssh/config
+          ssh_config_file=SSH_CONFIG_FILE
           ssh_host_key=None
           ssh_password=None
           ssh_private_key=None
@@ -504,10 +545,12 @@ class SSHTunnelForwarder(object):
           local_bind_address=None
           local_bind_addresses=None,
           logger=__name__
+          raise_exception_if_any_forwarder_have_a_problem=True,
           remote_bind_address=None
           remote_bind_addresses=None,
           set_keepalive=0,
           threaded=True
+          compression=False,
           ssh_port=22  # DEPRECATED
           ssh_host=None  # DEPRECATED
 
@@ -533,6 +576,7 @@ class SSHTunnelForwarder(object):
 
         self.ssh_host_key = ssh_host_key
         self.set_keepalive = set_keepalive
+        self.compression = compression
 
         self._raise_fwd_exc = raise_exception_if_any_forwarder_have_a_problem
         self._threaded = threaded
@@ -548,10 +592,10 @@ class SSHTunnelForwarder(object):
 
         if isinstance(ssh_address_or_host, tuple):
             check_address(ssh_address_or_host)
-            (self.ssh_host, self.ssh_port) = ssh_address_or_host
+            (self.ssh_host, ssh_port) = ssh_address_or_host
         else:
             self.ssh_host = ssh_address_or_host
-            self.ssh_port = kwargs.pop('ssh_port', None)
+            ssh_port = kwargs.pop('ssh_port', None)
 
         if kwargs:
             raise ValueError('Unknown arguments: {0}'.format(kwargs))
@@ -569,13 +613,15 @@ class SSHTunnelForwarder(object):
         (ssh_username,  # still needs to go through _consolidate_auth
          ssh_private_key,  # still needs to go through _consolidate_auth
          self.ssh_port,
-         self.ssh_proxy) = self.read_ssh_config(
+         self.ssh_proxy,
+         self.compression) = self.read_ssh_config(
              self.ssh_host,
              ssh_config_file,
              ssh_username,
              ssh_private_key,
-             self.ssh_port,
+             ssh_port,
              ssh_proxy if ssh_proxy_enabled else None,
+             compression,
              logger)
 
         (self.ssh_username,
@@ -611,6 +657,7 @@ class SSHTunnelForwarder(object):
                         ssh_private_key,
                         ssh_port,
                         ssh_proxy,
+                        compression,
                         logger):
         """
         Read ssh_config_file and tries to look for user (ssh_username),
@@ -619,10 +666,10 @@ class SSHTunnelForwarder(object):
          """
         ssh_config = paramiko.SSHConfig()
 
-        # Try to read ~/.ssh/config
+        # Try to read SSH_CONFIG_FILE
         try:
             # open the ssh config file
-            with open(expanduser(ssh_config_file), 'r') as f:
+            with open(os.path.expanduser(ssh_config_file), 'r') as f:
                 ssh_config.parse(f)
             # looks for information for the destination system
             hostname_info = ssh_config.lookup(ssh_host)
@@ -640,6 +687,7 @@ class SSHTunnelForwarder(object):
             proxycommand = hostname_info.get('proxycommand')
             ssh_proxy = ssh_proxy or (paramiko.ProxyCommand(proxycommand) if
                                       proxycommand else None)
+            compression = hostname_info.get('compression', compression)
         except IOError:
             logger.warning(
                 'Could not read SSH configuration file: {0}'
@@ -648,7 +696,11 @@ class SSHTunnelForwarder(object):
         except AttributeError:  # ssh_config_file is None
             logger.info('Skipping loading of ssh config file')
         finally:
-            return (ssh_username, ssh_private_key, ssh_port, ssh_proxy)
+            return (ssh_username,
+                    ssh_private_key,
+                    ssh_port,
+                    ssh_proxy,
+                    compression)
 
     @staticmethod
     def _consolidate_binds(local_binds, remote_binds):
@@ -671,10 +723,11 @@ class SSHTunnelForwarder(object):
                           logger=None):
         """Get sure authentication information is in place"""
         if isinstance(ssh_private_key, string_types):
-            if exists(ssh_private_key):
-                ssh_private_key = paramiko.RSAKey.from_private_key_file(
-                    ssh_private_key,
-                    password=ssh_private_key_password
+            if os.path.exists(ssh_private_key):
+                ssh_private_key = _read_private_key_file(
+                    pkey_file=ssh_private_key,
+                    pkey_password=ssh_private_key_password,
+                    logger=logger
                 )
             elif logger:
                 logger.warning('Private key file not found: {0}'
@@ -705,6 +758,7 @@ class SSHTunnelForwarder(object):
             _socket.connect((self.ssh_host, self.ssh_port))
         transport = paramiko.Transport(_socket)
         transport.set_keepalive(self.set_keepalive)
+        transport.compression(compress=self.compression)
         transport.daemon = DAEMON
 
         return transport
@@ -987,6 +1041,43 @@ class SSHTunnelForwarder(object):
             conn.close()
         return reachable
 
+    def __str__(self):
+        proxy_str = ('proxy: {0}'.format(self.ssh_proxy.cmd[1]) if
+                     self.ssh_proxy else 'no proxy')
+        credentials = {
+            'password': self.ssh_password,
+            'pkey': self.ssh_private_key.get_name() if self.ssh_private_key
+            else None
+        }
+        remove_none_values(credentials)
+        template = os.linesep.join(['{0}',
+                                    'ssh gateway: {1}:{2}',
+                                    '{3}',
+                                    'username: {4}',
+                                    'authentication: {5}',
+                                    'hostkey: {6}',
+                                    '{7}started',
+                                    'keepalive messages: {8}',
+                                    'local tunnel side detection: {9}',
+                                    'concurrent connections {10}allowed',
+                                    'compression {11}requested',
+                                    'logging level: {12}'])
+        return (template.format(
+            repr(self),
+            self.ssh_host, self.ssh_port,
+            proxy_str,
+            self.ssh_username,
+            credentials,
+            self.ssh_host_key if self.ssh_host_key else'not checked',
+            '' if self._is_started else 'Not ',
+            'disabled' if not self.set_keepalive else
+            'every {0} sec'.format(self.set_keepalive),
+            'enabled' if self.is_use_local_check_up else 'disabled',
+            '' if self._threaded else 'not ',
+            '' if self.compression else 'not ',
+            logging.getLevelName(self.logger.level)
+        ))
+
     def __enter__(self):
         self.start()
         return self
@@ -998,24 +1089,14 @@ class SSHTunnelForwarder(object):
         self.stop()
 
 
-def open_tunnel(**kwargs):
+def open_tunnel(*args, **kwargs):
     """
-    Opening SSH Tunnel.
+    Open SSH Tunnel
 
+    args:
+     (ssh_address, ssh_port)
     kwargs:
-     ssh_address='localhost',
-     ssh_host_key=None,
-     ssh_username=None,
-     ssh_password=None,
-     ssh_private_key=None,
-     ssh_proxy=None,
-     remote_bind_address=None,
-     local_bind_address=None,
-     threaded=True,
-     ssh_port=22,
-     ssh_config_file=~/.ssh/config,
-     debug_level=None,
-     logger=None
+     see SSHTunnelForwarder
 
     ** Example **
     from sshtunnel import open_tunnel
@@ -1036,22 +1117,29 @@ def open_tunnel(**kwargs):
 
     """
     # Remove all "None" input values
-    list(map(kwargs.pop, [item for item in kwargs if not kwargs[item]]))
+    remove_none_values(kwargs)
+
+    # if ssh_config_file is None, skip config file lookup
+    if 'ssh_config_file' not in kwargs:  # restore it as None
+        kwargs['ssh_config_file'] = None
 
     # LOGGER - Create a console handler if not passed as argument
-    loglevel = kwargs.pop('debug_level') if 'debug_level' in kwargs \
-        else DEFAULT_LOGLEVEL
+    kwargs['logger'] = create_logger(logger=kwargs.get('logger', None),
+                                     loglevel=kwargs.pop('debug_level', None))
 
-    logger = kwargs.pop('logger') if 'logger' in kwargs else None
-    kwargs['logger'] = create_logger(logger=logger, loglevel=loglevel)
-    if 'ssh_proxy' in kwargs:
-        proxycmd = 'ssh {0} -W {1}:{2}'.format(kwargs['ssh_proxy'],
+    # ssh_proxy from CLI comes in (ip, port) format
+    if 'ssh_proxy' in kwargs and isinstance(kwargs['ssh_proxy'], tuple):
+        proxycmd = 'ssh {0} -W {1}:{2}'.format(':'.join(kwargs['ssh_proxy']),
                                                kwargs['ssh_address'],
                                                kwargs['ssh_port'])
         kwargs['ssh_proxy'] = paramiko.proxy.ProxyCommand(proxycmd)
 
     ssh_address = kwargs.pop('ssh_address', 'localhost')
-    forwarder = SSHTunnelForwarder(ssh_address, **kwargs)
+    ssh_port = kwargs.pop('ssh_port', None)
+
+    if not args:
+        args = ((ssh_address, ssh_port), )
+    forwarder = SSHTunnelForwarder(*args, **kwargs)
     return forwarder
 
 
@@ -1113,7 +1201,7 @@ def _parse_arguments(args=None):
 
     parser.add_argument(
         'ssh_address', type=str,
-        help='SSH server IP address (GW for ssh tunnels)\n'
+        help='SSH server IP address (GW for SSH tunnels)\n'
              'set with "-- ssh_address" if immediately after '
              '-R or -L'
     )
@@ -1180,7 +1268,7 @@ def _parse_arguments(args=None):
     )
 
     parser.add_argument(
-        '-v', '--verbosity', action='count', default=0,
+        '-v', '--verbose', action='count', default=0,
         help='Increase output verbosity (default: {0})'.format(
             logging.getLevelName(DEFAULT_LOGLEVEL)
         )
@@ -1195,31 +1283,54 @@ def _parse_arguments(args=None):
     parser.add_argument(
         '-x', '--proxy', type=_bindlist,
         dest='ssh_proxy', metavar='IP:PORT',
-        help='IP and address of SSH proxy to destination'
+        help='IP and port of SSH proxy to destination'
     )
+
+    parser.add_argument(
+        '-c', '--config', type=str,
+        default=SSH_CONFIG_FILE, dest='ssh_config_file',
+        help='SSH configuration file, defaults to {0}'.format(SSH_CONFIG_FILE)
+    )
+
+    parser.add_argument(
+        '-z', '--compress', action='store_true', dest='compression',
+        help='Request server for compression over SSH transport'
+    )
+
     return vars(parser.parse_args(args))
 
 
 def main(args=None):
-    """ Argparse input options for open_tunnel
+    """ Pass input arguments to open_tunnel
         Mandatory: ssh_address, -R (remote bind address list)
 
-        -U (username) is optional, we may gather it from ~/.ssh/config
-        -L (local bind address list) is optional, default to 0.0.0.0:22
+        Optional:
+        -U (username) we may gather it from SSH_CONFIG_FILE or current username
+        -p (server_port), defaults to 22
+        -P (password)
+        -L (local_bind_address), default to 0.0.0.0:22
+        -k (ssh_host_key)
+        -K (private_key_file), may be gathered from SSH_CONFIG_FILE
+        -S (private_key_file_password)
+        -t (threaded), allow concurrent connections over tunnels
+        -v (verbose), up to 3 (-vvv) to raise loglevel from ERROR to DEBUG
+        -V (version)
+        -x (proxy), ProxyCommand's IP:PORT, may be gathered from config file
+        -c (ssh_config), ssh configuration file (defaults to SSH_CONFIG_FILE)
+        -z (compress)
     """
-    args = _parse_arguments(args)
-    verbosity = min(args.pop('verbosity'), 3)
+    arguments = _parse_arguments(args)
+    verbosity = min(arguments.pop('verbose'), 3)
     levels = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
-    args.setdefault('debug_level', levels[verbosity])
+    arguments.setdefault('debug_level', levels[verbosity])
 
-    with open_tunnel(**args) as tunnel:
-        if not tunnel._is_started:
-            return
-        input_('''
+    with open_tunnel(**arguments) as tunnel:
+        if tunnel._is_started:
+            input_('''
 
-        Press <Ctrl-C> or <Enter> to stop!
+            Press <Ctrl-C> or <Enter> to stop!
 
-        ''')
+            ''')
 
 if __name__ == '__main__':  # pragma: no cover
     main()

@@ -2,9 +2,7 @@
 
 |DwnMonth| |DwnWeek| |DwnDay|
 
-
-**WORKS WITH**: python 2.6, python 2.7, python 3.2, python 3.3, python 3.4,
-python 3.5
+|versions|
 
 **Author**: `Pahaz Blinov`_
 
@@ -164,6 +162,9 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
+- v.0.0.7.2 (`JM Fernández`_)
+    + Add ``compression`` (`JM Fernández`_)
+    + Add ``__str__`` method (`JM Fernández`_)
 - v.0.0.7.1 (`JM Fernández`_)
     + Add test functions (`JM Fernández`_)
     + Fix default username when not provided and ssh_config file is skipped (`JM Fernández`_)
@@ -233,7 +234,8 @@ HELP
     usage: sshtunnel [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD] -R
                      IP:PORT [IP:PORT ...] [-L [IP:PORT [IP:PORT ...]]]
                      [-k SSH_HOST_KEY] [-K RSA_KEY_FILE]
-                     [-S RSA_KEY_FILE_PASSWORD] [-t] [-v] [-V]
+                     [-S RSA_KEY_FILE_PASSWORD] [-t] [-v] [-V] [-x IP:PORT]
+                     [-z]
                      ssh_address
 
     Pure python ssh tunnel utils
@@ -268,7 +270,10 @@ HELP
                             RSA private key file password
       -t, --threaded        Allow concurrent connections to each tunnel
       -v, --verbosity       Increase output verbosity (default: ERROR)
-      -V, --version         Show version number
+      -V, --version         Show version number and quit
+      -x, --proxy IP:PORT
+                            IP and por for SSH proxy to destination
+      -z, --compress        Request server for compression over SSH transport
 
 
 .. _Pahaz Blinov: https://github.com/pahaz
@@ -304,4 +309,4 @@ HELP
 .. |DwnMonth| image:: https://img.shields.io/pypi/dm/sshtunnel.svg
 .. |DwnWeek| image:: https://img.shields.io/pypi/dw/sshtunnel.svg
 .. |DwnDay| image:: https://img.shields.io/pypi/dd/sshtunnel.svg
-
+.. |versions| image:: https://img.shields.io/pypi/pyversions/sshtunnel.svg
