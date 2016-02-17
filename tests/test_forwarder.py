@@ -17,7 +17,6 @@ import mock
 import paramiko
 import sshtunnel
 
-# from sshtunnel import SSHTunnelForwarder
 
 if sys.version_info[0] == 2:
     from cStringIO import StringIO
@@ -37,7 +36,8 @@ def get_random_string(length=12):
     >>> r = get_random_string(1)
     >>> r in asciis
     True
-    >>> r = get_random_string(2)    >>> [r[0] in asciis, r[1] in asciis]
+    >>> r = get_random_string(2)
+    >>> [r[0] in asciis, r[1] in asciis]
     [True, True]
     """
     ascii_lowercase = 'abcdefghijklmnopqrstuvwxyz'

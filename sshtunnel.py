@@ -758,7 +758,7 @@ class SSHTunnelForwarder(object):
             _socket.connect((self.ssh_host, self.ssh_port))
         transport = paramiko.Transport(_socket)
         transport.set_keepalive(self.set_keepalive)
-        transport.compression(compress=self.compression)
+        transport.use_compression(compress=self.compression)
         transport.daemon = DAEMON
 
         return transport
