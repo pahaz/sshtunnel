@@ -1,8 +1,8 @@
-|CircleCI| |coveralls|
+|CircleCI| |coveralls| |version|
 
 |DwnMonth| |DwnWeek| |DwnDay|
 
-|versions|
+|pyversions| |license|
 
 **Author**: `Pahaz Blinov`_
 
@@ -309,4 +309,6 @@ HELP
 .. |DwnMonth| image:: https://img.shields.io/pypi/dm/sshtunnel.svg
 .. |DwnWeek| image:: https://img.shields.io/pypi/dw/sshtunnel.svg
 .. |DwnDay| image:: https://img.shields.io/pypi/dd/sshtunnel.svg
-.. |versions| image:: https://img.shields.io/pypi/pyversions/sshtunnel.svg
+.. |pyversions| image:: https://img.shields.io/pypi/pyversions/sshtunnel.svg
+.. |version| image:: https://img.shields.io/pypi/v/sshtunnel.svg
+.. |license| image::  https://img.shields.io/pypi/l/sshtunnel.svg
