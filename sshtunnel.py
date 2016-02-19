@@ -1079,7 +1079,7 @@ class SSHTunnelForwarder(object):
             'password': self.ssh_password,
             'pkeys': [(key.get_name(), hexlify(key.get_fingerprint()))
                       for key in self.ssh_private_keys]
-                      if self.ssh_private_keys else None
+            if self.ssh_private_keys else None
         }
         remove_none_values(credentials)
         template = os.linesep.join(['{0}',
