@@ -103,6 +103,7 @@ optional arguments:
   -c, --config SSH_CONFIG_FILE
                        SSH configuration file, defaults to SSH_CONFIG_FILE
   -z, --compress       Request server for compression over SSH transport
+  -A, --agent           Allow looking for keys from an SSH agent
 
 """
 
@@ -114,6 +115,7 @@ import os
 import argparse
 import warnings
 import threading
+from binascii import hexlify
 from select import select
 
 import paramiko
@@ -529,6 +531,7 @@ class SSHTunnelForwarder(object):
             set_keepalive=0,
             threaded=True,  # old version False
             compression=False,  # paramiko default
+            allow_agent=False,  # look for keys from an SSH agent
             **kwargs  # for backwards compatibility
     ):
         """
@@ -551,6 +554,7 @@ class SSHTunnelForwarder(object):
           set_keepalive=0,
           threaded=True
           compression=False,
+          allow_agent=False,
           ssh_port=22  # DEPRECATED
           ssh_host=None  # DEPRECATED
 
@@ -610,7 +614,7 @@ class SSHTunnelForwarder(object):
         self._local_binds = self._consolidate_binds(self._local_binds,
                                                     self._remote_binds)
 
-        (ssh_username,  # still needs to go through _consolidate_auth
+        (self.ssh_username,
          ssh_private_key,  # still needs to go through _consolidate_auth
          self.ssh_port,
          self.ssh_proxy,
@@ -624,15 +628,16 @@ class SSHTunnelForwarder(object):
              compression,
              logger)
 
-        (self.ssh_username,
-         self.ssh_password,
-         self.ssh_private_key) = self._consolidate_auth(
-            ssh_username=ssh_username,
+        (self.ssh_password, ssh_private_key) = self._consolidate_auth(
             ssh_password=ssh_password,
             ssh_private_key=ssh_private_key,
             ssh_private_key_password=ssh_private_key_password,
             logger=logger
         )
+        self.ssh_private_keys = self.get_keys(key=ssh_private_key,
+                                              allow_agent=allow_agent,
+                                              logger=self.logger)
+
         if not self.ssh_port:
             self.ssh_port = 22  # fallback value
 
@@ -696,11 +701,24 @@ class SSHTunnelForwarder(object):
         except AttributeError:  # ssh_config_file is None
             logger.info('Skipping loading of ssh config file')
         finally:
-            return (ssh_username,
+            return (ssh_username or getpass.getuser(),
                     ssh_private_key,
                     ssh_port,
                     ssh_proxy,
                     compression)
+
+    @staticmethod
+    def get_keys(key=None, allow_agent=False, logger=None):
+        agent_keys = []
+        if allow_agent:
+            agent = paramiko.Agent()
+            agent_keys.extend(agent.get_keys())
+            if logger:
+                logger.debug('{0} keys loaded from agent'
+                             .format(len(agent_keys)))
+        if key:  # last one to try
+            agent_keys.append(key)
+        return agent_keys
 
     @staticmethod
     def _consolidate_binds(local_binds, remote_binds):
@@ -716,8 +734,7 @@ class SSHTunnelForwarder(object):
         return local_binds
 
     @staticmethod
-    def _consolidate_auth(ssh_username=None,
-                          ssh_password=None,
+    def _consolidate_auth(ssh_password=None,
                           ssh_private_key=None,
                           ssh_private_key_password=None,
                           logger=None):
@@ -736,9 +753,7 @@ class SSHTunnelForwarder(object):
         if not ssh_password and not ssh_private_key:
             raise ValueError('No password or private key available!')
 
-        return (ssh_username or getpass.getuser(),
-                ssh_password,
-                ssh_private_key)
+        return (ssh_password, ssh_private_key)
 
     def _raise(self, exception, reason):
         if self._raise_fwd_exc:
@@ -855,7 +870,24 @@ class SSHTunnelForwarder(object):
         self._is_started = True
 
     def _connect_to_gateway(self):
-        """Open connection to SSH gateway"""
+        """
+        Open connection to SSH gateway
+         - First try with all keys loaded from an SSH agent (if allowed)
+         - Then with those passed directly or read from ~/.ssh/config
+         - As last resort, try with a provided password
+        """
+        for key in self.ssh_private_keys:
+            self.logger.debug('Trying to log in with key: {0}'
+                              .format(hexlify(key.get_fingerprint())))
+            try:
+                self._transport.connect(hostkey=self.ssh_host_key,
+                                        username=self.ssh_username,
+                                        pkey=key)
+                return
+            except paramiko.AuthenticationException:
+                self.logger.error('Could not open connection to gateway')
+                self._stop_transport()
+
         if self.ssh_password:  # avoid conflict using both pass and pkey
             self.logger.debug('Logging in with password {0}'
                               .format('*' * len(self.ssh_password)))
@@ -863,10 +895,9 @@ class SSHTunnelForwarder(object):
                                     username=self.ssh_username,
                                     password=self.ssh_password)
         else:
-            self.logger.debug('Logging in with RSA key')
-            self._transport.connect(hostkey=self.ssh_host_key,
-                                    username=self.ssh_username,
-                                    pkey=self.ssh_private_key)
+            raise paramiko.AuthenticationException(
+                'No authentication methods available'
+            )
 
     def check_local_side_of_tunnels(self):
         """
@@ -1046,8 +1077,9 @@ class SSHTunnelForwarder(object):
                      self.ssh_proxy else 'no proxy')
         credentials = {
             'password': self.ssh_password,
-            'pkey': self.ssh_private_key.get_name() if self.ssh_private_key
-            else None
+            'pkeys': [(key.get_name(), hexlify(key.get_fingerprint()))
+                      for key in self.ssh_private_keys]
+                      if self.ssh_private_keys else None
         }
         remove_none_values(credentials)
         template = os.linesep.join(['{0}',
@@ -1297,6 +1329,10 @@ def _parse_arguments(args=None):
         help='Request server for compression over SSH transport'
     )
 
+    parser.add_argument(
+        '-A', '--agent', action='store_true', dest='allow_agent',
+        help='Allow looking for keys from an SSH agent'
+    )
     return vars(parser.parse_args(args))
 
 
@@ -1318,6 +1354,7 @@ def main(args=None):
         -x (proxy), ProxyCommand's IP:PORT, may be gathered from config file
         -c (ssh_config), ssh configuration file (defaults to SSH_CONFIG_FILE)
         -z (compress)
+        -A (allow_agent), allow looking for keys from an Agent
     """
     arguments = _parse_arguments(args)
     verbosity = min(arguments.pop('verbose'), 3)

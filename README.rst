@@ -162,6 +162,8 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
+- v.0.0.7.3 (`JM Fernández`_)
+    + Add ``allow_agent`` (fixes #36, #46) (`JM Fernández`_)
 - v.0.0.7.2 (`JM Fernández`_)
     + Add ``compression`` (`JM Fernández`_)
     + Add ``__str__`` method (`JM Fernández`_)
@@ -274,6 +276,7 @@ HELP
       -x, --proxy IP:PORT
                             IP and por for SSH proxy to destination
       -z, --compress        Request server for compression over SSH transport
+      -A, --agent           Allow looking for keys from an SSH agent
 
 
 .. _Pahaz Blinov: https://github.com/pahaz

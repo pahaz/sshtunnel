@@ -1037,6 +1037,7 @@ class AuxiliaryTest(unittest.TestCase):
                 '-x=10.0.0.2:',  # proxy address
                 '-c=ssh_config',  # ssh configuration file
                 '-z',  # request compression
+                '-A',  # allow SSH agent key lookup
                 ]
         parser = sshtunnel._parse_arguments(args)
         self._test_parser(parser)
@@ -1066,6 +1067,7 @@ class AuxiliaryTest(unittest.TestCase):
              '--proxy', '10.0.0.2:22',  # proxy address
              '--config', 'ssh_config',  # ssh configuration file
              '--compress',  # request compression
+             '--agent',  # allow SSH agent key lookup
              ]
         )
         self._test_parser(parser)
@@ -1087,6 +1089,7 @@ class AuxiliaryTest(unittest.TestCase):
         self.assertEqual(parser['ssh_proxy'], ('10.0.0.2', 22))
         self.assertEqual(parser['ssh_config_file'], 'ssh_config')
         self.assertTrue(parser['compression'])
+        self.assertTrue(parser['allow_agent'])
 
     def test_bindlist(self):
         """
@@ -1154,7 +1157,7 @@ class AuxiliaryTest(unittest.TestCase):
              server.ssh_host,
              get_test_data_path(TEST_CONFIG_FILE),
              None,
-             server.ssh_private_key,
+             server.ssh_private_keys[-1],
              None,
              server.ssh_proxy,
              server.compression,
@@ -1182,3 +1185,18 @@ class AuxiliaryTest(unittest.TestCase):
         self.assertIn('no proxy', _str)
         self.assertIn('username: {0}'.format(getpass.getuser()), _str)
         self.assertIn('Not started', _str)
+
+    def test_get_keys(self):  # this is quite useless test in CI
+        """ Test that keys can be gathered from an SSH agent """
+        server = SSHTunnelForwarder(
+            'test',
+            ssh_private_key=get_test_data_path(PKEY_FILE),
+            remote_bind_address=('10.0.0.1', 8080),
+            allow_agent=True
+        )
+        self.assertTrue(len(server.ssh_private_keys) > 0)
+        fingerprint = sshtunnel._read_private_key_file(
+            get_test_data_path(PKEY_FILE)
+        ).get_fingerprint()
+        self.assertIn(fingerprint,
+                      (k.get_fingerprint() for k in server.ssh_private_keys))
