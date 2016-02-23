@@ -1,9 +1,11 @@
-# Include the data files
-# recursive-include data *
+# Include the data files recursive-include data *
 
 # If using Python 2.6 or less, then have to include package data, even though
 # it's already declared in setup.py
 # include sample/*.dat
 
 include LICENSE
-include README.rst
+include *.rst
+include docs/conf.py
+include docs/Makefile
+include docs/*.rst

@@ -640,29 +640,20 @@ class SSHClientTest(unittest.TestCase):
                            'ssh_password': SSH_PASSWORD,
                            'remote_bind_address': (self.eaddr, self.eport)}
                 SSHTunnelForwarder(**_kwargs)
-                logged_message = "'{0}' is DEPRECATED use " \
-                                 "'ssh_address_or_host' or 1st positional " \
-                                 "argument".format(deprecated_arg)
+                logged_message = "'{0}' is DEPRECATED use '{1}' instead"\
+                    .format(deprecated_arg,
+                            sshtunnel.DEPRECATIONS[deprecated_arg])
                 self.assertTrue(issubclass(w[-1].category,
                                            DeprecationWarning))
                 self.assertEqual(logged_message, str(w[-1].message))
 
-            with self.assertRaises(NotImplementedError):
-                sshtunnel.make_ssh_forward_server('remote_address',
-                                                  'local_bind_address',
-                                                  'ssh_transport')
-                self.assertTrue(issubclass(w[-1].category,
-                                           DeprecationWarning))
-                self.assertEqual(logged_message,
-                                 str(w[-1].message))
+            SSHTunnelForwarder((self.saddr, self.sport),
+                               ssh_username=SSH_USERNAME,
+                               ssh_private_key=get_test_data_path(PKEY_FILE),
+                               remote_bind_address=(self.eaddr, self.eport))
+            logged_message = "ssh_private_key is DEPRECATED use '{0}' instead"\
+                .format(sshtunnel.DEPRECATIONS['ssh_private_key'])
 
-            with self.assertRaises(NotImplementedError):
-                sshtunnel.make_ssh_forward_handler('remote_address',
-                                                   'ssh_transport')
-                self.assertTrue(issubclass(w[-1].category,
-                                           DeprecationWarning))
-                self.assertEqual(logged_message,
-                                 str(w[-1].message))
         warnings.simplefilter('default')
 
     def test_gateway_unreachable_raises_exception(self):
@@ -778,27 +769,23 @@ class SSHClientTest(unittest.TestCase):
 
     def test_connect_via_proxy(self):
         """ Test connecting using a ProxyCommand """
-        server = SSHTunnelForwarder(
-            self.saddr,
-            ssh_username=SSH_USERNAME,
-            ssh_password=SSH_PASSWORD,
-            remote_bind_address=(self.eaddr, self.eport),
-            ssh_proxy=paramiko.proxy.ProxyCommand(
-                'ssh proxy -W {0}:{1}'.format(self.saddr, self.sport)
-            ),
-            ssh_proxy_enabled=True,
-            logger=self.log,
-        )
-        self.assertEqual(server.ssh_proxy.cmd[1], 'proxy')
-        with self.assertRaises(AssertionError):
+        proxycmd = paramiko.proxy.ProxyCommand('ssh proxy -W {0}:{1}'
+                                               .format(self.saddr, self.sport))
+        for ssh_proxy in [proxycmd, ('proxy',)]:
             server = SSHTunnelForwarder(
                 self.saddr,
                 ssh_username=SSH_USERNAME,
                 ssh_password=SSH_PASSWORD,
                 remote_bind_address=(self.eaddr, self.eport),
-                ssh_proxy=('proxy', 22),
+                ssh_proxy=ssh_proxy,
+                ssh_proxy_enabled=True,
                 logger=self.log,
             )
+        self.assertEqual(server.ssh_proxy.cmd[1], 'proxy')
+
+        # ssh_proxy not a paramiko.ProxyCommand raises exception
+        with self.assertRaises(AssertionError):
+            server.ssh_proxy = 'bad_proxy'
             self._test_server(server)
 
     @unittest.skipIf(sys.version_info < (2, 7),
@@ -973,15 +960,16 @@ class SSHClientTest(unittest.TestCase):
     @mock.patch('sshtunnel.input_', return_value=linesep)
     @unittest.skipIf(sys.version_info < (3, 3),
                      reason="mock in standard library since py33")
-    def test_main_exits_when_pressing_enter(self, input):
-        """ Test that main() function quits when Enter is pressed """
+    def test_cli_main_exits_when_pressing_enter(self, input):
+        """ Test that _cli_main() function quits when Enter is pressed """
         self.start_echo_and_ssh_server()
-        sshtunnel.main(args=[self.saddr,
-                             '-U', SSH_USERNAME,
-                             '-P', SSH_PASSWORD,
-                             '-p', str(self.sport),
-                             '-R', '{0}:{1}'.format(self.eaddr, self.eport),
-                             '-c', ''])
+        sshtunnel._cli_main(args=[self.saddr,
+                                  '-U', SSH_USERNAME,
+                                  '-P', SSH_PASSWORD,
+                                  '-p', str(self.sport),
+                                  '-R', '{0}:{1}'.format(self.eaddr,
+                                                         self.eport),
+                                  '-c', ''])
         self.stop_echo_and_ssh_server()
 
     @unittest.skipIf(sys.version_info < (2, 7),
@@ -989,7 +977,7 @@ class SSHClientTest(unittest.TestCase):
     def test_read_private_key_file(self):
         """ Test that an encrypted private key can be opened """
         encr_pkey = get_test_data_path(ENCRYPTED_PKEY_FILE)
-        pkey = sshtunnel._read_private_key_file(
+        pkey = sshtunnel.SSHTunnelForwarder.read_private_key_file(
             encr_pkey,
             pkey_password='sshtunnel',
             logger=self.log
@@ -1000,17 +988,17 @@ class SSHClientTest(unittest.TestCase):
         self.assertEqual(pkey, _pkey)
 
         # Using a wrong password returns None
-        self.assertIsNone(sshtunnel._read_private_key_file(
+        self.assertIsNone(sshtunnel.SSHTunnelForwarder.read_private_key_file(
             encr_pkey,
             pkey_password='bad password',
             logger=self.log
         ))
-        self.assertIn('Private key file could not be loaded. '
-                      'Bad key password?',
-                      self.sshtunnel_log_messages['error'])
-
+        self.assertIn("Private key file ({0}) could not be loaded or bad "
+                      "password. Tried with type: {1}"
+                      .format(encr_pkey, type(_pkey)),
+                      self.sshtunnel_log_messages['debug'])
         # Using no password on an encrypted key returns None
-        self.assertIsNone(sshtunnel._read_private_key_file(
+        self.assertIsNone(sshtunnel.SSHTunnelForwarder.read_private_key_file(
             encr_pkey,
             logger=self.log
         ))
@@ -1061,7 +1049,7 @@ class AuxiliaryTest(unittest.TestCase):
              '--local_bind_address', ':8081', ':8082',  # local bind list
              '--ssh_host_key={0}'.format(SSH_DSS),  # hostkey
              '--private_key_file={0}'.format(__file__),  # pkey file
-             '--private_key_file_password={0}'.format(SSH_PASSWORD),
+             '--private_key_password={0}'.format(SSH_PASSWORD),
              '--threaded',  # concurrent connections (threaded)
              '--verbose', '--verbose', '--verbose',  # triple verbosity
              '--proxy', '10.0.0.2:22',  # proxy address
@@ -1124,10 +1112,10 @@ class AuxiliaryTest(unittest.TestCase):
             server._raise(sshtunnel.BaseSSHTunnelForwarderError, 'test')
 
     def test_show_running_version(self):
-        """ Test that main() function quits when Enter is pressed """
+        """ Test that _cli_main() function quits when Enter is pressed """
         with capture_stdout_stderr() as (out, err):
             with self.assertRaises(SystemExit):
-                sshtunnel.main(args=['-V'])
+                sshtunnel._cli_main(args=['-V'])
         if sys.version_info < (3, 4):
             version = err.getvalue().split()[-1]
         else:
@@ -1138,40 +1126,37 @@ class AuxiliaryTest(unittest.TestCase):
     def test_remove_none_values(self):
         """ Test removing keys from a dict where values are None """
         test_dict = {'key1': 1, 'key2': None, 'key3': 3, 'key4': 0}
-        sshtunnel.remove_none_values(test_dict)
+        sshtunnel._remove_none_values(test_dict)
         self.assertDictEqual(test_dict,
                              {'key1': 1, 'key3': 3, 'key4': 0})
 
     def test_read_ssh_config(self):
         """ Test that we can gather host information from a config file """
-        server = SSHTunnelForwarder(
-            'test',
-            ssh_private_key=get_test_data_path(PKEY_FILE),
-            remote_bind_address=('10.0.0.1', 8080),
-        )
         (ssh_username,
          ssh_private_key,
          ssh_port,
          ssh_proxy,
-         compression) = server.read_ssh_config(
-             server.ssh_host,
+         compression) = sshtunnel.SSHTunnelForwarder._read_ssh_config(
+             'test',
              get_test_data_path(TEST_CONFIG_FILE),
-             None,
-             server.ssh_private_keys[-1],
-             None,
-             server.ssh_proxy,
-             server.compression,
-             server.logger
         )
         self.assertEqual(ssh_username, 'test')
-        self.assertIsNone(ssh_port)  # non-existing value
-        self.assertListEqual(ssh_proxy.cmd[-2:], ['test:22', 'sshproxy'])
         self.assertTrue(compression)
+        self.assertEqual(PKEY_FILE, ssh_private_key)
+        self.assertListEqual(ssh_proxy.cmd[-2:], ['test:22', 'sshproxy'])
+        self.assertIsNone(ssh_port)  # non-existing value
+
         # passed parameters are not overriden by config
-        self.assertEqual(
-            sshtunnel._read_private_key_file(get_test_data_path(PKEY_FILE)),
-            ssh_private_key
+        (ssh_username,
+         ssh_private_key,
+         ssh_port,
+         ssh_proxy,
+         compression) = sshtunnel.SSHTunnelForwarder._read_ssh_config(
+             'test',
+             get_test_data_path(TEST_CONFIG_FILE),
+             compression=False
         )
+        self.assertFalse(compression)
 
     def test_str(self):
         server = SSHTunnelForwarder(
@@ -1190,13 +1175,37 @@ class AuxiliaryTest(unittest.TestCase):
         """ Test that keys can be gathered from an SSH agent """
         server = SSHTunnelForwarder(
             'test',
-            ssh_private_key=get_test_data_path(PKEY_FILE),
+            ssh_pkey=get_test_data_path(PKEY_FILE),
             remote_bind_address=('10.0.0.1', 8080),
             allow_agent=True
         )
-        self.assertTrue(len(server.ssh_private_keys) > 0)
-        fingerprint = sshtunnel._read_private_key_file(
+        self.assertTrue(len(server.ssh_pkeys) > 0)
+        fingerprint = server.read_private_key_file(
             get_test_data_path(PKEY_FILE)
         ).get_fingerprint()
         self.assertIn(fingerprint,
-                      (k.get_fingerprint() for k in server.ssh_private_keys))
+                      (k.get_fingerprint() for k in server.ssh_pkeys))
+
+    def test_process_deprecations(self):
+        """ Test processing deprecated API attributes """
+        kwargs = {'ssh_host': '10.0.0.1',
+                  'ssh_address': '10.0.0.1',
+                  'ssh_private_key': 'testrsa.key'}
+        for item in kwargs:
+            self.assertEqual(kwargs[item],
+                             sshtunnel.SSHTunnelForwarder._process_deprecated(
+                None,
+                item,
+                kwargs.copy()
+            ))
+        # use both deprecated and not None new attribute should raise exception
+        for item in kwargs:
+            with self.assertRaises(ValueError):
+                sshtunnel.SSHTunnelForwarder._process_deprecated('some value',
+                                                                 item,
+                                                                 kwargs.copy())
+        # deprecated attribute not in deprecation list should raise exception
+        with self.assertRaises(ValueError):
+            sshtunnel.SSHTunnelForwarder._process_deprecated('some value',
+                                                             'item',
+                                                             kwargs.copy())

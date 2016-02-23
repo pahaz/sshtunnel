@@ -1,6 +1,6 @@
 Host *
   User test
   Compression yes
-  IdentityFile ~/.ssh/id_rsa
+  IdentityFile testrsa.key
 Host test
   ProxyCommand ssh -q -W %h:%p sshproxy

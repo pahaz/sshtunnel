@@ -19,3 +19,6 @@ __pycache__/
 .cache
 .coverage
 pytestdebug.log
+
+# due to sphinx
+docs/_build/

@@ -22,7 +22,8 @@ ppa = 'https://pypi.python.org/packages/source/s/{0}/{0}-'.format(name)
 # Get the long description from the README file
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
-
+with open(path.join(here, 'changelog.rst'), encoding='utf-8') as f:
+    changelog = f.read()
 
 with open(path.join(here, name + '.py'), encoding='utf-8') as f:
     data = f.read()
@@ -52,7 +53,7 @@ setup(
     version=version,
 
     description=description,
-    long_description=long_description,
+    long_description='\n'.join((long_description, changelog)),
 
     # The project's main homepage.
     url=url,
@@ -121,6 +122,10 @@ setup(
         'dev': ['check-manifest'],
         'test': [
             'tox>=1.8.1',
+        ],
+        'build_sphinx': [
+            'sphinx',
+            'sphinxcontrib-napoleon',
         ],
     },
 

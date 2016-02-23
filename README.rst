@@ -8,7 +8,7 @@
 
 **Repo**: https://github.com/pahaz/sshtunnel/
 
-Inspired by https://github.com/jmagnusson/bgtunnel but it doesn't work on
+Inspired by https://github.com/jmagnusson/bgtunnel, but it doesn't work on
 Windows.
 
 See also: https://github.com/paramiko/paramiko/blob/master/demos/forward.py
@@ -21,6 +21,8 @@ Requirements
 Installation
 ============
 
+`sshtunnel`_ is on PyPI, so simply run:
+
 ::
 
     pip install sshtunnel
@@ -29,24 +31,46 @@ or ::
 
     easy_install sshtunnel
 
-Install from source::
+to have it installed in your environment.
+
+For installing from source, clone the
+`repo <https://github.com/pahaz/sshtunnel>`_ and run::
 
     python setup.py develop
 
 Testing the package
 -------------------
 
-.. code-block:: bash
+In order to run the tests you first need
+`tox <https://testrun.org/tox/latest/>`_ and run::
 
     python setup.py test
 
-Usage examples: SSH tunnel to remote server
-===========================================
+Usage scenarios
+===============
 
-Useful when you need to connect to a local port on remote server through ssh
-tunnel. It works by opening a port forwarding ssh connection in the
-background, using threads. The connection(s) are closed when explicitly
-calling the `close` method of the returned SSHTunnelForwarder object.::
+One of the typical scenarios where ``sshtunnel`` is helpful is depicted in the
+figure below. User may need to connect a port of a remote server (i.e. 8080)
+where only SSH port (usually port 22) is reachable. ::
+
+    ----------------------------------------------------------------------
+
+                                |
+    -------------+              |    +----------+
+        LOCAL    |              |    |  REMOTE  | :22 SSH
+        CLIENT   | <== SSH ========> |  SERVER  | :8080 web service
+    -------------+              |    +----------+
+                                |
+                             FIREWALL (only port 22 is open)
+
+    ----------------------------------------------------------------------
+
+**Fig1**: How to connect to a service blocked by a firewall through SSH tunnel.
+
+
+If allowed by the SSH server, it is also possible to reach a private server
+(from the perspective of ``REMOTE SERVER``) not directly visible from the
+outside (``LOCAL CLIENT``'s perspective). ::
 
     ----------------------------------------------------------------------
 
@@ -60,8 +84,14 @@ calling the `close` method of the returned SSHTunnelForwarder object.::
 
     ----------------------------------------------------------------------
 
-**Fig1**: How to connect to ``PRIVATE SERVER`` through SSH tunnel.
+**Fig2**: How to connect to ``PRIVATE SERVER`` through SSH tunnel.
 
+
+Usage examples
+==============
+
+API allows either initializing the tunnel and starting it or using a ``with``
+context, which will take care of starting **and stopping** the tunnel:
 
 Example 1
 ---------
@@ -110,126 +140,12 @@ Example of a port forwarding for the Vagrant MySQL local port:
 
 Or simply using the CLI:
 
-.. code-block:: bash
+.. code-block:: console
 
-    python -m sshtunnel -U vagrant -P vagrant -L :3306 -R 127.0.0.1:3306 -p 2222 localhost
+    $ python -m sshtunnel -U vagrant -P vagrant -L :3306 -R 127.0.0.1:3306 -p 2222 localhost
 
-API/arguments
-=============
-
-``SSHTunnelForwarder`` arguments
---------------------------------
-
-This is an incomplete list of arguments.  See ``__init__()`` method of
-``SSHTunnelForwarder`` class in ``sshtunnel.py`` for a full list.
-
-``ssh_proxy = None``
---------------------
-
-Accepts a |paramiko.ProxyCommand|_
-object where all SSH traffic will be passed through.
-See either the |paramiko.ProxyCommand|_ documentation
-or ``ProxyCommand`` in ``ssh_config(5)`` for more information.
-
- Note: ``ssh_proxy`` overrides any ``ProxyCommand`` sourced from the user
- ``ssh_config``.
-
- Note: ``ssh_proxy`` is ignored if ``ssh_proxy_enabled != True``.
-
-``ssh_proxy_enabled = True``
-----------------------------
-
-If True (default) and user's ``ssh_config`` file contains a ``ProxyCommand``
-directive that matches the specified ``ssh_address_or_host`` (or first
-positional argument), ``SSHTunnelForwarder`` will create a
-|paramiko.ProxyCommand|_ object where all SSH traffic will be passed through.
-
-See the ``ssh_proxy`` argument for more details.
-
-
-CONTRIBUTORS
-============
-
-- `Cameron Maske`_
-- `Gustavo Machado`_
-- `Colin Jermain`_
-- `JM Fernández`_ - (big thanks!)
-- `Lewis Thompson`_
-- `Erik Rogers`_
-- `Mart Sõmermaa`_
-- `Chronial`_
-
-CHANGELOG
+CLI usage
 =========
-
-- v.0.0.7.3 (`JM Fernández`_)
-    + Add ``allow_agent`` (fixes #36, #46) (`JM Fernández`_)
-- v.0.0.7.2 (`JM Fernández`_)
-    + Add ``compression`` (`JM Fernández`_)
-    + Add ``__str__`` method (`JM Fernández`_)
-- v.0.0.7.1 (`JM Fernández`_)
-    + Add test functions (`JM Fernández`_)
-    + Fix default username when not provided and ssh_config file is skipped (`JM Fernández`_)
-    + Fix gateway IP unresolvable exception catching (`JM Fernández`_)
-    + Minor fixes (`JM Fernández`_)
-- v.0.0.7 (`JM Fernández`_)
-    + Tunnels can now be stopped and started safely (`#41`_) (`JM Fernández`_)
-    + Add timeout to SSH gateway and keep-alive messages (`#29`_) (`JM Fernández`_)
-    + Allow sending a pkey directly (`#43`_) (`Chronial`_)
-    + Add ``-V`` CLI option to show current version (`JM Fernández`_)
-    + Add coverage (`JM Fernández`_)
-    + Refactoring (`JM Fernández`_)
-
-- v.0.0.6 (`Pahaz Blinov`_)
-    + add ``-S`` CLI options for ssh private key password support (`Pahaz Blinov`_)
-
-- v.0.0.5 (`Pahaz Blinov`_)
-    + add ``ssh_proxy`` argument, as well as ``ssh_config(5)`` ``ProxyCommand`` support (`Lewis Thompson`_)
-    + add some python 2.6 compatibility fixes (`Mart Sõmermaa`_)
-    + ``paramiko.transport`` inherits handlers of loggers passed to ``SSHTunnelForwarder`` (`JM Fernández`_)
-    + fix `#34`_, `#33`_, code style and docs (`JM Fernández`_)
-    + add tests (`Pahaz Blinov`_)
-    + add CI integration (`Pahaz Blinov`_)
-    + normal packaging (`Pahaz Blinov`_)
-    + disable check distenation socket connection by ``SSHTunnelForwarder.local_is_up`` (`Pahaz Blinov`_) [changed default behavior]
-    + use daemon mode = False in all threads by default; detail_ (`Pahaz Blinov`_) [changed default behavior]
-
-- v.0.0.4.4 (`Pahaz Blinov`_)
-   + fix issue `#24`_ - hide ssh password in logs (`Pahaz Blinov`_)
-
-- v.0.0.4.3 (`Pahaz Blinov`_)
-    + fix default port issue `#19`_ (`Pahaz Blinov`_)
-
-- v.0.0.4.2 (`Pahaz Blinov`_)
-    + fix Thread.daemon mode for Python < 3.3 `#16`_, `#21`_ (`Lewis Thompson`_, `Erik Rogers`_)
-
-- v.0.0.4.1 (`Pahaz Blinov`_)
-    + fix CLI issues `#13`_ (`Pahaz Blinov`_)
-
-- v.0.0.4 (`Pahaz Blinov`_)
-    + daemon mode by default for all threads (`JM Fernández`_, `Pahaz Blinov`_) - *incompatible*
-    + move ``make_ssh_forward_server`` to ``SSHTunnelForwarder.make_ssh_forward_server`` (`Pahaz Blinov`_, `JM Fernández`_) - *incompatible*
-    + move ``make_ssh_forward_handler`` to ``SSHTunnelForwarder.make_ssh_forward_handler_class`` (`Pahaz Blinov`_, `JM Fernández`_) - *incompatible*
-    + rename ``open`` to ``open_tunnel`` (`JM Fernández`_) - *incompatible*
-    + add CLI interface (`JM Fernández`_)
-    + support opening several tunnels at once (`JM Fernández`_)
-    + improve stability and readability (`JM Fernández`_, `Pahaz Blinov`_)
-    + improve logging (`JM Fernández`_, `Pahaz Blinov`_)
-    + add ``raise_exception_if_any_forwarder_have_a_problem`` argument for opening several tunnels at once (`Pahaz Blinov`_)
-    + add ``ssh_config_file`` argument support (`JM Fernández`_)
-    + add Python 3 support (`JM Fernández`_, `Pahaz Blinov`_)
-
-- v.0.0.3 (`Pahaz Blinov`_)
-    + add ``threaded`` options (`Cameron Maske`_)
-    + fix exception error message, correctly printing destination address (`Gustavo Machado`_)
-    + fix pip install fails (`Colin Jermain`_, `Pahaz Blinov`_)
-
-- v.0.0.1 (`Pahaz Blinov`_)
-    + ``SSHTunnelForwarder`` class (`Pahaz Blinov`_)
-    + ``open`` function (`Pahaz Blinov`_)
-
-HELP
-====
 
 ::
 
@@ -280,31 +196,8 @@ HELP
 
 
 .. _Pahaz Blinov: https://github.com/pahaz
-.. _Cameron Maske: https://github.com/cameronmaske
-.. _Gustavo Machado: https://github.com/gdmachado
-.. _Colin Jermain: https://github.com/cjermain
-.. _JM Fernández: https://github.com/fernandezcuesta
-.. _Lewis Thompson: https://github.com/lewisthompson
-.. _Erik Rogers: https://github.com/ewrogers
-.. _Mart Sõmermaa: https://github.com/mrts
-.. _Chronial: https://github.com/Chronial
-
+.. _sshtunnel: https://pypi.python.org/pypi/sshtunnel
 .. _paramiko: http://www.paramiko.org/
-.. |paramiko.ProxyCommand| replace:: ``paramiko.ProxyCommand``
-.. _paramiko.ProxyCommand: http://paramiko-docs.readthedocs.org/en/latest/api/proxy.html
-
-.. _#13: https://github.com/pahaz/sshtunnel/issues/13
-.. _#16: https://github.com/pahaz/sshtunnel/issues/16
-.. _#19: https://github.com/pahaz/sshtunnel/issues/19
-.. _#21: https://github.com/pahaz/sshtunnel/issues/21
-.. _#24: https://github.com/pahaz/sshtunnel/issues/24
-.. _#29: https://github.com/pahaz/sshtunnel/issues/29
-.. _#33: https://github.com/pahaz/sshtunnel/issues/33
-.. _#34: https://github.com/pahaz/sshtunnel/issues/34
-.. _#41: https://github.com/pahaz/sshtunnel/issues/41
-.. _#43: https://github.com/pahaz/sshtunnel/issues/43
-.. _detail: https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127
-
 .. |CircleCI| image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
    :target: https://circleci.com/gh/pahaz/sshtunnel
 .. |coveralls| image:: https://coveralls.io/repos/github/pahaz/sshtunnel/badge.svg?branch=master
@@ -314,4 +207,6 @@ HELP
 .. |DwnDay| image:: https://img.shields.io/pypi/dd/sshtunnel.svg
 .. |pyversions| image:: https://img.shields.io/pypi/pyversions/sshtunnel.svg
 .. |version| image:: https://img.shields.io/pypi/v/sshtunnel.svg
+   :target: `sshtunnel`_
 .. |license| image::  https://img.shields.io/pypi/l/sshtunnel.svg
+   :target: https://github.com/pahaz/sshtunnel/blob/master/LICENSE
