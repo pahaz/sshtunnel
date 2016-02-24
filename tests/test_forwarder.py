@@ -951,10 +951,11 @@ class SSHClientTest(unittest.TestCase):
         self.assertIn('An error occurred while opening tunnels.',
                       self.sshtunnel_log_messages['error'])
 
-        self.assertFalse(server.local_is_up("not a tuple"))
-        self.assertIn('Target must be a tuple (ip, port), where ip '
+        self.assertFalse(server.local_is_up("not a valid address"))
+        self.assertIn('Target must be a tuple (IP, port), where IP '
                       'is a string (i.e. "192.168.0.1") and port is '
-                      'an integer (i.e. 40000).',
+                      'an integer (i.e. 40000). Alternatively '
+                      'target can be a valid UNIX domain socket.',
                       self.sshtunnel_log_messages['warning'])
 
     @mock.patch('sshtunnel.input_', return_value=linesep)
