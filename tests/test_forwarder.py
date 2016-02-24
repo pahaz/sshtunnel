@@ -82,12 +82,14 @@ FINGERPRINTS = {
 }
 DAEMON_THREADS = False
 HERE = path.abspath(path.dirname(__file__))
-sshtunnel.TRACE = True
-sshtunnel.SSH_TIMEOUT = 1.0
 THREADS_TIMEOUT = 5.0
 PKEY_FILE = 'testrsa.key'
 ENCRYPTED_PKEY_FILE = 'testrsa_encrypted.key'
 TEST_CONFIG_FILE = 'testconfig'
+TEST_UNIX_SOCKET = get_test_data_path('test_socket')
+
+sshtunnel.TRACE = True
+sshtunnel.SSH_TIMEOUT = 1.0
 
 
 # TESTS
@@ -1006,6 +1008,21 @@ class SSHClientTest(unittest.TestCase):
         self.assertIn('Password is required for key {0}'.format(encr_pkey),
                       self.sshtunnel_log_messages['error'])
 
+    @unittest.skipIf(not socket.AF_UNIX,
+                     reason="UNIX sockets not supported on this platform")
+    def test_unix_domains(self):
+        """ Test use of UNIX domain sockets in local binds """
+        server = SSHTunnelForwarder(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            local_bind_address=TEST_UNIX_SOCKET,
+            logger=self.log,
+        )
+        self._test_server(server)
+        self.assertEqual(server.local_bind_address, TEST_UNIX_SOCKET)
+
 
 class AuxiliaryTest(unittest.TestCase):
     """ Set of tests that do not need the mock SSH server or logger """
@@ -1210,3 +1227,18 @@ class AuxiliaryTest(unittest.TestCase):
             sshtunnel.SSHTunnelForwarder._process_deprecated('some value',
                                                              'item',
                                                              kwargs.copy())
+
+    def check_address(self):
+        """ Test that an exception is raised with incorrect bind addresses """
+        address_list = [('10.0.0.1', 10000),
+                        ('10.0.0.1', 10001)]
+        if socket.AF_INET:  # UNIX sockets supported by the platform
+            address_list.append('/tmp/unix-socket')
+        self.assertIsNone(sshtunnel.check_addresses(address_list))
+        # UNIX sockets not supported on remote addresses
+        with self.assertRaises(AssertionError):
+            sshtunnel.check_addresses(address_list, is_remote=True)
+        with self.assertRaises(ValueError):
+            sshtunnel.check_address('this is not valid')
+        with self.assertRaises(ValueError):
+            sshtunnel.check_address(-1)  # that's not valid either

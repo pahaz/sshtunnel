@@ -89,7 +89,8 @@ def check_address(address):
         check_host(address[0])
         check_port(address[1])
     elif isinstance(address, string_types):
-        # check if address is a valid UNIX domain socket
+        if not socket.AF_UNIX:
+            raise ValueError('Platform does not support UNIX domain sockets')
         if not (os.path.exists(address) or
                 os.access(os.path.dirname(address), os.W_OK)):
             raise ValueError('ADDRESS not a valid socket domain socket ({0})'
@@ -99,7 +100,7 @@ def check_address(address):
                          '({0})'.format(type(address).__name__))
 
 
-def check_addresses(address_list):
+def check_addresses(address_list, is_remote=False):
     """
     Check that the format of the address list is correct
 
@@ -107,6 +108,8 @@ def check_addresses(address_list):
         address_list (list[tuple]):
             Sequence of (``str``, ``int``) pairs, each representing an IP
             address and port respectively
+        is_remote (boolean):
+            Whether or not the address list
     Raises:
         AssertionError:
             raised when any address in the list has an incorrect format
@@ -115,9 +118,9 @@ def check_addresses(address_list):
 
         >>> check_addresses([("127.0.0.1", 22), ("127.0.0.1", 2222)])
     """
-    # TODO: remote addresses should never be UNIX sockets ???
-    assert (isinstance(address_list, (list, tuple)) or
-            isinstance(address_list, (list, string_types)))
+    assert (all(isinstance(x, tuple) for x in address_list) or
+            (all(isinstance(x, string_types) for x in address_list) and
+             not is_remote ))
     for address in address_list:
         check_address(address)
 
@@ -624,10 +627,6 @@ class SSHTunnelForwarder(object):
             remote_address = remote_address_
             ssh_transport = self._transport
             logger = self.logger
-            # if isinstance(local_bind_address, string_types):
-            #     unix_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            # else:
-            #     unix_socket = None
         return Handler
 
     def _make_ssh_forward_server_class(self, remote_address_):
@@ -651,9 +650,6 @@ class SSHTunnelForwarder(object):
 
             _Server = forward_maker_class(remote_address)
             ssh_forward_server = _Server(local_bind_address, _Handler)
-
-            # if _Handler.unix_socket:
-            #     _Handler.unix_socket.connect(local_bind_address)
 
             if ssh_forward_server:
                 self._server_list.append(ssh_forward_server)
@@ -731,7 +727,7 @@ class SSHTunnelForwarder(object):
         # local binds
         self._local_binds = self._get_binds(local_bind_address,
                                             local_bind_addresses,
-                                            remote=False)
+                                            is_remote=False)
         self._local_binds = self._consolidate_binds(self._local_binds,
                                                     self._remote_binds)
 
@@ -772,8 +768,6 @@ class SSHTunnelForwarder(object):
 
         check_host(self.ssh_host)
         check_port(self.ssh_port)
-        check_addresses(self._remote_binds)
-        check_addresses(self._local_binds)
 
         self._local_interfaces = self._get_local_interfaces()
         self.logger.info('Connecting to gateway: {0}:{1} as user "{2}".'
@@ -941,13 +935,13 @@ class SSHTunnelForwarder(object):
             raise BaseSSHTunnelForwarderError(msg)
 
     @staticmethod
-    def _get_binds(bind_address, bind_addresses, remote=True):
+    def _get_binds(bind_address, bind_addresses, is_remote=True):
         """
         """
-        addr_kind = 'remote' if remote else 'local'
+        addr_kind = 'remote' if is_remote else 'local'
 
         if not bind_address and not bind_addresses:
-            if remote:
+            if is_remote:
                 raise ValueError("No {0} bind addresses specified. Use "
                                  "'{0}_bind_address' or '{0}_bind_addresses'"
                                  " argument".format(addr_kind))
@@ -958,9 +952,9 @@ class SSHTunnelForwarder(object):
                              "'{0}_bind_addresses' arguments. Use one of "
                              "them.".format(addr_kind))
         if bind_address:
-            return [bind_address]
-        else:
-            return bind_addresses
+            bind_addresses = [bind_address]
+        check_addresses(bind_addresses, is_remote)
+        return bind_addresses
 
     @staticmethod
     def _process_deprecated(attrib, deprecated_attrib, kwargs):
