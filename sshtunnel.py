@@ -38,7 +38,6 @@ __version__ = '0.0.8'
 __author__ = 'pahaz'
 
 
-
 DEFAULT_LOGLEVEL = logging.ERROR  #: default level if no logger passed
 LOCAL_CHECK_TIMEOUT = 1.0  #: Timeout (seconds) for local tunnel side detection
 DAEMON = False
