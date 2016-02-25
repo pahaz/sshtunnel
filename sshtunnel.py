@@ -632,7 +632,7 @@ class SSHTunnelForwarder(object):
                                               allow_agent=allow_agent,
                                               logger=self.logger)
 
-        (self.ssh_password, ssh_private_key) = self._consolidate_auth(
+        (self.ssh_password, self.ssh_private_keys) = self._consolidate_auth(
             ssh_password=ssh_password,
             ssh_private_keys=self.ssh_private_keys,
             ssh_private_key_password=ssh_private_key_password,
@@ -755,7 +755,7 @@ class SSHTunnelForwarder(object):
         if not ssh_password and not any(ssh_private_keys):
             raise ValueError('No password or private key available!')
 
-        return (ssh_password, ssh_private_key)
+        return (ssh_password, ssh_private_keys)
 
     def _raise(self, exception, reason):
         if self._raise_fwd_exc:
