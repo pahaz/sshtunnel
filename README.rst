@@ -192,7 +192,7 @@ CLI usage
       -x, --proxy IP:PORT
                             IP and por for SSH proxy to destination
       -z, --compress        Request server for compression over SSH transport
-      -A, --agent           Allow looking for keys from an SSH agent
+      -n, --noagent         Disable looking for keys from an SSH agent
 
 
 .. _Pahaz Blinov: https://github.com/pahaz

@@ -47,9 +47,12 @@ _lock = threading.Lock()
 #: Timeout (seconds) for the connection to the SSH gateway, ``None`` to disable
 SSH_TIMEOUT = None
 SSH_CONFIG_FILE = '~/.ssh/config'  #: Path of optional ssh configuration file
-DEPRECATIONS = {'ssh_address': 'ssh_address_or_host',
-                'ssh_host': 'ssh_address_or_host',
-                'ssh_private_key': 'ssh_pkey'}
+DEPRECATIONS = {
+    'ssh_address': 'ssh_address_or_host',
+    'ssh_host': 'ssh_address_or_host',
+    'ssh_private_key': 'ssh_pkey',
+    'raise_exception_if_any_forwarder_have_a_problem': 'mute_exceptions'
+}
 
 ########################
 #                      #
@@ -59,14 +62,14 @@ DEPRECATIONS = {'ssh_address': 'ssh_address_or_host',
 
 
 def check_host(host):
-    assert isinstance(host, string_types), "IP is not a string ({0})".format(
+    assert isinstance(host, string_types), 'IP is not a string ({0})'.format(
         type(host).__name__
     )
 
 
 def check_port(port):
-    assert isinstance(port, int), "PORT is not a number"
-    assert port >= 0, "PORT < 0 ({0})".format(port)
+    assert isinstance(port, int), 'PORT is not a number'
+    assert port >= 0, 'PORT < 0 ({0})'.format(port)
 
 
 def check_address(address):
@@ -87,7 +90,7 @@ def check_address(address):
 
     Example:
 
-        >>> check_address(("127.0.0.1", 22))
+        >>> check_address(('127.0.0.1', 22))
     """
     if isinstance(address, tuple):
         check_host(address[0])
@@ -128,7 +131,7 @@ def check_addresses(address_list, is_remote=False):
 
     Example:
 
-        >>> check_addresses([("127.0.0.1", 22), ("127.0.0.1", 2222)])
+        >>> check_addresses([('127.0.0.1', 22), ('127.0.0.1', 2222)])
     """
     assert all(isinstance(x, (tuple, string_types)) for x in address_list)
     if (is_remote and any(isinstance(x, string_types) for x in address_list)):
@@ -139,7 +142,10 @@ def check_addresses(address_list, is_remote=False):
         check_address(address)
 
 
-def create_logger(logger=None, loglevel=None, add_paramiko_handler=True):
+def create_logger(logger=None,
+                  loglevel=None,
+                  capture_warnings=True,
+                  add_paramiko_handler=True):
     """
     Attach or create a new logger and add a console handler if not present
 
@@ -152,6 +158,14 @@ def create_logger(logger=None, loglevel=None, add_paramiko_handler=True):
         loglevel (Optional[str or int]):
             :class:`logging.Logger`'s level, either as a string (i.e.
             ``ERROR``) or in numeric format (10 == ``DEBUG``)
+
+        capture_warnings (boolean):
+            Enable/disable capturing the events logged by the warnings module
+            into ``logger``'s handlers
+
+            Default: True
+
+            .. note:: ignored in python 2.6
 
         add_paramiko_handler (boolean):
             Whether or not add a console handler for ``paramiko.transport``'s
@@ -176,7 +190,16 @@ def create_logger(logger=None, loglevel=None, add_paramiko_handler=True):
         logger.setLevel(loglevel)
         for handler in logger.handlers:
             handler.setLevel(loglevel)
-    _check_paramiko_handlers()
+
+    if add_paramiko_handler:
+        _check_paramiko_handlers(logger=logger)
+
+    if capture_warnings and sys.version_info >= (2, 7):
+        logging.captureWarnings(True)
+        pywarnings = logging.getLogger('py.warnings')
+        for handler in logger.handlers:
+            pywarnings.addHandler(handler)
+
     return logger
 
 
@@ -199,7 +222,7 @@ def _check_paramiko_handlers(logger=None):
 
 def address_to_str(address):
     if isinstance(address, tuple):
-        return "{0[0]}:{0[1]}".format(address)
+        return '{0[0]}:{0[1]}'.format(address)
     return str(address)
 
 
@@ -224,12 +247,12 @@ def _remove_none_values(dictionary):
 
 
 class BaseSSHTunnelForwarderError(Exception):
-    """ Base exception for Tunnel forwarder errors """
+    """ Exception raised by :class:`SSHTunnelForwarder` errors """
     pass
 
 
 class HandlerSSHTunnelForwarderError(BaseSSHTunnelForwarderError):
-    """ Handler exception for Tunnel forwarder errors """
+    """ Exception for Tunnel forwarder errors """
     pass
 
 
@@ -253,7 +276,6 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
         try:
             assert isinstance(self.remote_address, tuple)
             src_address = self.request.getpeername()
-            self.logger.critical(self.server)
             if not isinstance(src_address, tuple):
                 src_address = ('dummy', 12345)
             chan = self.ssh_transport.open_channel('direct-tcpip',
@@ -382,6 +404,20 @@ class SSHTunnelForwarder(object):
             + Read an SSH configuration file (typically ``~/.ssh/config``)
             + Load keys from a running SSH agent (i.e. Pageant, GNOME Keyring)
 
+    Raises:
+
+        :class:`.BaseSSHTunnelForwarderError`:
+            raised by SSHTunnelForwarder class methods
+
+        :class:`.HandlerSSHTunnelForwarderError`:
+            raised by tunnel forwarder threads
+
+            .. note::
+                    Attributes ``mute_exceptions`` and
+                    ``raise_exception_if_any_forwarder_have_a_problem``
+                    (deprecated) may be used to silence most exceptions raised
+                    from this class
+
     Keyword Arguments:
 
         ssh_address_or_host (tuple or str):
@@ -469,7 +505,7 @@ class SSHTunnelForwarder(object):
             the tuple are optional so both ('', 8000) and ('10.0.0.1', )
             are valid values
 
-            Default: ("0.0.0.0", ``RANDOM PORT``)
+            Default: ('0.0.0.0', ``RANDOM PORT``)
 
             .. versionchanged:: 0.0.8
                 Added the ability to use a UNIX domain socket as local bind
@@ -501,7 +537,7 @@ class SSHTunnelForwarder(object):
         allow_agent (boolean):
             Enable/disable load of keys from an SSH agent
 
-            Default: ``False``
+            Default: ``True``
 
             .. versionadded:: 0.0.8
 
@@ -521,14 +557,13 @@ class SSHTunnelForwarder(object):
 
             .. versionadded:: 0.0.3
 
-        raise_exception_if_any_forwarder_have_a_problem (boolean):
+        mute_exceptions (boolean):
             Allow silencing :class:`BaseSSHTunnelForwarderError` or
-            :class:`HandlerSSHTunnelForwarderError` exceptions when set to
-            False
+            :class:`HandlerSSHTunnelForwarderError` exceptions when enabled
 
-            Default: ``True``
+            Default: ``False``
 
-            .. versionadded:: 0.0.4
+            .. versionadded:: 0.0.8
 
         set_keepalive (float):
             Interval in seconds defining the period in which, if no data
@@ -566,6 +601,17 @@ class SSHTunnelForwarder(object):
 
             .. deprecated:: 0.0.8
 
+        raise_exception_if_any_forwarder_have_a_problem (boolean):
+            Allow silencing :class:`BaseSSHTunnelForwarderError` or
+            :class:`HandlerSSHTunnelForwarderError` exceptions when set to
+            False
+
+            Default: ``True``
+
+            .. versionadded:: 0.0.4
+
+            .. deprecated:: 0.0.8
+
     Attributes:
 
         tunnel_is_up (dict):
@@ -592,6 +638,7 @@ class SSHTunnelForwarder(object):
             :attr:`tunnel_is_up`
 
             Default: False
+
     """
     is_use_local_check_up = False
     daemon_forward_servers = DAEMON  #: flag tunnel threads in daemon mode
@@ -628,7 +675,7 @@ class SSHTunnelForwarder(object):
         for host in self._local_interfaces:
             address = (host, port)
             reachable = self._is_address_reachable(address)
-            reachable_text = "" if reachable else "*NOT* "
+            reachable_text = '' if reachable else '*NOT* '
             self.logger.debug('Local side of the tunnel is {1}reachable from '
                               '({0[0]}:{0[1]})'.format(address,
                                                        reachable_text))
@@ -653,8 +700,8 @@ class SSHTunnelForwarder(object):
         """
         _Handler = _ForwardHandler
         if not issubclass(_Handler, socketserver.BaseRequestHandler):
-            msg = "base_ssh_forward_handler is not a subclass " \
-                  "socketserver.BaseRequestHandler"
+            msg = 'base_ssh_forward_handler is not a subclass ' \
+                  'socketserver.BaseRequestHandler'
             self._raise(BaseSSHTunnelForwarderError, msg)
 
         class Handler(_Handler):
@@ -717,23 +764,22 @@ class SSHTunnelForwarder(object):
             local_bind_address=None,
             local_bind_addresses=None,
             logger=None,
-            raise_exception_if_any_forwarder_have_a_problem=True,
+            mute_exceptions=False,
             remote_bind_address=None,
             remote_bind_addresses=None,
             set_keepalive=0.0,
             threaded=True,  # old version False
             compression=None,
-            allow_agent=False,  # look for keys from an SSH agent
+            allow_agent=True,  # look for keys from an SSH agent
             **kwargs  # for backwards compatibility
     ):
         self.logger = logger or create_logger()
+
         # Ensure paramiko.transport has a console handler
         _check_paramiko_handlers(logger=logger)
 
         self.ssh_host_key = ssh_host_key
         self.set_keepalive = set_keepalive
-
-        self._raise_fwd_exc = raise_exception_if_any_forwarder_have_a_problem
         self._threaded = threaded
         self._is_started = False
 
@@ -742,9 +788,14 @@ class SSHTunnelForwarder(object):
             ssh_address_or_host = self._process_deprecated(ssh_address_or_host,
                                                            deprecated_argument,
                                                            kwargs)
+        # other deprecated arguments
         ssh_pkey = self._process_deprecated(ssh_pkey,
                                             'ssh_private_key',
                                             kwargs)
+        self._raise_fwd_exc = self._process_deprecated(
+            None,
+            'raise_exception_if_any_forwarder_have_a_problem',
+            kwargs) or not mute_exceptions
 
         if isinstance(ssh_address_or_host, tuple):
             check_address(ssh_address_or_host)
@@ -778,17 +829,15 @@ class SSHTunnelForwarder(object):
              ssh_port,
              ssh_proxy if ssh_proxy_enabled else None,
              compression,
-             logger)
+             self.logger)
 
-        (self.ssh_password, ssh_pkey) = self._consolidate_auth(
+        (self.ssh_password, self.ssh_pkeys) = self._consolidate_auth(
             ssh_password=ssh_password,
             ssh_pkey=ssh_pkey,
             ssh_pkey_password=ssh_private_key_password,
-            logger=logger
+            ssh_loaded_pkeys=self.get_keys(self.logger) if allow_agent else [],
+            logger=self.logger
         )
-        self.ssh_pkeys = self.get_keys(key=ssh_pkey,
-                                       allow_agent=allow_agent,
-                                       logger=self.logger)
 
         if isinstance(self.ssh_proxy, tuple):
             _pxcmd = 'ssh {0} -W {1}:{2}'.format(
@@ -805,7 +854,7 @@ class SSHTunnelForwarder(object):
         check_port(self.ssh_port)
 
         self._local_interfaces = self._get_local_interfaces()
-        self.logger.info('Connecting to gateway: {0}:{1} as user "{2}".'
+        self.logger.info("Connecting to gateway: {0}:{1} as user '{2}'"
                          .format(self.ssh_host,
                                  self.ssh_port,
                                  self.ssh_username))
@@ -826,7 +875,7 @@ class SSHTunnelForwarder(object):
         Read ssh_config_file and tries to look for user (ssh_username),
         identityfile (ssh_pkey), port (ssh_port) and proxycommand
         (ssh_proxy) entries for ssh_host
-         """
+        """
         ssh_config = paramiko.SSHConfig()
 
         # Try to read SSH_CONFIG_FILE
@@ -870,17 +919,20 @@ class SSHTunnelForwarder(object):
                     compression)
 
     @staticmethod
-    def get_keys(key=None, allow_agent=False, logger=None):
-        agent_keys = []
-        if allow_agent:
-            agent = paramiko.Agent()
-            agent_keys.extend(agent.get_keys())
-            if logger:
-                logger.debug('{0} keys loaded from agent'
-                             .format(len(agent_keys)))
-        if key:  # last one to try
-            agent_keys.append(key)
-        return agent_keys
+    def get_keys(logger=None):
+        """
+        Load public keys from any available SSH agent
+
+        Arguments:
+            logger (Optional[logging.Logger])
+
+        Return:
+            list
+        """
+        agent_keys = paramiko.Agent().get_keys()
+        if logger:
+            logger.info('{0} keys loaded from agent'.format(len(agent_keys)))
+        return list(agent_keys)
 
     @staticmethod
     def _consolidate_binds(local_binds, remote_binds):
@@ -899,13 +951,14 @@ class SSHTunnelForwarder(object):
     def _consolidate_auth(ssh_password=None,
                           ssh_pkey=None,
                           ssh_pkey_password=None,
+                          ssh_loaded_pkeys=[],
                           logger=None):
         """
         Get sure authentication information is in place.
         ``ssh_pkey`` may be of classes:
             - ``str`` - in this case it represents a private key file; public
             key will be obtained from it
-            - ``paramiko.Pkey`` - it will be transparently returned
+            - ``paramiko.Pkey`` - it will be transparently added to loaded keys
 
         """
         if isinstance(ssh_pkey, string_types):
@@ -918,11 +971,11 @@ class SSHTunnelForwarder(object):
             elif logger:
                 logger.warning('Private key file not found: {0}'
                                .format(ssh_pkey))
-                ssh_pkey = None
-        if not ssh_password and not ssh_pkey:
+        if isinstance(ssh_pkey, paramiko.pkey.PKey):
+            ssh_loaded_pkeys.append(ssh_pkey)
+        if not ssh_password and not ssh_loaded_pkeys:
             raise ValueError('No password or public key available!')
-
-        return (ssh_password, ssh_pkey)
+        return (ssh_password, ssh_loaded_pkeys)
 
     def _raise(self, exception, reason):
         if self._raise_fwd_exc:
@@ -947,32 +1000,32 @@ class SSHTunnelForwarder(object):
 
         return transport
 
-    def create_tunnels(self):
-        """ Create SSH tunnels on top of a transport to the remote gateway """
+    def _create_tunnels(self):
+        """
+        Create SSH tunnels on top of a transport to the remote gateway
+        """
         self.tunnel_is_up = {}  # handle status of the other side of the tunnel
         try:
-            self._transport = self._get_transport()
+            self._connect_to_gateway()
             for (rem, loc) in zip(self._remote_binds, self._local_binds):
                 self._make_ssh_forward_server(rem, loc)
         except socket.gaierror:  # raised by paramiko.Transport
             msg = 'Could not resolve IP address for {0}, aborting!' \
                 .format(self.ssh_host)
             self.logger.error(msg)
-            raise BaseSSHTunnelForwarderError(msg)
+            self._raise(BaseSSHTunnelForwarderError, msg)
         except (paramiko.SSHException, socket.error) as e:
             template = 'Could not connect to gateway: {0} ({1})'
             msg = template.format(self.ssh_host, e.args)
             self.logger.error(msg)
-            raise BaseSSHTunnelForwarderError(msg)
+            self._raise(BaseSSHTunnelForwarderError, msg)
         except BaseSSHTunnelForwarderError as e:
             msg = 'Problem setting SSH Forwarder up: {0}'.format(repr(e))
             self.logger.error(msg)
-            raise BaseSSHTunnelForwarderError(msg)
+            self._raise(BaseSSHTunnelForwarderError, msg)
 
     @staticmethod
     def _get_binds(bind_address, bind_addresses, is_remote=True):
-        """
-        """
         addr_kind = 'remote' if is_remote else 'local'
 
         if not bind_address and not bind_addresses:
@@ -997,7 +1050,7 @@ class SSHTunnelForwarder(object):
         Processes optional deprecate arguments
         """
         if deprecated_attrib not in DEPRECATIONS:
-            raise ValueError('{0} not included deprecations list'
+            raise ValueError('{0} not included in deprecations list'
                              .format(deprecated_attrib))
         if deprecated_attrib in kwargs:
             warnings.warn("'{0}' is DEPRECATED use '{1}' instead"
@@ -1005,7 +1058,7 @@ class SSHTunnelForwarder(object):
                                   DEPRECATIONS[deprecated_attrib]),
                           DeprecationWarning)
             if attrib:
-                raise ValueError("You can't use both '{0}' and '{1}'."
+                raise ValueError("You can't use both '{0}' and '{1}'. "
                                  "Please only use one of them"
                                  .format(deprecated_attrib,
                                          DEPRECATIONS[deprecated_attrib]))
@@ -1039,6 +1092,10 @@ class SSHTunnelForwarder(object):
                     pkey_file,
                     password=pkey_password
                 )
+                if logger:
+                    logger.debug('Private key file ({0}, {1}) successfully '
+                                 'loaded'.format(pkey_file, pkey_class))
+                break
             except paramiko.PasswordRequiredException:
                 if logger:
                     logger.error('Password is required for key {0}'
@@ -1054,29 +1111,20 @@ class SSHTunnelForwarder(object):
     def start(self):
         """ Start the SSH tunnels """
         if self._is_started:
-            self.logger.warning("Already started!")
+            self.logger.warning('Already started!')
             return
-        try:
-            self._server_list = []  # reset server list
-            self.create_tunnels()
-            self._connect_to_gateway()
-        except paramiko.ssh_exception.AuthenticationException:
-            self.logger.error('Could not open connection to gateway')
-            self._stop_transport()
-            return
-
+        self._server_list = []  # reset server list
+        self._create_tunnels()
         threads = [
             threading.Thread(
                 target=self._serve_forever_wrapper, args=(_srv,),
-                name="Srv-" + address_to_str(_srv.local_address)
+                name='Srv-{0}'.format(address_to_str(_srv.local_address))
             )
             for _srv in self._server_list
         ]
-
         for thread in threads:
             thread.daemon = self.daemon_forward_servers
             thread.start()
-
         self._threads = threads
         if self.is_use_local_check_up:
             self.check_local_side_of_tunnels()
@@ -1151,24 +1199,29 @@ class SSHTunnelForwarder(object):
             self.logger.debug('Trying to log in with key: {0}'
                               .format(hexlify(key.get_fingerprint())))
             try:
+                self._transport = self._get_transport()
                 self._transport.connect(hostkey=self.ssh_host_key,
                                         username=self.ssh_username,
                                         pkey=key)
                 return
             except paramiko.AuthenticationException:
-                self.logger.error('Could not open connection to gateway')
                 self._stop_transport()
 
         if self.ssh_password:  # avoid conflict using both pass and pkey
             self.logger.debug('Logging in with password {0}'
                               .format('*' * len(self.ssh_password)))
-            self._transport.connect(hostkey=self.ssh_host_key,
-                                    username=self.ssh_username,
-                                    password=self.ssh_password)
-        else:
-            raise paramiko.AuthenticationException(
-                'No authentication methods left'
-            )
+            try:
+                self._transport = self._get_transport()
+                self._transport.connect(hostkey=self.ssh_host_key,
+                                        username=self.ssh_username,
+                                        password=self.ssh_password)
+                return
+            except paramiko.AuthenticationException:
+                self._stop_transport()
+
+        self.logger.error('Could not open connection to gateway')
+        self._raise(paramiko.AuthenticationException,
+                    'No authentication methods left')
 
     def check_local_side_of_tunnels(self):
         """
@@ -1194,13 +1247,13 @@ class SSHTunnelForwarder(object):
             )
             _srv.serve_forever(poll_interval)
         except socket.error as e:
-            self.logger.error("Tunnel: {0} <> {1} socket error: {2}".format(
+            self.logger.error('Tunnel: {0} <> {1} socket error: {2}'.format(
                 address_to_str(_srv.local_address),
                 address_to_str(_srv.remote_address),
                 e)
             )
         except Exception as e:
-            self.logger.error("Tunnel: {0} <> {1} error: {2}".format(
+            self.logger.error('Tunnel: {0} <> {1} error: {2}'.format(
                 address_to_str(_srv.local_address),
                 address_to_str(_srv.remote_address),
                 e)
@@ -1212,7 +1265,7 @@ class SSHTunnelForwarder(object):
             )
 
     def _stop_transport(self):
-        """Close the underlying transport when nothing more is needed"""
+        """ Close the underlying transport when nothing more is needed """
         self._transport.close()
         self._transport.stop_thread()
         self.logger.debug('Transport is closed')
@@ -1222,8 +1275,9 @@ class SSHTunnelForwarder(object):
         # BACKWARD COMPATABILITY
         self._check_is_started()
         if len(self._server_list) != 1:
-            raise BaseSSHTunnelForwarderError("Use .local_bind_ports property "
-                                              "for more than one tunnel")
+            raise BaseSSHTunnelForwarderError(
+                'Use .local_bind_ports property for more than one tunnel'
+            )
         return self.local_bind_ports[0]
 
     @property
@@ -1231,8 +1285,9 @@ class SSHTunnelForwarder(object):
         # BACKWARD COMPATABILITY
         self._check_is_started()
         if len(self._server_list) != 1:
-            raise BaseSSHTunnelForwarderError("Use .local_bind_hosts property "
-                                              "for more than one tunnel")
+            raise BaseSSHTunnelForwarderError(
+                'Use .local_bind_hosts property for more than one tunnel'
+            )
         return self.local_bind_hosts[0]
 
     @property
@@ -1240,9 +1295,9 @@ class SSHTunnelForwarder(object):
         # BACKWARD COMPATABILITY
         self._check_is_started()
         if len(self._server_list) != 1:
-            raise BaseSSHTunnelForwarderError("Use .local_bind_addresses "
-                                              "property for more than one "
-                                              "tunnel")
+            raise BaseSSHTunnelForwarderError(
+                'Use .local_bind_addresses property for more than one tunnel'
+            )
         return self.local_bind_addresses[0]
 
     @property
@@ -1265,8 +1320,16 @@ class SSHTunnelForwarder(object):
 
     @property
     def local_bind_addresses(self):
+        """
+        Return a list of (IP, port) pairs for the local side of the tunnels
+        """
         self._check_is_started()
         return [_server.local_address for _server in self._server_list]
+
+    @property
+    def is_alive(self):
+        """ Return True if the tunnels are up """
+        return self._is_started
 
     @staticmethod
     def _get_local_interfaces():
@@ -1292,7 +1355,7 @@ class SSHTunnelForwarder(object):
             conn.connect(target)
             reachable = True
         except socket.error as e:
-            self.logger.info('Socket connect({1}:{2}) problem: {0}'
+            self.logger.info('Socket connection ({1}:{2}) problem: {0}'
                              .format(e, *target))
             reachable = False
         finally:
@@ -1354,6 +1417,10 @@ def open_tunnel(*args, **kwargs):
             SSH server's IP address and port in the format
             (ssh_address, ssh_port)
 
+    Keyword Arguments:
+        debug_level (Optional[int or str]):
+            debug level for :class`logging.Logger` instance, i.e. 'DEBUG'
+
     .. note::
         See :class:`SSHTunnelForwarder` for keyword arguments
 
@@ -1381,7 +1448,7 @@ def open_tunnel(*args, **kwargs):
     if 'ssh_config_file' not in kwargs:  # restore it as None
         kwargs['ssh_config_file'] = None
 
-    # LOGGER - Create a console handler if not passed as argument
+    # Attach a console handler to the logger or create one if not passed
     kwargs['logger'] = create_logger(logger=kwargs.get('logger', None),
                                      loglevel=kwargs.pop('debug_level', None))
 
@@ -1419,8 +1486,9 @@ def _bindlist(input_str):
             _port = '22'  # default port if not given
         return _ip, int(_port)
     except ValueError:
-        raise argparse.ArgumentTypeError("Address tuple must be of type "
-                                         "IP_ADDRESS:PORT")
+        raise argparse.ArgumentTypeError(
+            'Address tuple must be of type IP_ADDRESS:PORT'
+        )
     except AssertionError:
         raise argparse.ArgumentTypeError("Both IP:PORT can't be missing!")
 
@@ -1535,8 +1603,8 @@ def _parse_arguments(args=None):
     )
 
     parser.add_argument(
-        '-A', '--agent', action='store_true', dest='allow_agent',
-        help='Allow looking for keys from an SSH agent'
+        '-n', '--noagent', action='store_false', dest='allow_agent',
+        help='Disable looking for keys from an SSH agent'
     )
     return vars(parser.parse_args(args))
 
@@ -1560,7 +1628,7 @@ def _cli_main(args=None):
         -x (proxy), ProxyCommand's IP:PORT, may be gathered from config file
         -c (ssh_config), ssh configuration file (defaults to SSH_CONFIG_FILE)
         -z (compress)
-        -A (allow_agent), allow looking for keys from an Agent
+        -n (noagent), disable looking for keys from an Agent
     """
     arguments = _parse_arguments(args)
     verbosity = min(arguments.pop('verbose'), 3)
@@ -1568,7 +1636,7 @@ def _cli_main(args=None):
     arguments.setdefault('debug_level', levels[verbosity])
 
     with open_tunnel(**arguments) as tunnel:
-        if tunnel._is_started:
+        if tunnel.is_alive:
             input_('''
 
             Press <Ctrl-C> or <Enter> to stop!
