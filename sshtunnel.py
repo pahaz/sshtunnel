@@ -1082,6 +1082,59 @@ class SSHTunnelForwarder(object):
             self.check_local_side_of_tunnels()
         self._is_started = True
 
+    def stop(self):
+        """
+        Shut the tunnel down. This has to be handled with care:
+
+            - if a port redirection is opened
+            - the destination is not reachable
+            - we attempt a connection to that tunnel (``SYN`` is sent and
+              acknowledged, then a ``FIN`` packet is sent and never
+              acknowledged... weird)
+            - we try to shutdown: it will not succeed until ``FIN_WAIT_2`` and
+              ``CLOSE_WAIT`` time out.
+
+        .. note::
+            Handle these scenarios with :attr:`.tunnel_is_up`: if False, server
+            ``shutdown()`` will be skipped on that tunnel
+        """
+        try:
+            self._check_is_started()
+        except BaseSSHTunnelForwarderError as e:
+            self.logger.warning(e)
+            return
+
+        self.logger.info('Closing all open connections...')
+        opened_address_text = ', '.join(
+            (address_to_str(k.local_address) for k in self._server_list)
+        ) or 'None'
+        self.logger.debug('Open local addresses: ' + opened_address_text)
+
+        for _srv in self._server_list:
+            is_open = _srv.local_address in self.tunnel_is_up if \
+                self.is_use_local_check_up else True
+            if is_open:
+                self.logger.info(
+                    'Shutting down tunnel {0}'.format(
+                        address_to_str(_srv.local_address)
+                    )
+                )
+                _srv.shutdown()
+            _srv.server_close()
+            # clean up the UNIX domain socket if we're using one
+            if isinstance(_srv, _UnixStreamForwardServer):
+                try:
+                    os.unlink(_srv.local_address)
+                except Exception as e:
+                    self.logger.error('Unable to unlink socket {0}: {1}'
+                                      .format(self.local_address, repr(e)))
+        self._stop_transport()
+        self._is_started = False
+
+    def close(self):
+        """ Stop the an active tunnel, alias to :meth:`.stop` """
+        self.stop()
+
     def restart(self):
         """ Restart connection to the gateway and tunnels """
         self.stop()
@@ -1157,54 +1210,6 @@ class SSHTunnelForwarder(object):
                 address_to_str(_srv.local_address),
                 address_to_str(_srv.remote_address))
             )
-
-    def stop(self):
-        """
-        Shut the tunnel down. This has to be handled with care:
-
-            - if a port redirection is opened
-            - the destination is not reachable
-            - we attempt a connection to that tunnel (``SYN`` is sent and
-              acknowledged, then a ``FIN`` packet is sent and never
-              acknowledged... weird)
-            - we try to shutdown: it will not succeed until ``FIN_WAIT_2`` and
-              ``CLOSE_WAIT`` time out.
-
-        | Handle these scenarios with :attr:`.tunnel_is_up`: if True, server
-        | ``shutdown()`` will be skipped on servers
-        """
-        try:
-            self._check_is_started()
-        except BaseSSHTunnelForwarderError as e:
-            self.logger.warning(e)
-            return
-
-        self.logger.info('Closing all open connections...')
-        opened_address_text = ', '.join(
-            (address_to_str(k.local_address) for k in self._server_list)
-        ) or 'None'
-        self.logger.debug('Open local addresses: ' + opened_address_text)
-
-        for _srv in self._server_list:
-            is_open = _srv.local_address in self.tunnel_is_up if \
-                self.is_use_local_check_up else True
-            if is_open:
-                self.logger.info(
-                    'Shutting down tunnel {0}'.format(
-                        address_to_str(_srv.local_address)
-                    )
-                )
-                _srv.shutdown()
-            _srv.server_close()
-            # clean up the UNIX domain socket if we're using one
-            if isinstance(_srv, _UnixStreamForwardServer):
-                try:
-                    os.unlink(_srv.local_address)
-                except Exception as e:
-                    self.logger.error('Unable to unlink socket {0}: {1}'
-                                      .format(self.local_address, repr(e)))
-        self._stop_transport()
-        self._is_started = False
 
     def _stop_transport(self):
         """Close the underlying transport when nothing more is needed"""
@@ -1339,24 +1344,20 @@ class SSHTunnelForwarder(object):
     def __exit__(self, *args):
         self.stop()
 
-    def close(self):
-        """ Stop the an active tunnel, alias to :meth:`.stop` """
-        self.stop()
-
 
 def open_tunnel(*args, **kwargs):
     """
-    Open an SSH Tunnel
+    Open an SSH Tunnel, wrapper for :class:`SSHTunnelForwarder`
 
     Arguments:
-        destination:
+        destination (Optional[tuple]):
             SSH server's IP address and port in the format
             (ssh_address, ssh_port)
 
     .. note::
         See :class:`SSHTunnelForwarder` for keyword arguments
 
-    Example::
+    **Example**::
 
         from sshtunnel import open_tunnel
 
@@ -1364,10 +1365,8 @@ def open_tunnel(*args, **kwargs):
                          ssh_username=SSH_USER,
                          ssh_port=22,
                          ssh_password=SSH_PASSWORD,
-                         remote_bind_address=(REMOTE_HOST, REMOTE_PORT)
-                         local_bind_address=('', LOCAL_PORT)
-                         ) as server:
-
+                         remote_bind_address=(REMOTE_HOST, REMOTE_PORT),
+                         local_bind_address=('', LOCAL_PORT)) as server:
             def do_something(port):
                 pass
 
