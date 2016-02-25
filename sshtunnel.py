@@ -628,15 +628,16 @@ class SSHTunnelForwarder(object):
              compression,
              logger)
 
-        (self.ssh_password, ssh_private_key) = self._consolidate_auth(
-            ssh_password=ssh_password,
-            ssh_private_key=ssh_private_key,
-            ssh_private_key_password=ssh_private_key_password,
-            logger=logger
-        )
         self.ssh_private_keys = self.get_keys(key=ssh_private_key,
                                               allow_agent=allow_agent,
                                               logger=self.logger)
+
+        (self.ssh_password, self.ssh_private_keys) = self._consolidate_auth(
+            ssh_password=ssh_password,
+            ssh_private_keys=self.ssh_private_keys,
+            ssh_private_key_password=ssh_private_key_password,
+            logger=logger
+        )
 
         if not self.ssh_port:
             self.ssh_port = 22  # fallback value
@@ -735,25 +736,26 @@ class SSHTunnelForwarder(object):
 
     @staticmethod
     def _consolidate_auth(ssh_password=None,
-                          ssh_private_key=None,
+                          ssh_private_keys=None,
                           ssh_private_key_password=None,
                           logger=None):
         """Get sure authentication information is in place"""
-        if isinstance(ssh_private_key, string_types):
-            if os.path.exists(ssh_private_key):
-                ssh_private_key = _read_private_key_file(
-                    pkey_file=ssh_private_key,
-                    pkey_password=ssh_private_key_password,
-                    logger=logger
-                )
-            elif logger:
-                logger.warning('Private key file not found: {0}'
-                               .format(ssh_private_key))
-                ssh_private_key = None
-        if not ssh_password and not ssh_private_key:
+        for ssh_private_key in ssh_private_keys:
+            if isinstance(ssh_private_key, string_types):
+                if os.path.exists(ssh_private_key):
+                    ssh_private_key = _read_private_key_file(
+                        pkey_file=ssh_private_key,
+                        pkey_password=ssh_private_key_password,
+                        logger=logger
+                    )
+                elif logger:
+                    logger.warning('Private key file not found: {0}'
+                                   .format(ssh_private_key))
+                    ssh_private_key = None
+        if not ssh_password and not any(ssh_private_keys):
             raise ValueError('No password or private key available!')
 
-        return (ssh_password, ssh_private_key)
+        return (ssh_password, ssh_private_keys)
 
     def _raise(self, exception, reason):
         if self._raise_fwd_exc:
