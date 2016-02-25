@@ -38,7 +38,7 @@ __version__ = '0.0.8'
 __author__ = 'pahaz'
 
 
-DEFAULT_LOGLEVEL = logging.ERROR  #: default level if no logger passed
+DEFAULT_LOGLEVEL = logging.ERROR  #: default level if no logger passed (ERROR)
 LOCAL_CHECK_TIMEOUT = 1.0  #: Timeout (seconds) for local tunnel side detection
 DAEMON = False
 TRACE = False
@@ -46,7 +46,7 @@ _CONNECTION_COUNTER = 1
 _lock = threading.Lock()
 #: Timeout (seconds) for the connection to the SSH gateway, ``None`` to disable
 SSH_TIMEOUT = None
-SSH_CONFIG_FILE = '~/.ssh/config'  #: Default path for ssh configuration file
+SSH_CONFIG_FILE = '~/.ssh/config'  #: Path of optional ssh configuration file
 DEPRECATIONS = {'ssh_address': 'ssh_address_or_host',
                 'ssh_host': 'ssh_address_or_host',
                 'ssh_private_key': 'ssh_pkey'}
@@ -71,12 +71,16 @@ def check_port(port):
 
 def check_address(address):
     """
-    Check that the format of the address is correct
+    Check if the format of the address is correct
 
     Arguments:
         address (tuple):
             (``str``, ``int``) representing an IP address and port,
             respectively
+
+            .. note::
+                alternatively a local ``address`` can be a ``str`` when working
+                with UNIX domain sockets, if supported by the platform
     Raises:
         ValueError:
             raised when address has an incorrect format
@@ -102,25 +106,35 @@ def check_address(address):
 
 def check_addresses(address_list, is_remote=False):
     """
-    Check that the format of the address list is correct
+    Check if the format of the addresses is correct
 
     Arguments:
         address_list (list[tuple]):
             Sequence of (``str``, ``int``) pairs, each representing an IP
             address and port respectively
+
+            .. note::
+                when supported by the platform, one or more of the elements in
+                the list can be of type ``str``, representing a valid UNIX
+                domain socket
+
         is_remote (boolean):
             Whether or not the address list
     Raises:
         AssertionError:
+            raised when ``address_list`` contains an invalid element
+        ValueError:
             raised when any address in the list has an incorrect format
 
     Example:
 
         >>> check_addresses([("127.0.0.1", 22), ("127.0.0.1", 2222)])
     """
-    assert (all(isinstance(x, tuple) for x in address_list) or
-            (all(isinstance(x, string_types) for x in address_list) and
-             not is_remote ))
+    assert all(isinstance(x, (tuple, string_types)) for x in address_list)
+    if (is_remote and any(isinstance(x, string_types) for x in address_list)):
+        raise AssertionError('UNIX domain sockets not allowed for remote'
+                             'addresses')
+
     for address in address_list:
         check_address(address)
 
@@ -198,7 +212,7 @@ def get_connection_id():
 
 
 def _remove_none_values(dictionary):
-    """ Remove dict keys whose value is None """
+    """ Remove dictionary keys whose value is None """
     return list(map(dictionary.pop,
                     [i for i in dictionary if dictionary[i] is None]))
 
@@ -425,7 +439,6 @@ class SSHTunnelForwarder(object):
                 Avoid coding secret password directly in the code, since this
                 may be visible and make your service vulnerable to attacks
 
-
         ssh_proxy (paramiko.ProxyCommand or tuple):
             Proxy where all SSH traffic will be passed through.
             See either the :class:`paramiko.proxy.ProxyCommand` documentation
@@ -434,7 +447,7 @@ class SSHTunnelForwarder(object):
             It is also possible to specify the proxy address as a tuple of
             type (``str``, ``int``) representing proxy's IP and port
 
-            ..note::
+            .. note::
                 Ignored if ``ssh_proxy_enabled`` is False
 
             .. versionadded:: 0.0.5
@@ -445,6 +458,7 @@ class SSHTunnelForwarder(object):
             that matches the specified ``ssh_address_or_host``,
             a :class:`paramiko.proxy.ProxyCommand` object will be created where
             all SSH traffic will be passed through
+
             Default: ``True``
 
             .. versionadded:: 0.0.4
@@ -454,6 +468,7 @@ class SSHTunnelForwarder(object):
             IP and port of the local side of the tunnel. Both elements in
             the tuple are optional so both ('', 8000) and ('10.0.0.1', )
             are valid values
+
             Default: ("0.0.0.0", ``RANDOM PORT``)
 
             .. versionchanged:: 0.0.8
@@ -464,6 +479,7 @@ class SSHTunnelForwarder(object):
             In case more than one tunnel is established at once, a list
             of tuples (in the same format as ``local_bind_address``)
             can be specified, such as [(ip1, port_1), (ip_2, port2), ...]
+
             Default: [``local_bind_address``]
 
             .. versionadded:: 0.0.4
@@ -477,12 +493,29 @@ class SSHTunnelForwarder(object):
             In case more than one tunnel is established at once, a list
             of tuples (in the same format as ``remote_bind_address``)
             can be specified, such as [(ip1, port_1), (ip_2, port2), ...]
+
             Default: [``remote_bind_address``]
 
             .. versionadded:: 0.0.4
 
+        allow_agent (boolean):
+            Enable/disable load of keys from an SSH agent
+
+            Default: ``False``
+
+            .. versionadded:: 0.0.8
+
+        compression (boolean):
+            Turn on/off compression. By default compression is off since it
+            negatively affects interactive sessions
+
+            Default: ``False``
+
+            .. versionadded:: 0.0.8
+
         logger (logging.Logger):
             logging instance for sshtunnel and paramiko
+
             Default: :class:`logging.Logger` instance with a single
             `StreamHandler` handler and :const:`DEFAULT_LOGLEVEL` level
 
@@ -492,6 +525,7 @@ class SSHTunnelForwarder(object):
             Allow silencing :class:`BaseSSHTunnelForwarderError` or
             :class:`HandlerSSHTunnelForwarderError` exceptions when set to
             False
+
             Default: ``True``
 
             .. versionadded:: 0.0.4
@@ -501,33 +535,21 @@ class SSHTunnelForwarder(object):
             was sent over the connection, a *'keepalive'* packet will be
             sent (and ignored by the remote host). This can be useful to
             keep connections alive over a NAT
-            Default: 0.0 (no keepalive packets)
+
+            Default: 0.0 (no keepalive packets are sent)
 
             .. versionadded:: 0.0.7
 
         threaded (boolean):
             Allow concurrent connections over a single tunnel
+
             Default: ``True``
 
             .. versionadded:: 0.0.3
 
-        compression (boolean):
-            Turn on/off compression. By default compression is off since it
-            negatively affects interactive sessions
-            Default: ``False``
-
-            .. versionadded:: 0.0.8
-
-        allow_agent (boolean):
-            Enable/disable load of keys from an SSH agent
-            Default: ``False``
-
-            .. versionadded:: 0.0.8
-
-
         ssh_address (str):
-            Superseeded by ``ssh_address_or_host```, tuple of type
-            (str, int) representing the IP and port of ``REMOTE SERVER``
+            Superseeded by ``ssh_address_or_host``, tuple of type (str, int)
+            representing the IP and port of ``REMOTE SERVER``
 
             .. deprecated:: 0.0.4
 
@@ -547,25 +569,38 @@ class SSHTunnelForwarder(object):
     Attributes:
 
         tunnel_is_up (dict):
-            Define whether or not the other side of the tunnel was reported to
-            be up (and we must close it) or not (skip shutting down that tunnel
-            ).
+            Describe whether or not the other side of the tunnel was reported
+            to be up (and we must close it) or not (skip shutting down that
+            tunnel)
+
+            .. note::
+                This attribute should not be modified
+
+            .. note::
+                When :attr:`.is_use_local_check_up` is disabled or the local
+                bind is a UNIX socket, the value will always be ``True``
 
             **Example**::
 
-                {('127.0.0.1', 55550): True,
-                 ('127.0.0.1', 55551): False}
+                {('127.0.0.1', 55550): True,   # this tunnel is up
+                 ('127.0.0.1', 55551): False}  # this one isn't
 
             where 55550 and 55551 are the local bind ports
+
+        is_use_local_check_up (boolean):
+            Enable/disable the local side check and populate
+            :attr:`tunnel_is_up`
+
+            Default: False
     """
     is_use_local_check_up = False
-    daemon_forward_servers = DAEMON
-    daemon_transport = DAEMON
+    daemon_forward_servers = DAEMON  #: flag tunnel threads in daemon mode
+    daemon_transport = DAEMON  #: flag SSH transport thread in daemon mode
 
     def local_is_up(self, target):
         """
-        Check if local side of the tunnel is up (remote target_host is
-        reachable on TCP target_port)
+        Check if local side of the tunnel is up (remote target's host is
+        reachable on TCP target's port)
 
         Arguments:
             target (tuple):
@@ -908,7 +943,7 @@ class SSHTunnelForwarder(object):
         transport = paramiko.Transport(_socket)
         transport.set_keepalive(self.set_keepalive)
         transport.use_compression(compress=self.compression)
-        transport.daemon = DAEMON
+        transport.daemon = self.daemon_transport
 
         return transport
 
@@ -1039,7 +1074,7 @@ class SSHTunnelForwarder(object):
         ]
 
         for thread in threads:
-            thread.daemon = DAEMON
+            thread.daemon = self.daemon_forward_servers
             thread.start()
 
         self._threads = threads
