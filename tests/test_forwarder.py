@@ -451,7 +451,7 @@ class SSHClientTest(unittest.TestCase):
         server = SSHTunnelForwarder(
             (self.saddr, self.sport),
             ssh_username=SSH_USERNAME,
-            ssh_private_key=get_test_data_path(PKEY_FILE),
+            ssh_pkey=get_test_data_path(PKEY_FILE),
             remote_bind_address=(self.eaddr, self.eport),
             logger=self.log,
         )
@@ -465,7 +465,7 @@ class SSHClientTest(unittest.TestCase):
         server = SSHTunnelForwarder(
             (self.saddr, self.sport),
             ssh_username=SSH_USERNAME,
-            ssh_private_key=ssh_key,
+            ssh_pkey=ssh_key,
             remote_bind_address=(self.eaddr, self.eport),
             logger=self.log,
         )
@@ -653,34 +653,25 @@ class SSHClientTest(unittest.TestCase):
                 self.assertTrue(issubclass(w[-1].category, DeprecationWarning))
                 self.assertEqual(logged_message, str(w[-1].message))
 
-        # TODO: fix this
-        #
-        # with warnings.catch_warnings(record=True) as w:
-        #     # other deprecated arguments
-        #     SSHTunnelForwarder(
-        #         (self.saddr, self.sport),
-        #         ssh_username=SSH_USERNAME,
-        #         ssh_password=SSH_PASSWORD,
-        #         remote_bind_address=(self.eaddr, self.eport),
-        #         raise_exception_if_any_forwarder_have_a_problem=True
-        #     )
-        # #     self.assertTrue(issubclass(w[-1].category, DeprecationWarning))
-
-        #     SSHTunnelForwarder(
-        #         (self.saddr, self.sport),
-        #         ssh_username=SSH_USERNAME,
-        #         ssh_private_key=get_test_data_path(PKEY_FILE),
-        #         remote_bind_address=(self.eaddr, self.eport),
-        #     )
-
-        #     self.assertTrue(issubclass(w[-1].category, DeprecationWarning))
-        #     for depr in [
-        #         'raise_exception_if_any_forwarder_have_a_problem',
-        #         'ssh_private_key'
-        #     ]:
-        #         logged_message = "'{0}' is DEPRECATED use '{1}' instead"\
-        #             .format(depr, sshtunnel.DEPRECATIONS[depr])
-        #         self.assertIn(logged_message, [str(k.message) for k in w])
+        # other deprecated arguments
+        with warnings.catch_warnings(record=True) as w:
+            for deprecated_arg in [
+                'raise_exception_if_any_forwarder_have_a_problem',
+                'ssh_private_key'
+            ]:
+                _kwargs = {
+                    'ssh_address_or_host': (self.saddr, self.sport),
+                    'ssh_username': SSH_USERNAME,
+                    'ssh_password': SSH_PASSWORD,
+                    'remote_bind_address': (self.eaddr, self.eport),
+                    deprecated_arg: (self.saddr, self.sport),
+                }
+                SSHTunnelForwarder(**_kwargs)
+                logged_message = "'{0}' is DEPRECATED use '{1}' instead"\
+                    .format(deprecated_arg,
+                            sshtunnel.DEPRECATIONS[deprecated_arg])
+                self.assertTrue(issubclass(w[-1].category, DeprecationWarning))
+                self.assertEqual(logged_message, str(w[-1].message))
 
         warnings.simplefilter('default')
 
@@ -788,7 +779,7 @@ class SSHClientTest(unittest.TestCase):
             (self.saddr, self.sport),
             ssh_username=SSH_USERNAME,
             ssh_password=SSH_PASSWORD,
-            ssh_private_key=bad_pkey,
+            ssh_pkey=bad_pkey,
             remote_bind_address=(self.eaddr, self.eport),
             logger=self.log,
         )
@@ -839,7 +830,7 @@ class SSHClientTest(unittest.TestCase):
         server = SSHTunnelForwarder(
             (self.saddr, self.sport),
             ssh_username=SSH_USERNAME,
-            ssh_private_key=ssh_key,
+            ssh_pkey=ssh_key,
             remote_bind_address=(self.eaddr, self.eport),
             logger=self.log,
         )
@@ -1220,7 +1211,8 @@ class AuxiliaryTest(unittest.TestCase):
         """ Test processing deprecated API attributes """
         kwargs = {'ssh_host': '10.0.0.1',
                   'ssh_address': '10.0.0.1',
-                  'ssh_private_key': 'testrsa.key'}
+                  'ssh_private_key': 'testrsa.key',
+                  'raise_exception_if_any_forwarder_have_a_problem': True}
         for item in kwargs:
             self.assertEqual(kwargs[item],
                              sshtunnel.SSHTunnelForwarder._process_deprecated(

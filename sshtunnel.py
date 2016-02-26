@@ -197,9 +197,7 @@ def create_logger(logger=None,
     if capture_warnings and sys.version_info >= (2, 7):
         logging.captureWarnings(True)
         pywarnings = logging.getLogger('py.warnings')
-        for handler in logger.handlers:
-            pywarnings.addHandler(handler)
-
+        pywarnings.handlers.extend(logger.handlers)
     return logger
 
 
@@ -792,6 +790,7 @@ class SSHTunnelForwarder(object):
         ssh_pkey = self._process_deprecated(ssh_pkey,
                                             'ssh_private_key',
                                             kwargs)
+
         self._raise_fwd_exc = self._process_deprecated(
             None,
             'raise_exception_if_any_forwarder_have_a_problem',
@@ -835,7 +834,7 @@ class SSHTunnelForwarder(object):
             ssh_password=ssh_password,
             ssh_pkey=ssh_pkey,
             ssh_pkey_password=ssh_private_key_password,
-            ssh_loaded_pkeys=self.get_keys(self.logger) if allow_agent else [],
+            allow_agent=allow_agent,
             logger=self.logger
         )
 
@@ -929,9 +928,12 @@ class SSHTunnelForwarder(object):
         Return:
             list
         """
-        agent_keys = paramiko.Agent().get_keys()
+        paramiko_agent = paramiko.Agent()
+        agent_keys = paramiko_agent.get_keys()
+        paramiko_agent.close()
         if logger:
             logger.info('{0} keys loaded from agent'.format(len(agent_keys)))
+
         return list(agent_keys)
 
     @staticmethod
@@ -951,7 +953,7 @@ class SSHTunnelForwarder(object):
     def _consolidate_auth(ssh_password=None,
                           ssh_pkey=None,
                           ssh_pkey_password=None,
-                          ssh_loaded_pkeys=[],
+                          allow_agent=True,
                           logger=None):
         """
         Get sure authentication information is in place.
@@ -961,6 +963,11 @@ class SSHTunnelForwarder(object):
             - ``paramiko.Pkey`` - it will be transparently added to loaded keys
 
         """
+        if allow_agent:
+            ssh_loaded_pkeys = SSHTunnelForwarder.get_keys(logger)
+        else:
+            ssh_loaded_pkeys = []
+
         if isinstance(ssh_pkey, string_types):
             if os.path.exists(ssh_pkey):
                 ssh_pkey = SSHTunnelForwarder.read_private_key_file(
@@ -973,6 +980,7 @@ class SSHTunnelForwarder(object):
                                .format(ssh_pkey))
         if isinstance(ssh_pkey, paramiko.pkey.PKey):
             ssh_loaded_pkeys.append(ssh_pkey)
+
         if not ssh_password and not ssh_loaded_pkeys:
             raise ValueError('No password or public key available!')
         return (ssh_password, ssh_loaded_pkeys)
