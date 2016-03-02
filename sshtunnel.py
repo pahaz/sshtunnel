@@ -700,7 +700,7 @@ class SSHTunnelForwarder(object):
         if not issubclass(_Handler, socketserver.BaseRequestHandler):
             msg = 'base_ssh_forward_handler is not a subclass ' \
                   'socketserver.BaseRequestHandler'
-            self._raise(BaseSSHTunnelForwarderError, msg)
+            self._raise(reason=msg)
 
         class Handler(_Handler):
             """ handler class for remote tunnels """
@@ -985,7 +985,7 @@ class SSHTunnelForwarder(object):
             raise ValueError('No password or public key available!')
         return (ssh_password, ssh_loaded_pkeys)
 
-    def _raise(self, exception, reason):
+    def _raise(self, exception=BaseSSHTunnelForwarderError, reason=None):
         if self._raise_fwd_exc:
             raise exception(reason)
 
@@ -1021,16 +1021,16 @@ class SSHTunnelForwarder(object):
             msg = 'Could not resolve IP address for {0}, aborting!' \
                 .format(self.ssh_host)
             self.logger.error(msg)
-            self._raise(BaseSSHTunnelForwarderError, msg)
+            raise BaseSSHTunnelForwarderError(msg)
         except (paramiko.SSHException, socket.error) as e:
             template = 'Could not connect to gateway: {0} ({1})'
             msg = template.format(self.ssh_host, e.args)
             self.logger.error(msg)
-            self._raise(BaseSSHTunnelForwarderError, msg)
+            raise BaseSSHTunnelForwarderError(msg)
         except BaseSSHTunnelForwarderError as e:
             msg = 'Problem setting SSH Forwarder up: {0}'.format(repr(e))
             self.logger.error(msg)
-            self._raise(BaseSSHTunnelForwarderError, msg)
+            raise BaseSSHTunnelForwarderError(msg)
 
     @staticmethod
     def _get_binds(bind_address, bind_addresses, is_remote=True):
@@ -1122,21 +1122,24 @@ class SSHTunnelForwarder(object):
             self.logger.warning('Already started!')
             return
         self._server_list = []  # reset server list
-        self._create_tunnels()
-        threads = [
-            threading.Thread(
-                target=self._serve_forever_wrapper, args=(_srv,),
-                name='Srv-{0}'.format(address_to_str(_srv.local_address))
-            )
-            for _srv in self._server_list
-        ]
-        for thread in threads:
-            thread.daemon = self.daemon_forward_servers
-            thread.start()
-        self._threads = threads
-        if self.is_use_local_check_up:
-            self.check_local_side_of_tunnels()
-        self._is_started = True
+        try:
+            self._create_tunnels()
+            threads = [
+                threading.Thread(
+                    target=self._serve_forever_wrapper, args=(_srv,),
+                    name='Srv-{0}'.format(address_to_str(_srv.local_address))
+                )
+                for _srv in self._server_list
+            ]
+            for thread in threads:
+                thread.daemon = self.daemon_forward_servers
+                thread.start()
+            self._threads = threads
+            if self.is_use_local_check_up:
+                self.check_local_side_of_tunnels()
+            self._is_started = True
+        except BaseSSHTunnelForwarderError as e:
+            self._raise(reason=e)
 
     def stop(self):
         """
@@ -1211,7 +1214,8 @@ class SSHTunnelForwarder(object):
                 self._transport.connect(hostkey=self.ssh_host_key,
                                         username=self.ssh_username,
                                         pkey=key)
-                return
+                if self._transport.is_alive:
+                    return
             except paramiko.AuthenticationException:
                 self._stop_transport()
 
@@ -1223,7 +1227,8 @@ class SSHTunnelForwarder(object):
                 self._transport.connect(hostkey=self.ssh_host_key,
                                         username=self.ssh_username,
                                         password=self.ssh_password)
-                return
+                if self._transport.is_alive:
+                    return
             except paramiko.AuthenticationException:
                 self._stop_transport()
 
@@ -1352,9 +1357,9 @@ class SSHTunnelForwarder(object):
         return local_if
 
     def _check_is_started(self):
-        if not self._is_started:
-            m = 'Server is not started. Please .start() first!'
-            raise BaseSSHTunnelForwarderError(m)
+        if not self.is_alive:
+            msg = 'Server is not started. Please .start() first!'
+            raise BaseSSHTunnelForwarderError(msg)
 
     def _is_address_reachable(self, target, timeout=LOCAL_CHECK_TIMEOUT):
         conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -1399,7 +1404,7 @@ class SSHTunnelForwarder(object):
             self.ssh_username,
             credentials,
             self.ssh_host_key if self.ssh_host_key else'not checked',
-            '' if self._is_started else 'Not ',
+            '' if self.is_alive else 'Not ',
             'disabled' if not self.set_keepalive else
             'every {0} sec'.format(self.set_keepalive),
             'enabled' if self.is_use_local_check_up else 'disabled',
@@ -1590,7 +1595,7 @@ def _parse_arguments(args=None):
     parser.add_argument(
         '-V', '--version', action='version',
         version='%(prog)s {version}'.format(version=__version__),
-        help='Show version number'
+        help='Show version number and quit'
     )
 
     parser.add_argument(

@@ -36,7 +36,7 @@ to have it installed in your environment.
 For installing from source, clone the
 `repo <https://github.com/pahaz/sshtunnel>`_ and run::
 
-    python setup.py develop
+    python setup.py install
 
 Testing the package
 -------------------
@@ -151,9 +151,8 @@ CLI usage
 
     usage: sshtunnel [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD] -R
                      IP:PORT [IP:PORT ...] [-L [IP:PORT [IP:PORT ...]]]
-                     [-k SSH_HOST_KEY] [-K RSA_KEY_FILE]
-                     [-S RSA_KEY_FILE_PASSWORD] [-t] [-v] [-V] [-x IP:PORT]
-                     [-z]
+                     [-k SSH_HOST_KEY] [-K KEY_FILE] [-S KEY_PASSWORD] [-t]
+                     [-v] [-V] [-x IP:PORT] [-c SSH_CONFIG_FILE] [-z] [-n]
                      ssh_address
 
     Pure python ssh tunnel utils
@@ -164,33 +163,34 @@ CLI usage
 
     optional arguments:
       -h, --help            show this help message and exit
-      -U SSH_USERNAME, --username SSH_USERNAME
+      -U, --username SSH_USERNAME
                             SSH server account username
-      -p SSH_PORT, --server_port SSH_PORT
+      -p, --server_port SSH_PORT
                             SSH server TCP port (default: 22)
-      -P SSH_PASSWORD, --password SSH_PASSWORD
+      -P, --password SSH_PASSWORD
                             SSH server account password
-      -R IP:PORT [IP:PORT ...], --remote_bind_address IP:PORT [IP:PORT ...]
+      -R, --remote_bind_address IP:PORT [IP:PORT ...]
                             Remote bind address sequence: ip_1:port_1 ip_2:port_2 ... ip_n:port_n
                             Equivalent to ssh -Lxxxx:IP_ADDRESS:PORT
                             If omitted, default port is 22.
                             Example: -R 10.10.10.10: 10.10.10.10:5900
-      -L [IP:PORT [IP:PORT ...]], --local_bind_address [IP:PORT [IP:PORT ...]]
+      -L, --local_bind_address [IP:PORT [IP:PORT ...]]
                             Local bind address sequence: ip_1:port_1 ip_2:port_2 ... ip_n:port_n
                             Equivalent to ssh -LPORT:xxxxxxxxx:xxxx, being the local IP address optional.
                             By default it will listen in all interfaces (0.0.0.0) and choose a random port.
                             Example: -L :40000
-      -k SSH_HOST_KEY, --ssh_host_key SSH_HOST_KEY
+      -k, --ssh_host_key SSH_HOST_KEY
                             Gateway's host key
-      -K RSA_KEY_FILE, --private_key_file RSA_KEY_FILE
-                            RSA private key file
-      -S RSA_KEY_FILE_PASSWORD, --private_key_file_password RSA_KEY_FILE_PASSWORD
-                            RSA private key file password
+      -K, --private_key_file KEY_FILE
+                            RSA/DSS/ECDSA private key file
+      -S, --private_key_file_password KEY_PASSWORD
+                            RSA/DSS/ECDSA private key password
       -t, --threaded        Allow concurrent connections to each tunnel
       -v, --verbosity       Increase output verbosity (default: ERROR)
       -V, --version         Show version number and quit
-      -x, --proxy IP:PORT
-                            IP and por for SSH proxy to destination
+      -x, --proxy IP:PORT   IP and por for SSH proxy to destination
+      -c, --config SSH_CONFIG_FILE
+                            SSH configuration file, defaults to ~/.ssh/config
       -z, --compress        Request server for compression over SSH transport
       -n, --noagent         Disable looking for keys from an SSH agent
 
