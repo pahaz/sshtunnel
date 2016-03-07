@@ -930,7 +930,7 @@ class SSHTunnelForwarder(object):
         """
         paramiko_agent = paramiko.Agent()
         agent_keys = paramiko_agent.get_keys()
-        paramiko_agent.close()
+        # paramiko_agent.close()
         if logger:
             logger.info('{0} keys loaded from agent'.format(len(agent_keys)))
 
