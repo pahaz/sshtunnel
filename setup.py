@@ -22,6 +22,8 @@ ppa = 'https://pypi.python.org/packages/source/s/{0}/{0}-'.format(name)
 # Get the long description from the README file
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
+with open(path.join(here, 'docs.rst'), encoding='utf-8') as f:
+    documentation = f.read()
 with open(path.join(here, 'changelog.rst'), encoding='utf-8') as f:
     changelog = f.read()
 
@@ -53,7 +55,7 @@ setup(
     version=version,
 
     description=description,
-    long_description='\n'.join((long_description, changelog)),
+    long_description='\n'.join((long_description, documentation, changelog)),
 
     # The project's main homepage.
     url=url,
