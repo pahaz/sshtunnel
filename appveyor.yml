@@ -1,0 +1,15 @@
+platform: x86
+
+version: 0.0.8.{build}
+
+install:
+  - set "PATH=C:\msys64\usr\bin;C:\msys64\mingw64\bin;%PATH%"
+  - set
+  - C:\msys64\usr\bin\bash -lc "pacman -Sy mingw-w64-i686-python2-pip --noconfirm"
+  - dir C:\msys64\mingw*
+  - C:\msys64\usr\bin\bash -lc "/mingw32/bin/pip install mock paramiko pytest six winrandom"
+
+build: off
+
+test_script:
+  - C:\msys64\usr\bin\bash -lc "/mingw32/bin/py.test C:/projects/sshtunnel/tests"

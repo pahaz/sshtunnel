@@ -25,6 +25,7 @@ CHANGELOG
     + Fix default username when not provided and ssh_config file is skipped (`JM Fernández`_)
     + Fix gateway IP unresolvable exception catching (`JM Fernández`_)
     + Minor fixes (`JM Fernández`_)
+    + Add AppVeyor support (`JM Fernández`_)
 
 - v.0.0.7 (`JM Fernández`_)
     + Tunnels can now be stopped and started safely (`#41`_) (`JM Fernández`_)

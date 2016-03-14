@@ -34,7 +34,7 @@ else:
     input_ = input
 
 
-__version__ = '0.0.8'
+__version__ = '0.0.8.1'
 __author__ = 'pahaz'
 
 
@@ -53,6 +53,11 @@ DEPRECATIONS = {
     'ssh_private_key': 'ssh_pkey',
     'raise_exception_if_any_forwarder_have_a_problem': 'mute_exceptions'
 }
+
+if os.name == 'posix':
+    UnixStreamServer = socketserver.UnixStreamServer
+else:
+    UnixStreamServer = socketserver.TCPServer
 
 ########################
 #                      #
@@ -96,7 +101,7 @@ def check_address(address):
         check_host(address[0])
         check_port(address[1])
     elif isinstance(address, string_types):
-        if not socket.AF_UNIX:
+        if os.name != 'posix':
             raise ValueError('Platform does not support UNIX domain sockets')
         if not (os.path.exists(address) or
                 os.access(os.path.dirname(address), os.W_OK)):
@@ -369,7 +374,7 @@ class _ThreadingForwardServer(socketserver.ThreadingMixIn, _ForwardServer):
     daemon_threads = DAEMON
 
 
-class _UnixStreamForwardServer(socketserver.UnixStreamServer, _ForwardServer):
+class _UnixStreamForwardServer(UnixStreamServer, _ForwardServer):
     """
     Serve over UNIX domain sockets (does not work on Windows)
     """
@@ -907,7 +912,7 @@ class SSHTunnelForwarder(object):
                     'Could not read SSH configuration file: {0}'
                     .format(ssh_config_file)
                 )
-        except AttributeError:  # ssh_config_file is None
+        except (AttributeError, TypeError):  # ssh_config_file is None
             if logger:
                 logger.info('Skipping loading of ssh config file')
         finally:

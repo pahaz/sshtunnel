@@ -1,5 +1,6 @@
 from __future__ import with_statement
 
+import os
 import sys
 import random
 import select
@@ -634,6 +635,8 @@ class SSHClientTest(unittest.TestCase):
                 ssh_config_file=None
             )
 
+    @unittest.skipIf(os.name == 'nt',
+                     reason='Need to fix test on Windows')
     def test_deprecate_warnings_are_shown(self):
         """Test that when using deprecate arguments a warning is logged"""
         warnings.simplefilter('always')  # don't ignore DeprecationWarnings
@@ -1025,7 +1028,7 @@ class SSHClientTest(unittest.TestCase):
         self.assertIn('Password is required for key {0}'.format(encr_pkey),
                       self.sshtunnel_log_messages['error'])
 
-    @unittest.skipIf(not socket.AF_UNIX,
+    @unittest.skipIf(os.name != 'posix',
                      reason="UNIX sockets not supported on this platform")
     def test_unix_domains(self):
         """ Test use of UNIX domain sockets in local binds """
@@ -1236,7 +1239,7 @@ class AuxiliaryTest(unittest.TestCase):
         """ Test that an exception is raised with incorrect bind addresses """
         address_list = [('10.0.0.1', 10000),
                         ('10.0.0.1', 10001)]
-        if socket.AF_INET:  # UNIX sockets supported by the platform
+        if os.name == 'posix':  # UNIX sockets supported by the platform
             address_list.append('/tmp/unix-socket')
         self.assertIsNone(sshtunnel.check_addresses(address_list))
         # UNIX sockets not supported on remote addresses
