@@ -201,7 +201,7 @@ CLI usage
 .. |CircleCI| image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
    :target: https://circleci.com/gh/pahaz/sshtunnel
 .. |AppVeyor| image:: https://ci.appveyor.com/api/projects/status/pedb5nroakca6qcv?svg=true&passingText=Windows%20-%20OK&failingText=Windows%20-%20Fail
-   :target: https://ci.appveyor.com/project/fernandezcuesta/sshtunnel-1deun
+   :target: https://ci.appveyor.com/project/fernandezcuesta/sshtunnel-0159e
 .. |coveralls| image:: https://coveralls.io/repos/github/pahaz/sshtunnel/badge.svg?branch=master
    :target: https://coveralls.io/github/pahaz/sshtunnel?branch=master
 .. |DwnMonth| image:: https://img.shields.io/pypi/dm/sshtunnel.svg
