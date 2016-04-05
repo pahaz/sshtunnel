@@ -34,7 +34,7 @@ else:
     input_ = input
 
 
-__version__ = '0.0.8.1'
+__version__ = '0.0.8.2'
 __author__ = 'pahaz'
 
 
@@ -374,10 +374,14 @@ class _ThreadingForwardServer(socketserver.ThreadingMixIn, _ForwardServer):
     daemon_threads = DAEMON
 
 
-class _UnixStreamForwardServer(UnixStreamServer, _ForwardServer):
+class _UnixStreamForwardServer(UnixStreamServer):
     """
     Serve over UNIX domain sockets (does not work on Windows)
     """
+    @property
+    def local_address(self):
+        return self.server_address
+
     @property
     def local_host(self):
         return None
@@ -385,6 +389,18 @@ class _UnixStreamForwardServer(UnixStreamServer, _ForwardServer):
     @property
     def local_port(self):
         return None
+
+    @property
+    def remote_address(self):
+        return self.RequestHandlerClass.remote_address
+
+    @property
+    def remote_host(self):
+        return self.RequestHandlerClass.remote_address[0]
+
+    @property
+    def remote_port(self):
+        return self.RequestHandlerClass.remote_address[1]
 
 
 class _ThreadingUnixStreamForwardServer(socketserver.ThreadingMixIn,
