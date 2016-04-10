@@ -494,10 +494,13 @@ class SSHTunnelForwarder(object):
                 Avoid coding secret password directly in the code, since this
                 may be visible and make your service vulnerable to attacks
 
-        ssh_proxy (paramiko.ProxyCommand or tuple):
+        ssh_proxy (socket-like object or tuple):
             Proxy where all SSH traffic will be passed through.
-            See either the :class:`paramiko.proxy.ProxyCommand` documentation
-            or ``ProxyCommand`` in ``ssh_config(5)`` for more information
+            It might be for example a :class:`paramiko.proxy.ProxyCommand`
+            instance.
+            See either the :class:`paramiko.transport.Transport`'s sock
+            parameter documentation or ``ProxyCommand`` in ``ssh_config(5)``
+            for more information.
 
             It is also possible to specify the proxy address as a tuple of
             type (``str``, ``int``) representing proxy's IP and port
@@ -859,13 +862,13 @@ class SSHTunnelForwarder(object):
             logger=self.logger
         )
 
-        if isinstance(self.ssh_proxy, tuple):
-            _pxcmd = 'ssh {0} -W {1}:{2}'.format(
-                ':'.join((str(k) for k in self.ssh_proxy)),
-                self.ssh_host,
-                self.ssh_port
-            )
-            self.ssh_proxy = paramiko.proxy.ProxyCommand(_pxcmd)
+        # if isinstance(self.ssh_proxy, tuple):
+        #     _pxcmd = 'ssh {0} -W {1}:{2}'.format(
+        #         ':'.join((str(k) for k in self.ssh_proxy)),
+        #         self.ssh_host,
+        #         self.ssh_port
+        #     )
+        #     self.ssh_proxy = paramiko.proxy.ProxyCommand(_pxcmd)
 
         if not self.ssh_port:
             self.ssh_port = 22  # fallback value
@@ -1013,9 +1016,11 @@ class SSHTunnelForwarder(object):
     def _get_transport(self):
         """ Return the SSH transport to the remote gateway """
         if self.ssh_proxy:
-            assert(isinstance(self.ssh_proxy, paramiko.proxy.ProxyCommand))
-            self.logger.debug('Connecting via proxy: {0}'
-                              .format(repr(self.ssh_proxy.cmd[1])))
+            if isinstance(self.ssh_proxy, paramiko.proxy.ProxyCommand):
+                proxy_repr = repr(self.ssh_proxy.cmd[1])
+            else:
+                proxy_repr = repr(self.ssh_proxy)
+            self.logger.debug('Connecting via proxy: {0}'.format(proxy_repr))
             _socket = self.ssh_proxy
             _socket.settimeout(SSH_TIMEOUT)
         else:

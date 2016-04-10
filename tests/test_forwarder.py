@@ -794,22 +794,16 @@ class SSHClientTest(unittest.TestCase):
         """ Test connecting using a ProxyCommand """
         proxycmd = paramiko.proxy.ProxyCommand('ssh proxy -W {0}:{1}'
                                                .format(self.saddr, self.sport))
-        for ssh_proxy in [proxycmd, ('proxy',)]:
-            server = SSHTunnelForwarder(
-                self.saddr,
-                ssh_username=SSH_USERNAME,
-                ssh_password=SSH_PASSWORD,
-                remote_bind_address=(self.eaddr, self.eport),
-                ssh_proxy=ssh_proxy,
-                ssh_proxy_enabled=True,
-                logger=self.log,
-            )
+        server = SSHTunnelForwarder(
+            self.saddr,
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            ssh_proxy=proxycmd,
+            ssh_proxy_enabled=True,
+            logger=self.log,
+        )
         self.assertEqual(server.ssh_proxy.cmd[1], 'proxy')
-
-        # ssh_proxy not a paramiko.ProxyCommand raises exception
-        with self.assertRaises(AssertionError):
-            server.ssh_proxy = 'bad_proxy'
-            self._test_server(server)
 
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
