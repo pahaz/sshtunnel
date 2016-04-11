@@ -1026,7 +1026,7 @@ class SSHTunnelForwarder(object):
         else:
             _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             _socket.settimeout(SSH_TIMEOUT)
-            _socket.connect((self.ssh_host, self.ssh_port))
+        _socket.connect((self.ssh_host, self.ssh_port))
         transport = paramiko.Transport(_socket)
         transport.set_keepalive(self.set_keepalive)
         transport.use_compression(compress=self.compression)
@@ -1311,7 +1311,7 @@ class SSHTunnelForwarder(object):
 
     @property
     def local_bind_port(self):
-        # BACKWARD COMPATABILITY
+        # BACKWARDS COMPATIBILITY
         self._check_is_started()
         if len(self._server_list) != 1:
             raise BaseSSHTunnelForwarderError(
@@ -1321,7 +1321,7 @@ class SSHTunnelForwarder(object):
 
     @property
     def local_bind_host(self):
-        # BACKWARD COMPATABILITY
+        # BACKWARDS COMPATIBILITY
         self._check_is_started()
         if len(self._server_list) != 1:
             raise BaseSSHTunnelForwarderError(
@@ -1331,7 +1331,7 @@ class SSHTunnelForwarder(object):
 
     @property
     def local_bind_address(self):
-        # BACKWARD COMPATABILITY
+        # BACKWARDS COMPATIBILITY
         self._check_is_started()
         if len(self._server_list) != 1:
             raise BaseSSHTunnelForwarderError(
