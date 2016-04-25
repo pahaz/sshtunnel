@@ -188,7 +188,7 @@ CLI usage
       -t, --threaded        Allow concurrent connections to each tunnel
       -v, --verbosity       Increase output verbosity (default: ERROR)
       -V, --version         Show version number and quit
-      -x, --proxy IP:PORT   IP and por for SSH proxy to destination
+      -x, --proxy IP:PORT   IP and port for SSH proxy to destination
       -c, --config SSH_CONFIG_FILE
                             SSH configuration file, defaults to ~/.ssh/config
       -z, --compress        Request server for compression over SSH transport
