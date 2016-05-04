@@ -24,6 +24,8 @@ from select import select
 
 import paramiko
 
+from socket import gaierror
+
 if sys.version_info[0] < 3:  # pragma: no cover
     import SocketServer as socketserver
     string_types = basestring,  # noqa
@@ -1375,7 +1377,11 @@ class SSHTunnelForwarder(object):
         """
         Return all local network interface's IP addresses
         """
-        local_if = socket.gethostbyname_ex(socket.gethostname())[-1]
+        try:
+            local_if = socket.gethostbyname_ex(socket.gethostname())[-1]
+        except gaierror:
+            #used for OSX instances that don't include local in their hostname
+            local_if = socket.gethostbyname_ex("{}.local".format(socket.gethostname()))[-1]
         # In Linux, if /etc/hosts is populated with the hostname, it will only
         # return 127.0.0.1
         if '127.0.0.1' not in local_if:
