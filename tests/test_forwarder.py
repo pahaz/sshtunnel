@@ -1198,7 +1198,7 @@ class AuxiliaryTest(unittest.TestCase):
             remote_bind_address=('10.0.0.1', 8080),
         )
         _str = str(server).split(linesep)
-        self.assertIn(repr(server), _str)
+        self.assertEqual(repr(server), str(server))
         self.assertIn('ssh gateway: test:22', _str)
         self.assertIn('no proxy', _str)
         self.assertIn('username: {0}'.format(getpass.getuser()), _str)

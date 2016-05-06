@@ -14,6 +14,9 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
+- v0.0.8.3 (`JM Fernández`_)
+    + Add `tunnel_bindings` property
+    + Several bugfixes (#49, #56, #57, ...)
 - v.0.0.8 (`JM Fernández`_)
     + Merge `#31`_: Support Unix domain socket (local) forwarding (`Dan Harbin`_)
     + Simplify API (`JM Fernández`_)

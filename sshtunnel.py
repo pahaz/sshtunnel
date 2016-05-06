@@ -690,11 +690,11 @@ class SSHTunnelForwarder(object):
             return True
         (host, port) = target
         reachable_from = []
-        self._local_interfaces = self._local_interfaces \
+        local_interfaces = self._get_local_interfaces() \
             if host in ['', '0.0.0.0'] \
             else [host]
 
-        for host in self._local_interfaces:
+        for host in local_interfaces:
             address = (host, port)
             reachable = self._is_address_reachable(address)
             reachable_text = '' if reachable else '*NOT* '
@@ -862,21 +862,12 @@ class SSHTunnelForwarder(object):
             logger=self.logger
         )
 
-        # if isinstance(self.ssh_proxy, tuple):
-        #     _pxcmd = 'ssh {0} -W {1}:{2}'.format(
-        #         ':'.join((str(k) for k in self.ssh_proxy)),
-        #         self.ssh_host,
-        #         self.ssh_port
-        #     )
-        #     self.ssh_proxy = paramiko.proxy.ProxyCommand(_pxcmd)
-
         if not self.ssh_port:
             self.ssh_port = 22  # fallback value
 
         check_host(self.ssh_host)
         check_port(self.ssh_port)
 
-        self._local_interfaces = self._get_local_interfaces()
         self.logger.info("Connecting to gateway: {0}:{1} as user '{2}'"
                          .format(self.ssh_host,
                                  self.ssh_port,
@@ -1022,10 +1013,9 @@ class SSHTunnelForwarder(object):
                 proxy_repr = repr(self.ssh_proxy)
             self.logger.debug('Connecting via proxy: {0}'.format(proxy_repr))
             _socket = self.ssh_proxy
-            _socket.settimeout(SSH_TIMEOUT)
         else:
             _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            _socket.settimeout(SSH_TIMEOUT)
+        _socket.settimeout(SSH_TIMEOUT)
         _socket.connect((self.ssh_host, self.ssh_port))
         transport = paramiko.Transport(_socket)
         transport.set_keepalive(self.set_keepalive)
@@ -1366,18 +1356,35 @@ class SSHTunnelForwarder(object):
         return [_server.local_address for _server in self._server_list]
 
     @property
+    def tunnel_bindings(self):
+        """
+        Return a dictionary containing the local<>remote tunnel_bindings
+        """
+        return {_server.remote_address: _server.local_address for
+                _server in self._server_list}
+
+    @property
     def is_alive(self):
         """ Return True if the tunnels are up """
         return self._is_started
 
-    @staticmethod
-    def _get_local_interfaces():
+    def _get_local_interfaces(self):
         """
         Return all local network interface's IP addresses
         """
-        local_if = socket.gethostbyname_ex(socket.gethostname())[-1]
-        # In Linux, if /etc/hosts is populated with the hostname, it will only
-        # return 127.0.0.1
+        try:
+            local_if = socket.gethostbyname_ex(socket.gethostname())[-1]
+            # In some Linux distros, if /etc/hosts is populated with the
+            # hostname, it will only return 127.0.0.1
+            if local_if == ['127.0.0.1']:
+                raise socket.gaierror
+        except socket.gaierror:
+            local_if = [[
+                (s.connect((self.ssh_host, self.ssh_port)),
+                 s.getsockname()[0],
+                 s.close())
+                for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]
+            ][0][1]]
         if '127.0.0.1' not in local_if:
             local_if.append('127.0.0.1')
         return local_if
@@ -1411,7 +1418,7 @@ class SSHTunnelForwarder(object):
             if self.ssh_pkeys else None
         }
         _remove_none_values(credentials)
-        template = os.linesep.join(['{0}',
+        template = os.linesep.join(['{0} object',
                                     'ssh gateway: {1}:{2}',
                                     '{3}',
                                     'username: {4}',
@@ -1424,7 +1431,7 @@ class SSHTunnelForwarder(object):
                                     'compression {11}requested',
                                     'logging level: {12}'])
         return (template.format(
-            repr(self),
+            self.__class__,
             self.ssh_host, self.ssh_port,
             proxy_str,
             self.ssh_username,
@@ -1438,6 +1445,9 @@ class SSHTunnelForwarder(object):
             '' if self.compression else 'not ',
             logging.getLevelName(self.logger.level)
         ))
+
+    def __repr__(self):
+        return self.__str__()
 
     def __enter__(self):
         self.start()
