@@ -27,14 +27,14 @@ import paramiko
 if sys.version_info[0] < 3:  # pragma: no cover
     import SocketServer as socketserver
     string_types = basestring,  # noqa
-    input_ = raw_input
+    input_ = raw_input  # noqa
 else:
     import socketserver
     string_types = str
     input_ = input
 
 
-__version__ = '0.0.8.2'
+__version__ = '0.0.8.3'
 __author__ = 'pahaz'
 
 
@@ -544,8 +544,7 @@ class SSHTunnelForwarder(object):
 
         remote_bind_address (tuple):
             Remote tuple in the format (``str``, ``int``) representing the
-            IP and port of the remote side of the tunnel. Port element in
-            the tuple is optional and defaults to 22
+            IP and port of the remote side of the tunnel.
 
         remote_bind_addresses (list[tuple]):
             In case more than one tunnel is established at once, a list
@@ -632,7 +631,7 @@ class SSHTunnelForwarder(object):
 
             .. versionadded:: 0.0.4
 
-            .. deprecated:: 0.0.8
+            .. deprecated:: 0.0.8 (use ``mute_exceptions`` instead)
 
     Attributes:
 
@@ -1000,9 +999,13 @@ class SSHTunnelForwarder(object):
             raise ValueError('No password or public key available!')
         return (ssh_password, ssh_loaded_pkeys)
 
-    def _raise(self, exception=BaseSSHTunnelForwarderError, reason=None):
+    def _raise(self, exception=BaseSSHTunnelForwarderError,
+               reason=None,
+               traceback=None):
         if self._raise_fwd_exc:
-            raise exception(reason)
+            raise exception(reason, traceback)
+        else:
+            self.logger.error('{0}: {1}'.format(exception, reason))
 
     def _get_transport(self):
         """ Return the SSH transport to the remote gateway """
@@ -1154,7 +1157,8 @@ class SSHTunnelForwarder(object):
             if self.is_use_local_check_up:
                 self.check_local_side_of_tunnels()
             self._is_started = True
-        except BaseSSHTunnelForwarderError as e:
+        except (BaseSSHTunnelForwarderError,
+                HandlerSSHTunnelForwarderError) as e:
             self._raise(reason=e)
 
     def stop(self):
@@ -1175,7 +1179,11 @@ class SSHTunnelForwarder(object):
         """
         try:
             self._check_is_started()
-        except BaseSSHTunnelForwarderError as e:
+        except BaseSSHTunnelForwarderError as e:  # underlying transport down
+            self.logger.warning(e)
+            return
+        except HandlerSSHTunnelForwarderError as e:  # tunnels down
+            self._stop_transport()
             self.logger.warning(e)
             return
 
@@ -1368,6 +1376,13 @@ class SSHTunnelForwarder(object):
         """ Return True if the tunnels are up """
         return self._is_started
 
+    @property
+    def is_active(self):
+        """ Return True if the underlying SSH transport is up """
+        if '_transport' in self.__dict__ and self._transport.is_alive():
+            return True
+        return False
+
     def _get_local_interfaces(self):
         """
         Return all local network interface's IP addresses
@@ -1390,9 +1405,12 @@ class SSHTunnelForwarder(object):
         return local_if
 
     def _check_is_started(self):
-        if not self.is_alive:
+        if not self.is_active:  # underlying transport not alive
             msg = 'Server is not started. Please .start() first!'
             raise BaseSSHTunnelForwarderError(msg)
+        if not self.is_alive:
+            msg = 'Tunnels are not started. Please .start() first!'
+            raise HandlerSSHTunnelForwarderError(msg)
 
     def _is_address_reachable(self, target, timeout=LOCAL_CHECK_TIMEOUT):
         conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -1450,8 +1468,15 @@ class SSHTunnelForwarder(object):
         return self.__str__()
 
     def __enter__(self):
-        self.start()
-        return self
+        try:
+            self.start()
+            return self
+        except Exception as exc:
+            self.__exit__()
+            (exc_class, exc, tb) = sys.exc_info()
+            self._raise(exception=exc_class, reason=exc, traceback=tb)
+        except KeyboardInterrupt:
+            self.__exit__()
 
     def __exit__(self, *args):
         self.stop()
@@ -1581,7 +1606,7 @@ def _parse_arguments(args=None):
         help='Remote bind address sequence: '
              'ip_1:port_1 ip_2:port_2 ... ip_n:port_n\n'
              'Equivalent to ssh -Lxxxx:IP_ADDRESS:PORT\n'
-             'If omitted, default port is 22.\n'
+             'If port is omitted, defaults to 22.\n'
              'Example: -R 10.10.10.10: 10.10.10.10:5900'
     )
 

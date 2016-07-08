@@ -80,7 +80,7 @@ outside (``LOCAL CLIENT``'s perspective). ::
         CLIENT   | <== SSH ========> |  SERVER  | <== local ==> | SERVER
     -------------+              |    +----------+               +---------
                                 |
-                             FIREWALL
+                             FIREWALL (only port 443 is open)
 
     ----------------------------------------------------------------------
 
@@ -96,25 +96,58 @@ context, which will take care of starting **and stopping** the tunnel:
 Example 1
 ---------
 
+Code corresponding to **Fig1** above follows, given remote server's address is
+``pahaz.urfuclub.ru``, password authentication and randomly assigned local bind
+port.
+
 .. code-block:: py
 
     from sshtunnel import SSHTunnelForwarder
 
     server = SSHTunnelForwarder(
-        ('pahaz.urfuclub.ru', 22),
+        'pahaz.urfuclub.ru',
         ssh_username="pahaz",
         ssh_password="secret",
-        remote_bind_address=('127.0.0.1', 5555)
+        remote_bind_address=('127.0.0.1', 8080)
     )
 
     server.start()
 
-    print(server.local_bind_port)
+    print(server.local_bind_port)  # show assigned local port
     # work with `SECRET SERVICE` through `server.local_bind_port`.
 
     server.stop()
 
 Example 2
+---------
+
+Example of a port forwarding to a private server not directly reachable,
+assuming password protected pkey authentication, remote server's SSH service is
+listening on port 443 and that port is open in the firewall (**Fig2**):
+
+.. code-block:: py
+
+    import paramiko
+    from sshtunnel import SSHTunnelForwarder
+
+    with SSHTunnelForwarder(
+        (REMOTE_SERVER_IP, 443),
+        ssh_username="",
+        ssh_pkey="/var/ssh/rsa_key",
+        ssh_private_key_password="secret",
+        remote_bind_address=(PRIVATE_SERVER_IP, 22),
+        local_bind_address=('0.0.0.0', 10022)
+    ) as tunnel:
+        client = paramiko.SSHClient()
+        client.load_system_host_keys()
+        client.set_missing_host_key_policy(paramko.AutoAddPolicy())
+        client.connect('127.0.0.1', 10022)
+        # do some operations with client session
+        client.close()
+
+    print('FINISH!')
+
+Example 3
 ---------
 
 Example of a port forwarding for the Vagrant MySQL local port:
