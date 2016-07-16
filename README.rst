@@ -233,7 +233,7 @@ CLI usage
 .. _paramiko: http://www.paramiko.org/
 .. |CircleCI| image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
    :target: https://circleci.com/gh/pahaz/sshtunnel
-.. |AppVeyor| image:: https://ci.appveyor.com/api/projects/status/fnse52dfw60p4cnx?svg=true&passingText=Windows%20-%20OK&failingText=Windows%20-%20Fail
+.. |AppVeyor| image:: https://ci.appveyor.com/api/projects/status/oxg1vx2ycmnw3xr9?svg=true&passingText=Windows%20-%20OK&failingText=Windows%20-%20Fail
    :target: https://ci.appveyor.com/project/fernandezcuesta/sshtunnel
 .. |coveralls| image:: https://coveralls.io/repos/github/pahaz/sshtunnel/badge.svg?branch=master
    :target: https://coveralls.io/github/pahaz/sshtunnel?branch=master
