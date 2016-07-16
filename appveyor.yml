@@ -28,5 +28,5 @@ install:
 build: off
 
 test_script:
-  - "%PYTHON%\\python -u setup.py build_script"
+  - "%PYTHON%\\python C:/projects/sshtunnel/setup.py check -m -r -s"
   - "%PYTHON%\\python -m pytest C:/projects/sshtunnel/tests"
