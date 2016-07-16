@@ -24,19 +24,20 @@ init:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
 
 install:
-  - "%PYTHON%\\python -m pip install --upgrade pip"
-  - "%PYTHON%\\Scripts\\pip install pymyinstall"
-  - "%PYTHON%\\Scripts\\pip install cryptography"
-  - "%PYTHON%\\Scripts\\pip install pytest"
-  - "%PYTHON%\\Scripts\\pymy_install3 pycrypto"
-  - "%PYTHON%\\Scripts\\pip install pycryptodomex"
-  - "%PYTHON%\\Scripts\\pip install -U ipdb"
-  - "%PYTHON%\\Scripts\\pip install --upgrade tox"
-  - "%PYTHON%\\Scripts\\pip install --upgrade tox-pyenv"
-  - "%PYTHON%\\Scripts\\pip install coveralls"
-  - "%PYTHON%\\python -m venv local $TOX_PY35 $TOX_PY34 $TOX_PY33 $TOX_PY32 $TOX_PY27 $TOX_PY26"
+  - set "PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - "python -m pip install --upgrade pip"
+  - "pip install pymyinstall"
+  - "pip install cryptography"
+  - "pip install pytest"
+  - "pymy_install3 pycrypto"
+  - "pip install pycryptodomex"
+  - "pip install -U ipdb"
+  - "pip install --upgrade tox"
+  - "pip install --upgrade tox-pyenv"
+  - "pip install coveralls"
+  - "python -m venv local $TOX_PY35 $TOX_PY34 $TOX_PY33 $TOX_PY32 $TOX_PY27 $TOX_PY26"
 
 build: off
 
 test_script:
-  - "%PYTHON%\\Scripts\\tox -v --recreate"
+  - "tox -v --recreate"
