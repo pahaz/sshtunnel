@@ -35,9 +35,9 @@ install:
   - "pip install --upgrade tox"
   - "pip install --upgrade tox-pyenv"
   - "pip install coveralls"
-  - "pyenv local $TOX_PY35 $TOX_PY34 $TOX_PY33 $TOX_PY32 $TOX_PY27 $TOX_PY26"
+  - "pip install mock pytest pytest-cov pytest-xdist"
 
 build: off
 
 test_script:
-  - "tox -v --recreate"
+  - "py.test --showlocals --cov sshtunnel --durations=10 -n4 tests"
