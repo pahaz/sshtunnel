@@ -1,6 +1,12 @@
 platform: x86
 
 environment:
+  TOX_PY26: '2.6.8'
+  TOX_PY27: '2.7.10'
+  TOX_PY32: '3.2.5'
+  TOX_PY33: '3.3.3'
+  TOX_PY34: '3.4.3'
+  TOX_PY35: '3.5.0'
 
   global:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
@@ -24,9 +30,13 @@ install:
   - "%PYTHON%\\Scripts\\pip install pytest"
   - "%PYTHON%\\Scripts\\pymy_install3 pycrypto"
   - "%PYTHON%\\Scripts\\pip install pycryptodomex"
+  - "%PYTHON%\\Scripts\\pip install -U ipdb"
+  - "%PYTHON%\\Scripts\\pip install --upgrade tox"
+  - "%PYTHON%\\Scripts\\pip install --upgrade tox-pyenv"
+  - "%PYTHON%\\Scripts\\pip install coveralls"
+  - "%PYTHON%\\Scripts\\pyenv local $TOX_PY35 $TOX_PY34 $TOX_PY33 $TOX_PY32 $TOX_PY27 $TOX_PY26"
 
 build: off
 
 test_script:
-  - "%PYTHON%\\python C:/projects/sshtunnel/setup.py check -m -r -s"
-  - "%PYTHON%\\python -m pytest C:/projects/sshtunnel/tests"
+  - "%PYTHON%\\tox -v --recreate"
