@@ -39,4 +39,4 @@ install:
 build: off
 
 test_script:
-  - "%PYTHON%\\tox -v --recreate"
+  - "%PYTHON%\\Scripts\\tox -v --recreate"
