@@ -35,7 +35,7 @@ install:
   - "pip install --upgrade tox"
   - "pip install --upgrade tox-pyenv"
   - "pip install coveralls"
-  - "python -m venv local $TOX_PY35 $TOX_PY34 $TOX_PY33 $TOX_PY32 $TOX_PY27 $TOX_PY26"
+  - "pyenv local $TOX_PY35 $TOX_PY34 $TOX_PY33 $TOX_PY32 $TOX_PY27 $TOX_PY26"
 
 build: off
 
