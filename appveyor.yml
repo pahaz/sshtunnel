@@ -1,13 +1,6 @@
 platform: x86
 
 environment:
-  TOX_PY26: '2.6.8'
-  TOX_PY27: '2.7.10'
-  TOX_PY32: '3.2.5'
-  TOX_PY33: '3.3.3'
-  TOX_PY34: '3.4.3'
-  TOX_PY35: '3.5.0'
-
   global:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
@@ -15,7 +8,6 @@ environment:
     WITH_COMPILER: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_compiler.cmd"
 
   matrix:
-
     - PYTHON: "C:\\Python35-x64"
       PYTHON_VERSION: "3.5.x"
       PYTHON_ARCH: "64"
@@ -28,15 +20,13 @@ install:
   - "python -m pip install --upgrade pip"
   - "pip install pymyinstall"
   - "pip install cryptography"
-  - "pip install pytest"
   - "pymy_install3 pycrypto"
   - "pip install pycryptodomex"
   - "pip install -U ipdb"
-  - "pip install coveralls"
   - "pip install mock pytest pytest-cov pytest-xdist"
 
 build: off
 
 test_script:
   - "python setup.py install"
-  - "py.test --showlocals --cov sshtunnel --durations=10 -n4 tests"
+  - "py.test --showlocals --durations=10 -n4 tests"
