@@ -24,7 +24,7 @@ init:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
 
 install:
-  - set "PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - set "PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\Tools\\Scripts;%PATH%"
   - "python -m pip install --upgrade pip"
   - "pip install pymyinstall"
   - "pip install cryptography"
