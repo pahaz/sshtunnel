@@ -1,14 +1,31 @@
 platform: x86
 
-version: 0.0.8.{build}
+environment:
+
+  global:
+    # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
+    # /E:ON and /V:ON options are not enabled in the batch script intepreter
+    # See: http://stackoverflow.com/a/13751649/163740
+    WITH_COMPILER: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_compiler.cmd"
+
+  matrix:
+
+    - PYTHON: "C:\\Python35-x64"
+      PYTHON_VERSION: "3.5.x"
+      PYTHON_ARCH: "64"
+
+init:
+  - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
 
 install:
-  - set "PATH=C:\msys64\usr\bin;C:\msys64\mingw64\bin;%PATH%"
-  - set
-  - C:\msys64\usr\bin\bash -lc "pacman -Sy mingw-w64-i686-python2-pip --noconfirm"
-  - C:\msys64\usr\bin\bash -lc "/mingw32/bin/pip install mock paramiko pytest six winrandom"
+  - "%PYTHON%\\python -m pip install --upgrade pip"
+  - "%PYTHON%\\Scripts\\pip install cryptography"
+  - "%PYTHON%\\Scripts\\pip install pytest"
+  - "%PYTHON%\\Scripts\\pymy_install3 pycrypto"
+  - "%PYTHON%\\Scripts\\pip install pycryptodomex"
 
 build: off
 
 test_script:
-  - C:\msys64\usr\bin\bash -lc "/mingw32/bin/py.test C:/projects/sshtunnel/tests"
+  - "%PYTHON%\\python -u setup.py build_script"
+  - "%PYTHON%\\python -m pytest C:/projects/sshtunnel/tests"
