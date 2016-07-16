@@ -19,6 +19,7 @@ init:
 
 install:
   - "%PYTHON%\\python -m pip install --upgrade pip"
+  - "%PYTHON%\\Scripts\\pip install pymyinstall"
   - "%PYTHON%\\Scripts\\pip install cryptography"
   - "%PYTHON%\\Scripts\\pip install pytest"
   - "%PYTHON%\\Scripts\\pymy_install3 pycrypto"
