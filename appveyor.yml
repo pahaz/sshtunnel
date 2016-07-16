@@ -32,12 +32,11 @@ install:
   - "pymy_install3 pycrypto"
   - "pip install pycryptodomex"
   - "pip install -U ipdb"
-  - "pip install --upgrade tox"
-  - "pip install --upgrade tox-pyenv"
   - "pip install coveralls"
   - "pip install mock pytest pytest-cov pytest-xdist"
 
 build: off
 
 test_script:
+  - "python setup.py install"
   - "py.test --showlocals --cov sshtunnel --durations=10 -n4 tests"
