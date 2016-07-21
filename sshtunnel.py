@@ -34,7 +34,7 @@ else:
     input_ = input
 
 
-__version__ = '0.0.8.3'
+__version__ = '0.0.8.3.1'
 __author__ = 'pahaz'
 
 
@@ -821,9 +821,9 @@ class SSHTunnelForwarder(object):
 
         if isinstance(ssh_address_or_host, tuple):
             check_address(ssh_address_or_host)
-            (self.ssh_host, ssh_port) = ssh_address_or_host
+            (ssh_host, ssh_port) = ssh_address_or_host
         else:
-            self.ssh_host = ssh_address_or_host
+            ssh_host = ssh_address_or_host
             ssh_port = kwargs.pop('ssh_port', None)
 
         if kwargs:
@@ -839,12 +839,13 @@ class SSHTunnelForwarder(object):
         self._local_binds = self._consolidate_binds(self._local_binds,
                                                     self._remote_binds)
 
-        (self.ssh_username,
+        (self.ssh_host,
+         self.ssh_username,
          ssh_pkey,  # still needs to go through _consolidate_auth
          self.ssh_port,
          self.ssh_proxy,
          self.compression) = self._read_ssh_config(
-             self.ssh_host,
+             ssh_host,
              ssh_config_file,
              ssh_username,
              ssh_pkey,
@@ -860,9 +861,6 @@ class SSHTunnelForwarder(object):
             allow_agent=allow_agent,
             logger=self.logger
         )
-
-        if not self.ssh_port:
-            self.ssh_port = 22  # fallback value
 
         check_host(self.ssh_host)
         check_port(self.ssh_port)
@@ -908,7 +906,9 @@ class SSHTunnelForwarder(object):
                 ssh_pkey or
                 hostname_info.get('identityfile', [None])[0]
             )
+            ssh_host = hostname_info.get('hostname')
             ssh_port = ssh_port or hostname_info.get('port')
+
             proxycommand = hostname_info.get('proxycommand')
             ssh_proxy = ssh_proxy or (paramiko.ProxyCommand(proxycommand) if
                                       proxycommand else None)
@@ -925,9 +925,10 @@ class SSHTunnelForwarder(object):
             if logger:
                 logger.info('Skipping loading of ssh config file')
         finally:
-            return (ssh_username or getpass.getuser(),
+            return (ssh_host,
+                    ssh_username or getpass.getuser(),
                     ssh_pkey,
-                    ssh_port,
+                    int(ssh_port) if ssh_port else 22,  # fallback value
                     ssh_proxy,
                     compression)
 

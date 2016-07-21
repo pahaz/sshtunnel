@@ -1165,7 +1165,8 @@ class AuxiliaryTest(unittest.TestCase):
 
     def test_read_ssh_config(self):
         """ Test that we can gather host information from a config file """
-        (ssh_username,
+        (ssh_hostname,
+         ssh_username,
          ssh_private_key,
          ssh_port,
          ssh_proxy,
@@ -1173,22 +1174,26 @@ class AuxiliaryTest(unittest.TestCase):
              'test',
              get_test_data_path(TEST_CONFIG_FILE),
         )
+        self.assertEqual(ssh_hostname, 'test')
         self.assertEqual(ssh_username, 'test')
-        self.assertTrue(compression)
         self.assertEqual(PKEY_FILE, ssh_private_key)
+        self.assertEqual(ssh_port, 22)  # fallback value
         self.assertListEqual(ssh_proxy.cmd[-2:], ['test:22', 'sshproxy'])
-        self.assertIsNone(ssh_port)  # non-existing value
+        self.assertTrue(compression)
 
         # passed parameters are not overriden by config
-        (ssh_username,
+        (ssh_hostname,
+         ssh_username,
          ssh_private_key,
          ssh_port,
          ssh_proxy,
          compression) = sshtunnel.SSHTunnelForwarder._read_ssh_config(
-             'test',
+             'other',
              get_test_data_path(TEST_CONFIG_FILE),
              compression=False
         )
+        self.assertEqual(ssh_hostname, '10.0.0.1')
+        self.assertEqual(ssh_port, 222)
         self.assertFalse(compression)
 
     def test_str(self):
