@@ -1019,8 +1019,9 @@ class SSHTunnelForwarder(object):
             _socket = self.ssh_proxy
         else:
             _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        _socket.settimeout(SSH_TIMEOUT)
-        _socket.connect((self.ssh_host, self.ssh_port))
+        if isinstance(_socket, socket.socket):
+            _socket.settimeout(SSH_TIMEOUT)
+            _socket.connect((self.ssh_host, self.ssh_port))
         transport = paramiko.Transport(_socket)
         transport.set_keepalive(self.set_keepalive)
         transport.use_compression(compress=self.compression)
