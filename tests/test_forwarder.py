@@ -496,7 +496,6 @@ class SSHClientTest(unittest.TestCase):
         self._check_server_auth()
         server.stop()
 
-
     def test_sshaddress_and_sshaddressorhost_mutually_exclusive(self):
         """
         Test that deprecate argument ssh_address cannot be used together with
