@@ -271,68 +271,69 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
     remote_address = None
     ssh_transport = None
     logger = None
+    info = None
+
+    def _redirect(self, chan):
+        while True:
+            rqst, _, _ = select([self.request, chan], [], [], 5)
+            if self.request in rqst:
+                data = self.request.recv(1024)
+                if TRACE:
+                    self.logger.info('<<< {0} recv: {1} <<<'
+                                     .format(self.info, repr(data)))
+                chan.send(data)
+                if len(data) == 0:
+                    break
+            if chan in rqst:  # else
+                data = chan.recv(1024)
+                if TRACE:
+                    self.logger.info('>>> {0} recv: {1} >>>'
+                                     .format(self.info, repr(data)))
+                self.request.send(data)
+                if len(data) == 0:
+                    break
 
     def handle(self):
         uid = get_connection_id()
-        info = 'In #{0} <-- {1}'.format(uid, self.client_address or
-                                        self.server.local_address)
+        self.info = 'In #{0} <-- {1}'.format(uid, self.client_address or
+                                             self.server.local_address)
         try:
-            assert isinstance(self.remote_address, tuple)
             src_address = self.request.getpeername()
             if not isinstance(src_address, tuple):
                 src_address = ('dummy', 12345)
             chan = self.ssh_transport.open_channel('direct-tcpip',
                                                    self.remote_address,
                                                    src_address)
-        except AssertionError:
-            msg = 'Remote address MUST be a tuple (IP:port): {0}' \
-                .format(self.remote_address)
-            self.logger.error(msg)
-            raise HandlerSSHTunnelForwarderError(msg)
         except paramiko.SSHException as e:
-            msg = '{0} to {1} failed: {2}' \
-                .format(info, self.remote_address, repr(e))
+            msg = '{0} to {1} failed: {2}'.format(self.info,
+                                                  self.remote_address,
+                                                  repr(e))
             self.logger.error(msg)
             raise HandlerSSHTunnelForwarderError(msg)
 
         if chan is None:
-            msg = '{0} to {1} was rejected ' \
-                  'by the SSH server.'.format(info, self.remote_address)
+            msg = '{0} to {1} was rejected by the SSH server'.format(
+                self.info,
+                self.remote_address
+            )
             self.logger.error(msg)
             raise HandlerSSHTunnelForwarderError(msg)
 
-        self.logger.info('{0} connected'.format(info))
+        self.logger.info('{0} connected'.format(self.info))
         try:
-            while True:
-                rqst, _, _ = select([self.request, chan], [], [], 5)
-                if self.request in rqst:
-                    data = self.request.recv(1024)
-                    if TRACE:
-                        self.logger.info('<<< {0} recv: {1} <<<'
-                                         .format(info, repr(data)))
-                    chan.send(data)
-                    if len(data) == 0:
-                        break
-                if chan in rqst:  # else
-                    data = chan.recv(1024)
-                    if TRACE:
-                        self.logger.info('>>> {0} recv: {1} >>>'
-                                         .format(info, repr(data)))
-                    self.request.send(data)
-                    if len(data) == 0:
-                        break
+            self._redirect(chan)
         except socket.error:
             # Sometimes a RST is sent and a socket error is raised, treat this
             # exception. It was seen that a 3way FIN is processed later on, so
             # no need to make an ordered close of the connection here or raise
             # the exception beyond this point...
-            self.logger.warning('{0} sending RST'.format(info))
+            self.logger.warning('{0} sending RST'.format(self.info))
         except Exception as e:
-            self.logger.error('{0} error: {1}'.format(info, repr(e)))
+            self.logger.error('{0} error: {1}'.format(self.info, repr(e)))
         finally:
             chan.close()
             self.request.close()
-            self.logger.info('{0} connection closed.'.format(info))
+            self.logger.info('{0} connection closed.'.format(self.info))
 
 
 class _ForwardServer(socketserver.TCPServer):  # Not Threading
