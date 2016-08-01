@@ -34,7 +34,7 @@ else:
     input_ = input
 
 
-__version__ = '0.0.8.3.1'
+__version__ = '0.1.0'
 __author__ = 'pahaz'
 
 
@@ -717,7 +717,7 @@ class SSHTunnelForwarder(object):
 
     def _make_ssh_forward_handler_class(self, remote_address_):
         """
-        Make SSH Handler class.
+        Make SSH Handler class
         """
         _Handler = _ForwardHandler
         if not issubclass(_Handler, socketserver.BaseRequestHandler):
@@ -741,7 +741,7 @@ class SSHTunnelForwarder(object):
 
     def _make_ssh_forward_server(self, remote_address, local_bind_address):
         """
-        Make SSH forward proxy Server class.
+        Make SSH forward proxy Server class
         """
         _Handler = self._make_ssh_forward_handler_class(remote_address)
 
@@ -759,9 +759,8 @@ class SSHTunnelForwarder(object):
             else:
                 self._raise(
                     BaseSSHTunnelForwarderError,
-                    'Problem with make ssh {0} <> {1} forwarder. You can '
-                    'suppress this exception by using the '
-                    '`raise_exception_if_any_forwarder_have_a_problem` '
+                    'Problem setting up ssh {0} <> {1} forwarder. You can '
+                    'suppress this exception by using the `mute_exceptions`'
                     'argument'.format(address_to_str(local_bind_address),
                                       address_to_str(remote_address))
                 )
@@ -831,11 +830,11 @@ class SSHTunnelForwarder(object):
 
         # remote binds
         self._remote_binds = self._get_binds(remote_bind_address,
-                                             remote_bind_addresses)
+                                             remote_bind_addresses,
+                                             is_remote=True)
         # local binds
         self._local_binds = self._get_binds(local_bind_address,
-                                            local_bind_addresses,
-                                            is_remote=False)
+                                            local_bind_addresses)
         self._local_binds = self._consolidate_binds(self._local_binds,
                                                     self._remote_binds)
 
@@ -852,7 +851,8 @@ class SSHTunnelForwarder(object):
              ssh_port,
              ssh_proxy if ssh_proxy_enabled else None,
              compression,
-             self.logger)
+             self.logger
+        )
 
         (self.ssh_password, self.ssh_pkeys) = self._consolidate_auth(
             ssh_password=ssh_password,
@@ -1044,8 +1044,8 @@ class SSHTunnelForwarder(object):
             self.logger.error(msg)
             raise BaseSSHTunnelForwarderError(msg)
         except (paramiko.SSHException, socket.error) as e:
-            template = 'Could not connect to gateway: {0} ({1})'
-            msg = template.format(self.ssh_host, e.args)
+            template = 'Could not connect to gateway {0}:{1} : {2}'
+            msg = template.format(self.ssh_host, self.ssh_port, e.args)
             self.logger.error(msg)
             raise BaseSSHTunnelForwarderError(msg)
         except BaseSSHTunnelForwarderError as e:
@@ -1054,7 +1054,7 @@ class SSHTunnelForwarder(object):
             raise BaseSSHTunnelForwarderError(msg)
 
     @staticmethod
-    def _get_binds(bind_address, bind_addresses, is_remote=True):
+    def _get_binds(bind_address, bind_addresses, is_remote=False):
         addr_kind = 'remote' if is_remote else 'local'
 
         if not bind_address and not bind_addresses:
@@ -1070,6 +1070,11 @@ class SSHTunnelForwarder(object):
                              "them.".format(addr_kind))
         if bind_address:
             bind_addresses = [bind_address]
+        if not is_remote:
+            # Add random port if missing in local bind
+            for (i, local_bind) in enumerate(bind_addresses):
+                if isinstance(local_bind, tuple) and len(local_bind) == 1:
+                    bind_addresses[i] = (local_bind[0], 0)
         check_addresses(bind_addresses, is_remote)
         return bind_addresses
 
@@ -1429,8 +1434,6 @@ class SSHTunnelForwarder(object):
         return reachable
 
     def __str__(self):
-        proxy_str = ('proxy: {0}'.format(self.ssh_proxy.cmd[1]) if
-                     self.ssh_proxy else 'no proxy')
         credentials = {
             'password': self.ssh_password,
             'pkeys': [(key.get_name(), hexlify(key.get_fingerprint()))
@@ -1440,20 +1443,22 @@ class SSHTunnelForwarder(object):
         _remove_none_values(credentials)
         template = os.linesep.join(['{0} object',
                                     'ssh gateway: {1}:{2}',
-                                    '{3}',
+                                    'proxy: {3}',
                                     'username: {4}',
                                     'authentication: {5}',
                                     'hostkey: {6}',
-                                    '{7}started',
+                                    'status: {7}started',
                                     'keepalive messages: {8}',
                                     'local tunnel side detection: {9}',
-                                    'concurrent connections {10}allowed',
-                                    'compression {11}requested',
-                                    'logging level: {12}'])
+                                    'concurrent connections: {10}allowed',
+                                    'compression: {11}requested',
+                                    'logging level: {12}',
+                                    'local binds: {13}',
+                                    'remote binds: {14}'])
         return (template.format(
             self.__class__,
             self.ssh_host, self.ssh_port,
-            proxy_str,
+            self.ssh_proxy.cmd[1] if self.ssh_proxy else 'no',
             self.ssh_username,
             credentials,
             self.ssh_host_key if self.ssh_host_key else'not checked',
@@ -1463,7 +1468,9 @@ class SSHTunnelForwarder(object):
             'enabled' if self.is_use_local_check_up else 'disabled',
             '' if self._threaded else 'not ',
             '' if self.compression else 'not ',
-            logging.getLevelName(self.logger.level)
+            logging.getLevelName(self.logger.level),
+            self._local_binds,
+            self._remote_binds,
         ))
 
     def __repr__(self):
