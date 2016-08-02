@@ -109,7 +109,7 @@ class MockLoggingHandler(logging.Handler, object):
 
     def __init__(self, *args, **kwargs):
         self.messages = {'debug': [], 'info': [], 'warning': [], 'error': [],
-                         'critical': []}
+                         'critical': [], 'trace': []}
         super(MockLoggingHandler, self).__init__(*args, **kwargs)
 
     def emit(self, record):
@@ -427,16 +427,16 @@ class SSHClientTest(unittest.TestCase):
             remote_bind_address=(self.eaddr, self.eport),
             logger=self.log,
         ) as server:
-            MESSAGE = get_random_string().encode()
-            LOCAL_BIND_ADDR = ('127.0.0.1', server.local_bind_port)
+            message = get_random_string().encode()
+            local_bind_addr = ('127.0.0.1', server.local_bind_port)
             self.log.info('_test_server(): try connect!')
-            s = socket.create_connection(LOCAL_BIND_ADDR)
+            s = socket.create_connection(local_bind_addr)
             self.log.info('_test_server(): connected from {0}! try send!'
                           .format(s.getsockname()))
-            s.send(MESSAGE)
+            s.send(message)
             self.log.info('_test_server(): sent!')
             z = (s.recv(1000))
-            self.assertEqual(z, MESSAGE)
+            self.assertEqual(z, message)
             s.close()
 
     def test_connect_by_username_password(self):
@@ -1056,6 +1056,36 @@ class SSHClientTest(unittest.TestCase):
             logger=self.log,
         ) as server:
             self.assertEqual(server.local_bind_address, TEST_UNIX_SOCKET)
+
+    @unittest.skipIf(sys.version_info < (2, 7),
+                     reason="Cannot intercept logging messages in py26")
+    def test_tracing_logging(self):
+        """
+        Test that Tracing mode may be enabled for more fine-grained logs
+        """
+        logger = sshtunnel.create_logger(logger=self.log,
+                                         loglevel='TRACE')
+        with self._test_server(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=logger,
+        ) as server:
+            server.logger = sshtunnel.create_logger(logger=server.logger,
+                                                    loglevel='TRACE')
+            message = get_random_string(100).encode()
+            s = socket.create_connection(server.local_bind_address)
+            s.send(message)
+            s.recv(100)
+            s.close
+            log = 'send to {0}'.format((self.eaddr, self.eport))
+
+        self.assertTrue(any(log in l for l in
+                            self.sshtunnel_log_messages['trace']))
+        # set loglevel back to the original value
+        logger = sshtunnel.create_logger(logger=self.log,
+                                         loglevel='DEBUG')
 
 
 class AuxiliaryTest(unittest.TestCase):

@@ -41,9 +41,9 @@ __author__ = 'pahaz'
 DEFAULT_LOGLEVEL = logging.ERROR  #: default level if no logger passed (ERROR)
 LOCAL_CHECK_TIMEOUT = 1.0  #: Timeout (seconds) for local tunnel side detection
 DAEMON = False
-TRACE = False
+TRACE_LEVEL = 1
 _CONNECTION_COUNTER = 1
-_lock = threading.Lock()
+_LOCK = threading.Lock()
 #: Timeout (seconds) for the connection to the SSH gateway, ``None`` to disable
 SSH_TIMEOUT = None
 SSH_CONFIG_FILE = '~/.ssh/config'  #: Path of optional ssh configuration file
@@ -53,6 +53,8 @@ DEPRECATIONS = {
     'ssh_private_key': 'ssh_pkey',
     'raise_exception_if_any_forwarder_have_a_problem': 'mute_exceptions'
 }
+
+logging.addLevelName(TRACE_LEVEL, 'TRACE')
 
 if os.name == 'posix':
     UnixStreamServer = socketserver.UnixStreamServer
@@ -164,6 +166,8 @@ def create_logger(logger=None,
             :class:`logging.Logger`'s level, either as a string (i.e.
             ``ERROR``) or in numeric format (10 == ``DEBUG``)
 
+            .. note:: a value of 1 == ``TRACE`` enables Tracing mode
+
         capture_warnings (boolean):
             Enable/disable capturing the events logged by the warnings module
             into ``logger``'s handlers
@@ -231,7 +235,7 @@ def address_to_str(address):
 
 def get_connection_id():
     global _CONNECTION_COUNTER
-    with _lock:
+    with _LOCK:
         uid = _CONNECTION_COUNTER
         _CONNECTION_COUNTER += 1
     return uid
@@ -278,25 +282,28 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
             rqst, _, _ = select([self.request, chan], [], [], 5)
             if self.request in rqst:
                 data = self.request.recv(1024)
-                if TRACE:
-                    self.logger.info('<<< {0} recv: {1} <<<'
-                                     .format(self.info, repr(data)))
+                self.logger.log(TRACE_LEVEL,
+                                '<<< In {0} recv: {1} <<<'.format(self.info,
+                                                                  repr(data)))
                 chan.send(data)
                 if len(data) == 0:
                     break
             if chan in rqst:  # else
                 data = chan.recv(1024)
-                if TRACE:
-                    self.logger.info('>>> {0} recv: {1} >>>'
-                                     .format(self.info, repr(data)))
+                self.logger.log(TRACE_LEVEL,
+                                '>>> Out {0} send to {1}: {2} >>>'.format(
+                                    self.info,
+                                    self.remote_address,
+                                    repr(data)
+                                ))
                 self.request.send(data)
                 if len(data) == 0:
                     break
 
     def handle(self):
         uid = get_connection_id()
-        self.info = 'In #{0} <-- {1}'.format(uid, self.client_address or
-                                             self.server.local_address)
+        self.info = '#{0} <-- {1}'.format(uid, self.client_address or
+                                          self.server.local_address)
         try:
             src_address = self.request.getpeername()
             if not isinstance(src_address, tuple):
@@ -766,10 +773,14 @@ class SSHTunnelForwarder(object):
                                       address_to_str(remote_address))
                 )
         except IOError:
-            self.logger.error("Couldn't open tunnel {0} <> {1} "
-                              "might be in use or destination not reachable."
-                              .format(address_to_str(local_bind_address),
-                                      address_to_str(remote_address)))
+            self._raise(
+                BaseSSHTunnelForwarderError,
+                "Couldn't open tunnel {0} <> {1} might be in use or "
+                "destination not reachable".format(
+                    address_to_str(local_bind_address),
+                    address_to_str(remote_address)
+                )
+            )
 
     def __init__(
             self,
@@ -1050,7 +1061,7 @@ class SSHTunnelForwarder(object):
             self.logger.error(msg)
             raise BaseSSHTunnelForwarderError(msg)
         except BaseSSHTunnelForwarderError as e:
-            msg = 'Problem setting SSH Forwarder up: {0}'.format(repr(e))
+            msg = 'Problem setting SSH Forwarder up: {0}'.format(repr(e.args))
             self.logger.error(msg)
             raise BaseSSHTunnelForwarderError(msg)
 
@@ -1166,8 +1177,8 @@ class SSHTunnelForwarder(object):
                 self.check_local_side_of_tunnels()
             self._is_started = True
         except (BaseSSHTunnelForwarderError,
-                HandlerSSHTunnelForwarderError) as e:
-            self._raise(reason=e)
+                HandlerSSHTunnelForwarderError) as exc:
+            self._raise(reason=exc.args[0])
 
     def stop(self):
         """
@@ -1499,12 +1510,14 @@ def open_tunnel(*args, **kwargs):
     Arguments:
         destination (Optional[tuple]):
             SSH server's IP address and port in the format
-            (ssh_address, ssh_port)
+            (``ssh_address``, ``ssh_port``)
 
     Keyword Arguments:
         debug_level (Optional[int or str]):
-            debug level for :class`logging.Logger` instance, i.e. 'DEBUG'
+            debug level for :class:`logging.Logger` instance, i.e. ``DEBUG``
 
+    .. note::
+        A value of `debug_level` set to 1 == ``TRACE`` enables tracing mode
     .. note::
         See :class:`SSHTunnelForwarder` for keyword arguments
 
@@ -1716,7 +1729,11 @@ def _cli_main(args=None):
     """
     arguments = _parse_arguments(args)
     verbosity = min(arguments.pop('verbose'), 3)
-    levels = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+    levels = [logging.ERROR,
+              logging.WARNING,
+              logging.INFO,
+              logging.DEBUG,
+              TRACE_LEVEL]
     arguments.setdefault('debug_level', levels[verbosity])
 
     with open_tunnel(**arguments) as tunnel:
