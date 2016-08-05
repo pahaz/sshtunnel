@@ -19,7 +19,7 @@ CHANGELOG
     + Several bugfixes (#49, #56, #57, #59, #60, #62, #64, #66, ...)
       (`Pahaz Blinov`_, `JM Fernández`_)
     + Add TRACE logging level (`JM Fernández`_)
-    + Tests refactoring
+    + Code and tests refactoring (`JM Fernández`_)
 - v.0.0.8 (`JM Fernández`_)
     + Merge `#31`_: Support Unix domain socket (local) forwarding (`Dan Harbin`_)
     + Simplify API (`JM Fernández`_)
