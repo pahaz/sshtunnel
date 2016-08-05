@@ -129,7 +129,7 @@ class MockLoggingHandler(logging.Handler, object):
             self.release()
 
 
-class NullServer (paramiko.ServerInterface):
+class NullServer(paramiko.ServerInterface):
     def __init__(self, *args, **kwargs):
         # Allow tests to enable/disable specific key types
         self.__allowed_keys = kwargs.pop('allowed_keys', [])
@@ -206,7 +206,8 @@ class SSHClientTest(unittest.TestCase):
         super(SSHClientTest, cls).setUpClass()
         socket.setdefaulttimeout(sshtunnel.SSH_TIMEOUT)
         cls.log = logging.getLogger(sshtunnel.__name__)
-        cls.log = sshtunnel.create_logger(logger=cls.log, loglevel='DEBUG')
+        cls.log = sshtunnel.create_logger(logger=cls.log,
+                                          loglevel='DEBUG')
         cls._sshtunnel_log_handler = MockLoggingHandler(level='DEBUG')
         cls.log.addHandler(cls._sshtunnel_log_handler)
         cls.sshtunnel_log_messages = cls._sshtunnel_log_handler.messages
@@ -247,7 +248,8 @@ class SSHClientTest(unittest.TestCase):
         while self.running_threads:
             for thread in self.running_threads:
                 x = self.threads[thread]
-                self.wait_for_thread(self.threads[thread], who='tearDown')
+                self.wait_for_thread(self.threads[thread],
+                                     who='tearDown')
                 if not x.is_alive():
                     self.log.info('thread {0} now stopped'.format(thread))
 
@@ -288,12 +290,12 @@ class SSHClientTest(unittest.TestCase):
 
     @contextmanager
     def _test_server(self, *args, **kwargs):
-        server = SSHTunnelForwarder(*args, **kwargs)
         self.start_echo_and_ssh_server()
+        server = SSHTunnelForwarder(*args, **kwargs)
         server.start()
         self._check_server_auth()
         yield server
-        server.stop()
+        server._stop_transport()
 
     def start_echo_server(self):
         t = threading.Thread(target=self._run_echo_server,
@@ -316,7 +318,8 @@ class SSHClientTest(unittest.TestCase):
             get_test_data_path(PKEY_FILE)
         )
         self.ts.add_server_key(host_key)
-        server = NullServer(allowed_keys=FINGERPRINTS.keys(), log=self.log)
+        server = NullServer(allowed_keys=FINGERPRINTS.keys(),
+                            log=self.log)
         t = threading.Thread(target=self._do_forwarding,
                              name='forward-server')
         t.daemon = DAEMON_THREADS
@@ -324,7 +327,9 @@ class SSHClientTest(unittest.TestCase):
         self.threads[t.name] = t
         t.start()
         self.ts.start_server(self.ssh_event, server)
-        self.wait_for_thread(t, timeout=None, who='ssh-server')
+        self.wait_for_thread(t,
+                             timeout=None,
+                             who='ssh-server')
         self.log.info('ssh-server shutting down')
         self.running_threads.remove('ssh-server')
 
@@ -763,6 +768,8 @@ class SSHClientTest(unittest.TestCase):
         ) as server:
             self.assertNotIn('Already started!',
                              self.sshtunnel_log_messages['warning'])
+            server.logger.error(server.is_active)
+            server.logger.error(server.is_alive)
             server.start()  # 2nd start should prompt the warning
             self.assertIn('Already started!',
                           self.sshtunnel_log_messages['warning'])
@@ -851,20 +858,6 @@ class SSHClientTest(unittest.TestCase):
         self.assertEqual(server.ssh_username, getpass.getuser())
         self.assertIn('Skipping loading of ssh config file',
                       self.sshtunnel_log_messages['info'])
-
-    def test_local_tunnel_side_check(self):
-        """ Test check_lcoal_side_of_tunnels method """
-        ssh_key = paramiko.RSAKey.from_private_key_file(
-            get_test_data_path('testrsa.key'))
-        server = SSHTunnelForwarder(
-            (self.saddr, self.sport),
-            ssh_username=SSH_USERNAME,
-            ssh_pkey=ssh_key,
-            remote_bind_address=(self.eaddr, self.eport),
-            logger=self.log,
-        )
-        server.is_use_local_check_up = True
-        self._test_server(server)
 
     def test_local_bind_port(self):
         """ Test local_bind_port property """
@@ -974,20 +967,24 @@ class SSHClientTest(unittest.TestCase):
 
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
-    def test_local_is_up(self):
-        """ Test method checking if local side of tunnel is up """
+    def test_check_tunnels(self):
+        """ Test method checking if tunnels are up """
+        remote_address = (self.eaddr, self.eport)
         with self._test_server(
             (self.saddr, self.sport),
             ssh_username=SSH_USERNAME,
             ssh_password=SSH_PASSWORD,
-            remote_bind_address=(self.eaddr, self.eport),
+            remote_bind_address=remote_address,
             logger=self.log,
         ) as server:
-            server.check_local_side_of_tunnels()
+            server.skip_tunnel_checkup = False
+            server.check_tunnels()
+            self.assertIn('Tunnel to {0} is UP'.format(remote_address),
+                          self.sshtunnel_log_messages['debug'])
 
-        server.check_local_side_of_tunnels()
-        self.assertIn('An error occurred while opening tunnels.',
-                      self.sshtunnel_log_messages['error'])
+        server.check_tunnels()
+        self.assertIn('Tunnel to {0} is DOWN'.format(remote_address),
+                      self.sshtunnel_log_messages['debug'])
 
         self.assertFalse(server.local_is_up("not a valid address"))
         self.assertIn('Target must be a tuple (IP, port), where IP '
@@ -1256,7 +1253,7 @@ class AuxiliaryTest(unittest.TestCase):
         self.assertIn('ssh gateway: test:22', _str)
         self.assertIn('proxy: no', _str)
         self.assertIn('username: {0}'.format(getpass.getuser()), _str)
-        self.assertIn('status: Not started', _str)
+        self.assertIn('status: not started', _str)
 
     def test_process_deprecations(self):
         """ Test processing deprecated API attributes """
