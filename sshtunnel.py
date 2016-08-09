@@ -803,6 +803,7 @@ class SSHTunnelForwarder(object):
             threaded=True,  # old version False
             compression=None,
             allow_agent=True,  # look for keys from an SSH agent
+            *args,
             **kwargs  # for backwards compatibility
     ):
         self.logger = logger or create_logger()
@@ -901,6 +902,8 @@ class SSHTunnelForwarder(object):
         (ssh_proxy) entries for ssh_host
         """
         ssh_config = paramiko.SSHConfig()
+        if not ssh_config_file:  # handle case where it's an empty string
+            ssh_config_file = None
 
         # Try to read SSH_CONFIG_FILE
         try:
@@ -936,7 +939,7 @@ class SSHTunnelForwarder(object):
                 )
         except (AttributeError, TypeError):  # ssh_config_file is None
             if logger:
-                logger.info('Skipping loading of ssh config file')
+                logger.info('Skipping loading of ssh configuration file')
         finally:
             return (ssh_host,
                     ssh_username or getpass.getuser(),
@@ -1544,22 +1547,15 @@ def open_tunnel(*args, **kwargs):
 
             do_something(server.local_bind_port)
     """
-    # Remove all "None" input values
-    _remove_none_values(kwargs)
-
-    # if ssh_config_file is None, skip config file lookup
-    if 'ssh_config_file' not in kwargs:  # restore it as None
-        kwargs['ssh_config_file'] = None
-
     # Attach a console handler to the logger or create one if not passed
     kwargs['logger'] = create_logger(logger=kwargs.get('logger', None),
                                      loglevel=kwargs.pop('debug_level', None))
 
-    ssh_address = kwargs.pop('ssh_address_or_host', None)
+    ssh_address_or_host = kwargs.pop('ssh_address_or_host', None)
     # Check if deprecated arguments ssh_address or ssh_host were used
     for deprecated_argument in ['ssh_address', 'ssh_host']:
-        ssh_address = SSHTunnelForwarder._process_deprecated(
-            ssh_address,
+        ssh_address_or_host = SSHTunnelForwarder._process_deprecated(
+            ssh_address_or_host,
             deprecated_argument,
             kwargs
         )
@@ -1567,7 +1563,10 @@ def open_tunnel(*args, **kwargs):
     ssh_port = kwargs.pop('ssh_port', None)
     skip_tunnel_checkup = kwargs.pop('skip_tunnel_checkup', True)
     if not args:
-        args = ((ssh_address, ssh_port), )
+        if isinstance(ssh_address_or_host, tuple):
+            args = (ssh_address_or_host, )
+        else:
+            args = ((ssh_address_or_host, ssh_port), )
     forwarder = SSHTunnelForwarder(*args, **kwargs)
     forwarder.skip_tunnel_checkup = skip_tunnel_checkup
     return forwarder
@@ -1607,30 +1606,41 @@ def _parse_arguments(args=None):
     )
 
     parser.add_argument(
-        'ssh_address', type=str,
+        'ssh_address',
+        type=str,
         help='SSH server IP address (GW for SSH tunnels)\n'
              'set with "-- ssh_address" if immediately after '
              '-R or -L'
     )
 
     parser.add_argument(
-        '-U', '--username', type=str, dest='ssh_username',
+        '-U', '--username',
+        type=str,
+        dest='ssh_username',
         help='SSH server account username'
     )
 
     parser.add_argument(
-        '-p', '--server_port', type=int, dest='ssh_port', default=22,
+        '-p', '--server_port',
+        type=int,
+        dest='ssh_port',
+        default=22,
         help='SSH server TCP port (default: 22)'
     )
 
     parser.add_argument(
-        '-P', '--password', type=str, dest='ssh_password',
+        '-P', '--password',
+        type=str,
+        dest='ssh_password',
         help='SSH server account password'
     )
 
     parser.add_argument(
-        '-R', '--remote_bind_address', type=_bindlist,
-        nargs='+', default=[], metavar='IP:PORT',
+        '-R', '--remote_bind_address',
+        type=_bindlist,
+        nargs='+',
+        default=[],
+        metavar='IP:PORT',
         required=True,
         dest='remote_bind_addresses',
         help='Remote bind address sequence: '
@@ -1641,8 +1651,11 @@ def _parse_arguments(args=None):
     )
 
     parser.add_argument(
-        '-L', '--local_bind_address', type=_bindlist, nargs='*',
-        dest='local_bind_addresses', metavar='IP:PORT',
+        '-L', '--local_bind_address',
+        type=_bindlist,
+        nargs='*',
+        dest='local_bind_addresses',
+        metavar='IP:PORT',
         help='Local bind address sequence: '
              'ip_1:port_1 ip_2:port_2 ... ip_n:port_n\n'
              'Elements may also be valid UNIX socket domains: \n'
@@ -1655,59 +1668,76 @@ def _parse_arguments(args=None):
     )
 
     parser.add_argument(
-        '-k', '--ssh_host_key', type=str,
+        '-k', '--ssh_host_key',
+        type=str,
         help="Gateway's host key"
     )
 
     parser.add_argument(
-        '-K', '--private_key_file', dest='ssh_private_key',
+        '-K', '--private_key_file',
+        dest='ssh_private_key',
         metavar='KEY_FILE',
-        type=str, help='RSA/DSS/ECDSA private key file'
+        type=str,
+        help='RSA/DSS/ECDSA private key file'
     )
 
     parser.add_argument(
-        '-S', '--private_key_password', dest='ssh_private_key_password',
+        '-S', '--private_key_password',
+        dest='ssh_private_key_password',
         metavar='KEY_PASSWORD',
-        type=str, help='RSA/DSS/ECDSA private key password'
+        type=str,
+        help='RSA/DSS/ECDSA private key password'
     )
 
     parser.add_argument(
-        '-t', '--threaded', action='store_true',
+        '-t', '--threaded',
+        action='store_true',
         help='Allow concurrent connections to each tunnel'
     )
 
     parser.add_argument(
-        '-v', '--verbose', action='count', default=0,
+        '-v', '--verbose',
+        action='count',
+        default=0,
         help='Increase output verbosity (default: {0})'.format(
             logging.getLevelName(DEFAULT_LOGLEVEL)
         )
     )
 
     parser.add_argument(
-        '-V', '--version', action='version',
+        '-V', '--version',
+        action='version',
         version='%(prog)s {version}'.format(version=__version__),
         help='Show version number and quit'
     )
 
     parser.add_argument(
-        '-x', '--proxy', type=_bindlist,
-        dest='ssh_proxy', metavar='IP:PORT',
+        '-x', '--proxy',
+        type=_bindlist,
+        dest='ssh_proxy',
+        metavar='IP:PORT',
         help='IP and port of SSH proxy to destination'
     )
 
     parser.add_argument(
-        '-c', '--config', type=str,
-        default=SSH_CONFIG_FILE, dest='ssh_config_file',
+        '-c', '--config',
+        type=str,
+        default=SSH_CONFIG_FILE,
+        dest='ssh_config_file',
         help='SSH configuration file, defaults to {0}'.format(SSH_CONFIG_FILE)
     )
 
     parser.add_argument(
-        '-z', '--compress', action='store_true', dest='compression',
+        '-z', '--compress',
+        action='store_true',
+        dest='compression',
         help='Request server for compression over SSH transport'
     )
 
     parser.add_argument(
-        '-n', '--noagent', action='store_false', dest='allow_agent',
+        '-n', '--noagent',
+        action='store_false',
+        dest='allow_agent',
         help='Disable looking for keys from an SSH agent'
     )
     return vars(parser.parse_args(args))
@@ -1735,6 +1765,8 @@ def _cli_main(args=None):
         -n (noagent), disable looking for keys from an Agent
     """
     arguments = _parse_arguments(args)
+    # Remove all "None" input values
+    _remove_none_values(arguments)
     verbosity = min(arguments.pop('verbose'), 4)
     levels = [logging.ERROR,
               logging.WARNING,
