@@ -18,7 +18,6 @@ import mock
 import paramiko
 import sshtunnel
 
-
 if sys.version_info[0] == 2:
     from cStringIO import StringIO
     if sys.version_info < (2, 7):

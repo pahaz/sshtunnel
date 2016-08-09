@@ -11,16 +11,16 @@ The connection(s) are closed when explicitly calling the
 
 """
 
+import os
 import sys
 import socket
 import getpass
 import logging
-import os
 import argparse
 import warnings
 import threading
-from binascii import hexlify
 from select import select
+from binascii import hexlify
 
 import paramiko
 
@@ -98,7 +98,6 @@ def check_address(address):
             raised when address has an incorrect format
 
     Example:
-
         >>> check_address(('127.0.0.1', 22))
     """
     if isinstance(address, tuple):
@@ -184,7 +183,7 @@ def create_logger(logger=None,
 
             Default: True
     Return:
-        logging.Logger
+        :class:`logging.Logger`
     """
     logger = logger or logging.getLogger(
         '{0}.SSHTunnelForwarder'.format(__name__)
@@ -374,10 +373,8 @@ class _ForwardServer(socketserver.TCPServer):  # Not Threading
         self.logger = create_logger(kwargs.pop('logger', None))
         self.tunnel_ok = queue.Queue()
         socketserver.TCPServer.__init__(self, *args, **kwargs)
-        # super(_ForwardServer, self).__init__(*args, **kwargs)
 
     def serve_forever(self, poll_interval=0.5):
-        # super(_ForwardServer, self).serve_forever(poll_interval)
         socketserver.TCPServer.serve_forever(self, poll_interval)
 
     def handle_error(self, request, client_address):
@@ -559,10 +556,10 @@ class SSHTunnelForwarder(object):
         local_bind_address (tuple):
             Local tuple in the format (``str``, ``int``) representing the
             IP and port of the local side of the tunnel. Both elements in
-            the tuple are optional so both ('', 8000) and ('10.0.0.1', )
-            are valid values
+            the tuple are optional so both ``('', 8000)`` and
+            ``('10.0.0.1', )`` are valid values
 
-            Default: ('0.0.0.0', ``RANDOM PORT``)
+            Default: ``('0.0.0.0', RANDOM_PORT)``
 
             .. versionchanged:: 0.0.8
                 Added the ability to use a UNIX domain socket as local bind
@@ -573,7 +570,7 @@ class SSHTunnelForwarder(object):
             of tuples (in the same format as ``local_bind_address``)
             can be specified, such as [(ip1, port_1), (ip_2, port2), ...]
 
-            Default: [``local_bind_address``]
+            Default: ``[local_bind_address]``
 
             .. versionadded:: 0.0.4
 
@@ -586,7 +583,7 @@ class SSHTunnelForwarder(object):
             of tuples (in the same format as ``remote_bind_address``)
             can be specified, such as [(ip1, port_1), (ip_2, port2), ...]
 
-            Default: [``remote_bind_address``]
+            Default: ``[remote_bind_address]``
 
             .. versionadded:: 0.0.4
 
@@ -598,8 +595,8 @@ class SSHTunnelForwarder(object):
             .. versionadded:: 0.0.8
 
         compression (boolean):
-            Turn on/off compression. By default compression is off since it
-            negatively affects interactive sessions
+            Turn on/off transport compression. By default compression is
+            disabled since it may negatively affect interactive sessions
 
             Default: ``False``
 
@@ -609,7 +606,8 @@ class SSHTunnelForwarder(object):
             logging instance for sshtunnel and paramiko
 
             Default: :class:`logging.Logger` instance with a single
-            `StreamHandler` handler and :const:`DEFAULT_LOGLEVEL` level
+            :class:`logging.StreamHandler` handler and
+            :const:`DEFAULT_LOGLEVEL` level
 
             .. versionadded:: 0.0.3
 
@@ -679,8 +677,8 @@ class SSHTunnelForwarder(object):
                 This attribute should not be modified
 
             .. note::
-                When ``skip_tunnel_checkup`` is disabled or the local bind is a
-                UNIX socket, the value will always be ``True``
+                When :attr:`.skip_tunnel_checkup` is disabled or the local bind
+                is a UNIX socket, the value will always be ``True``
 
             **Example**::
 
@@ -712,7 +710,7 @@ class SSHTunnelForwarder(object):
             boolean
 
         .. deprecated:: 0.1.0
-            Replaced by ``check_tunnels()`` and ``.tunnel_is_up``
+            Replaced by :meth:`.check_tunnels()` and :attr:`.tunnel_is_up`
         """
         try:
             check_address(target)
@@ -733,10 +731,10 @@ class SSHTunnelForwarder(object):
         """
         Make SSH Handler class
         """
-        Handler = _ForwardHandler
-        Handler.remote_address = remote_address_
-        Handler.ssh_transport = self._transport
-        Handler.logger = self.logger
+        class Handler(_ForwardHandler):
+            remote_address = remote_address_
+            ssh_transport = self._transport
+            logger = self.logger
         return Handler
 
     def _make_ssh_forward_server_class(self, remote_address_):
@@ -1159,7 +1157,7 @@ class SSHTunnelForwarder(object):
         if self.skip_tunnel_checkup:
             self.tunnel_is_up[_srv.local_address] = True
             return
-        self.logger.info('Checking tunnel: {0}'.format(_srv.local_address))
+        self.logger.info('Checking tunnel to: {0}'.format(_srv.remote_address))
         if isinstance(_srv.local_address, string_types):  # UNIX stream
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         else:
@@ -1190,7 +1188,7 @@ class SSHTunnelForwarder(object):
     def check_tunnels(self):
         """
         Check that if all tunnels are established and populates
-        ``self.tunnel_is_up``
+        :attr:`.tunnel_is_up`
         """
         for _srv in self._server_list:
             self._check_tunnel(_srv)
@@ -1213,12 +1211,16 @@ class SSHTunnelForwarder(object):
             thread.daemon = self.daemon_forward_servers
             thread.start()
             self._check_tunnel(_srv)
-            self.is_alive = any(self.tunnel_is_up.values())
-            if not self.is_alive:
-                self._raise(HandlerSSHTunnelForwarderError,
-                            'An error occurred while opening tunnels.')
+        self.is_alive = any(self.tunnel_is_up.values())
+        if not self.is_alive:
+            self._raise(HandlerSSHTunnelForwarderError,
+                        'An error occurred while opening tunnels.')
 
     def _status_ok(self):
+        """
+        Return whether or not everything (underlying transport + tunnels) are
+        already set up
+        """
         try:
             self._check_is_started()
         except HandlerSSHTunnelForwarderError as e:  # tunnels down
@@ -1232,7 +1234,9 @@ class SSHTunnelForwarder(object):
 
     def stop(self):
         """
-        Shut the tunnel down. This has to be handled with care:
+        Shut the tunnel down.
+
+        .. note:: This **had** to be handled with care before ``0.1.0``:
 
             - if a port redirection is opened
             - the destination is not reachable
@@ -1324,7 +1328,7 @@ class SSHTunnelForwarder(object):
             tunnel = _srv.local_address
             if self.tunnel_is_up[tunnel]:
                 self.logger.info('Shutting down tunnel {0}'.format(tunnel))
-            _srv.shutdown()
+                _srv.shutdown()
             _srv.server_close()
             # clean up the UNIX domain socket if we're using one
             if isinstance(_srv, _UnixStreamForwardServer):
@@ -1397,10 +1401,11 @@ class SSHTunnelForwarder(object):
     @property
     def tunnel_bindings(self):
         """
-        Return a dictionary containing the local<>remote tunnel_bindings
+        Return a dictionary containing the active local<>remote tunnel_bindings
         """
         return dict((_server.remote_address, _server.local_address) for
-                    _server in self._server_list)
+                    _server in self._server_list if
+                    self.tunnel_is_up[_server.local_address])
 
     @property
     def is_active(self):
@@ -1513,7 +1518,7 @@ def open_tunnel(*args, **kwargs):
             Enable/disable the local side check and populate
             :attr:`~SSHTunnelForwarder.tunnel_is_up`
 
-            Default: False
+            Default: True
 
             .. versionadded:: 0.1.0
 
@@ -1560,7 +1565,7 @@ def open_tunnel(*args, **kwargs):
         )
 
     ssh_port = kwargs.pop('ssh_port', None)
-    skip_tunnel_checkup = kwargs.pop('skip_tunnel_checkup', False)
+    skip_tunnel_checkup = kwargs.pop('skip_tunnel_checkup', True)
     if not args:
         args = ((ssh_address, ssh_port), )
     forwarder = SSHTunnelForwarder(*args, **kwargs)
