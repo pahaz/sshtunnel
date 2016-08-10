@@ -1,4 +1,4 @@
-|CircleCI| |AppVeyor| |coveralls| |version|
+|CircleCI| |AppVeyor| |teadthedocs| |coveralls| |version|
 
 |DwnMonth| |DwnWeek| |DwnDay|
 
@@ -235,6 +235,9 @@ CLI usage
    :target: https://circleci.com/gh/pahaz/sshtunnel
 .. |AppVeyor| image:: https://ci.appveyor.com/api/projects/status/oxg1vx2ycmnw3xr9?svg=true&passingText=Windows%20-%20OK&failingText=Windows%20-%20Fail
    :target: https://ci.appveyor.com/project/pahaz/sshtunnel
+.. |teadthedocs| image:: https://readthedocs.org/projects/sshtunnel/badge/?version=latest
+   :target: http://sshtunnel.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
 .. |coveralls| image:: https://coveralls.io/repos/github/pahaz/sshtunnel/badge.svg?branch=master
    :target: https://coveralls.io/github/pahaz/sshtunnel?branch=master
 .. |DwnMonth| image:: https://img.shields.io/pypi/dm/sshtunnel.svg
