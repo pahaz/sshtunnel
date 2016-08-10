@@ -1071,6 +1071,7 @@ class SSHClientTest(unittest.TestCase):
             server.logger = sshtunnel.create_logger(logger=server.logger,
                                                     loglevel='TRACE')
             message = get_random_string(100).encode()
+            # Windows raises WinError 10049 if trying to connect to 0.0.0.0
             s = socket.create_connection(('127.0.0.1', server.local_bind_port))
             s.send(message)
             s.recv(100)

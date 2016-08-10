@@ -1183,6 +1183,7 @@ class SSHTunnelForwarder(object):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(TUNNEL_TIMEOUT)
         try:
+            # Windows raises WinError 10049 if trying to connect to 0.0.0.0
             s.connect(('127.0.0.1', _srv.local_port))
             self.tunnel_is_up[_srv.local_address] = _srv.tunnel_ok.get(
                 timeout=TUNNEL_TIMEOUT * 1.1
