@@ -1437,27 +1437,6 @@ class SSHTunnelForwarder(object):
             return True
         return False
 
-    def _get_local_interfaces(self):
-        """
-        Return all local network interface's IP addresses
-        """
-        try:
-            local_if = socket.gethostbyname_ex(socket.gethostname())[-1]
-            # In some Linux distros, if /etc/hosts is populated with the
-            # hostname, it will only return 127.0.0.1
-            if local_if == ['127.0.0.1']:
-                raise socket.gaierror
-        except socket.gaierror:
-            local_if = [[
-                (s.connect((self.ssh_host, self.ssh_port)),
-                 s.getsockname()[0],
-                 s.close())
-                for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]
-            ][0][1]]
-        if '127.0.0.1' not in local_if:
-            local_if.append('127.0.0.1')
-        return local_if
-
     def _check_is_started(self):
         if not self.is_active:  # underlying transport not alive
             msg = 'Server is not started. Please .start() first!'
