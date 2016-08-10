@@ -14,6 +14,7 @@ dependencies:
     - pip install -U ipdb
     - pip install --upgrade tox
     - pip install --upgrade tox-pyenv
+    - pip install virtualenv<14
     - pip install coveralls
     - pyenv local $TOX_PY35 $TOX_PY34 $TOX_PY33 $TOX_PY32 $TOX_PY27 $TOX_PY26
 
