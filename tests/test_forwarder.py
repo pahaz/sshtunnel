@@ -976,9 +976,8 @@ class SSHClientTest(unittest.TestCase):
             ssh_password=SSH_PASSWORD,
             remote_bind_address=remote_address,
             logger=self.log,
+            skip_tunnel_checkup=False,
         ) as server:
-            server.skip_tunnel_checkup = False
-            server.check_tunnels()
             self.assertIn('Tunnel to {0} is UP'.format(remote_address),
                           self.sshtunnel_log_messages['debug'])
 
@@ -1072,7 +1071,7 @@ class SSHClientTest(unittest.TestCase):
             server.logger = sshtunnel.create_logger(logger=server.logger,
                                                     loglevel='TRACE')
             message = get_random_string(100).encode()
-            s = socket.create_connection(server.local_bind_address)
+            s = socket.create_connection(('127.0.0.1', server.local_bind_port))
             s.send(message)
             s.recv(100)
             s.close

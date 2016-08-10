@@ -1183,7 +1183,7 @@ class SSHTunnelForwarder(object):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.settimeout(TUNNEL_TIMEOUT)
         try:
-            s.connect(_srv.local_address)
+            s.connect(('127.0.0.1', _srv.local_port))
             self.tunnel_is_up[_srv.local_address] = _srv.tunnel_ok.get(
                 timeout=TUNNEL_TIMEOUT * 1.1
             )
