@@ -182,51 +182,54 @@ CLI usage
 
 ::
 
+    $ sshtunnel --help
     usage: sshtunnel [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD] -R
                      IP:PORT [IP:PORT ...] [-L [IP:PORT [IP:PORT ...]]]
-                     [-k SSH_HOST_KEY] [-K KEY_FILE] [-S KEY_PASSWORD] [-t]
-                     [-v] [-V] [-x IP:PORT] [-c SSH_CONFIG_FILE] [-z] [-n]
+                     [-k SSH_HOST_KEY] [-K KEY_FILE] [-S KEY_PASSWORD] [-t] [-v]
+                     [-V] [-x IP:PORT] [-c SSH_CONFIG_FILE] [-z] [-n]
                      ssh_address
 
     Pure python ssh tunnel utils
 
     positional arguments:
-      ssh_address           SSH server IP address (GW for ssh tunnels)
+      ssh_address           SSH server IP address (GW for SSH tunnels)
                             set with "-- ssh_address" if immediately after -R or -L
 
     optional arguments:
       -h, --help            show this help message and exit
-      -U, --username SSH_USERNAME
+      -U SSH_USERNAME, --username SSH_USERNAME
                             SSH server account username
-      -p, --server_port SSH_PORT
+      -p SSH_PORT, --server_port SSH_PORT
                             SSH server TCP port (default: 22)
-      -P, --password SSH_PASSWORD
+      -P SSH_PASSWORD, --password SSH_PASSWORD
                             SSH server account password
-      -R, --remote_bind_address IP:PORT [IP:PORT ...]
+      -R IP:PORT [IP:PORT ...], --remote_bind_address IP:PORT [IP:PORT ...]
                             Remote bind address sequence: ip_1:port_1 ip_2:port_2 ... ip_n:port_n
                             Equivalent to ssh -Lxxxx:IP_ADDRESS:PORT
-                            If omitted, default port is 22.
+                            If port is omitted, defaults to 22.
                             Example: -R 10.10.10.10: 10.10.10.10:5900
-      -L, --local_bind_address [IP:PORT [IP:PORT ...]]
+      -L [IP:PORT [IP:PORT ...]], --local_bind_address [IP:PORT [IP:PORT ...]]
                             Local bind address sequence: ip_1:port_1 ip_2:port_2 ... ip_n:port_n
+                            Elements may also be valid UNIX socket domains:
+                            /tmp/foo.sock /tmp/bar.sock ... /tmp/baz.sock
                             Equivalent to ssh -LPORT:xxxxxxxxx:xxxx, being the local IP address optional.
                             By default it will listen in all interfaces (0.0.0.0) and choose a random port.
                             Example: -L :40000
-      -k, --ssh_host_key SSH_HOST_KEY
+      -k SSH_HOST_KEY, --ssh_host_key SSH_HOST_KEY
                             Gateway's host key
-      -K, --private_key_file KEY_FILE
+      -K KEY_FILE, --private_key_file KEY_FILE
                             RSA/DSS/ECDSA private key file
-      -S, --private_key_file_password KEY_PASSWORD
+      -S KEY_PASSWORD, --private_key_password KEY_PASSWORD
                             RSA/DSS/ECDSA private key password
       -t, --threaded        Allow concurrent connections to each tunnel
-      -v, --verbosity       Increase output verbosity (default: ERROR)
+      -v, --verbose         Increase output verbosity (default: ERROR)
       -V, --version         Show version number and quit
-      -x, --proxy IP:PORT   IP and port for SSH proxy to destination
-      -c, --config SSH_CONFIG_FILE
+      -x IP:PORT, --proxy IP:PORT
+                            IP and port of SSH proxy to destination
+      -c SSH_CONFIG_FILE, --config SSH_CONFIG_FILE
                             SSH configuration file, defaults to ~/.ssh/config
       -z, --compress        Request server for compression over SSH transport
       -n, --noagent         Disable looking for keys from an SSH agent
-
 
 .. _Pahaz Blinov: https://github.com/pahaz
 .. _sshtunnel: https://pypi.python.org/pypi/sshtunnel
