@@ -175,7 +175,7 @@ Or simply using the CLI:
 
 .. code-block:: console
 
-    $ python -m sshtunnel -U vagrant -P vagrant -L :3306 -R 127.0.0.1:3306 -p 2222 localhost
+    (bash)$ python -m sshtunnel -U vagrant -P vagrant -L :3306 -R 127.0.0.1:3306 -p 2222 localhost
 
 CLI usage
 =========
