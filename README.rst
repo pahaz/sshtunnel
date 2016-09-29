@@ -31,6 +31,10 @@ or ::
 
     easy_install sshtunnel
 
+or ::
+
+    conda install -c conda-forge sshtunnel
+
 to have it installed in your environment.
 
 For installing from source, clone the
