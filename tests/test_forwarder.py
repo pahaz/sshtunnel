@@ -732,7 +732,6 @@ class SSHClientTest(unittest.TestCase):
             ):
                 pass
 
-    @unittest.expectedFailure  # catchall rule on local DNS may make this fail
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
     def test_gateway_ip_unresolvable_raises_exception(self):

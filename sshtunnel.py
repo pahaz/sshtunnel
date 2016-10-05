@@ -1236,22 +1236,6 @@ class SSHTunnelForwarder(object):
             self._raise(HandlerSSHTunnelForwarderError,
                         'An error occurred while opening tunnels.')
 
-    def _status_ok(self):
-        """
-        Return whether or not everything (underlying transport + tunnels) are
-        already set up
-        """
-        try:
-            self._check_is_started()
-        except HandlerSSHTunnelForwarderError as e:  # tunnels down
-            self._stop_transport()
-            self.logger.warning(e)
-            return False
-        except BaseSSHTunnelForwarderError as e:  # underlying transport down
-            self.logger.warning(e)
-            return False
-        return True
-
     def stop(self):
         """
         Shut the tunnel down.
@@ -1310,7 +1294,7 @@ class SSHTunnelForwarder(object):
                 self._stop_transport()
 
         if self.ssh_password:  # avoid conflict using both pass and pkey
-            self.logger.debug('Logging in with password {0}'
+            self.logger.debug('Trying to log in with password: {0}'
                               .format('*' * len(self.ssh_password)))
             try:
                 self._transport = self._get_transport()
@@ -1342,8 +1326,11 @@ class SSHTunnelForwarder(object):
 
     def _stop_transport(self):
         """ Close the underlying transport when nothing more is needed """
-        if not self._status_ok():
-            return
+        try:
+            self._check_is_started()
+        except (BaseSSHTunnelForwarderError,
+                HandlerSSHTunnelForwarderError) as e:
+            self.logger.warning(e)
         for _srv in self._server_list:
             tunnel = _srv.local_address
             if self.tunnel_is_up[tunnel]:
@@ -1358,8 +1345,9 @@ class SSHTunnelForwarder(object):
                     self.logger.error('Unable to unlink socket {0}: {1}'
                                       .format(self.local_address, repr(e)))
         self.is_alive = False
-        self._transport.close()
-        self._transport.stop_thread()
+        if self.is_active:
+            self._transport.close()
+            self._transport.stop_thread()
         self.logger.debug('Transport is closed')
 
     @property
