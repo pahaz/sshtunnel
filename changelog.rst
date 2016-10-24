@@ -13,7 +13,8 @@ CONTRIBUTORS
 
 CHANGELOG
 =========
-
+- v.0.1.1 (`JM Fernández`_)
+    + Fix #72
 - v.0.1.0 (`JM Fernández`_)
     + Add `tunnel_bindings` property
     + Several bugfixes (#49, #56, #57, #59, #60, #62, #64, #66, ...)
