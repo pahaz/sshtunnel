@@ -1420,7 +1420,7 @@ class SSHTunnelForwarder(object):
         """ Return True if the underlying SSH transport is up """
         if (
             '_transport' in self.__dict__ and
-            self._transport.is_authenticated()
+            self._transport.is_active()
         ):
             return True
         return False
@@ -1765,6 +1765,7 @@ def _cli_main(args=None):
             Press <Ctrl-C> or <Enter> to stop!
 
             ''')
+
 
 if __name__ == '__main__':  # pragma: no cover
     _cli_main()
