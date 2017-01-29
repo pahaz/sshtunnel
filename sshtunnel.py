@@ -1079,7 +1079,9 @@ class SSHTunnelForwarder(object):
             try:
                 self._make_ssh_forward_server(rem, loc)
             except BaseSSHTunnelForwarderError as e:
-                msg = 'Problem setting SSH Forwarder up: {0}'.format(e.args[0])
+                if self._transport is not None:
+                    self._transport.close()
+                msg = 'Problem setting SSH Forwarder up: {0}'.format(e.value)
                 self.logger.error(msg)
 
     @staticmethod
