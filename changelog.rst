@@ -13,6 +13,9 @@ CONTRIBUTORS
 
 CHANGELOG
 =========
+
+- v.0.1.2 (`JM Fernández`_)
+    + Fix #77
 - v.0.1.1 (`JM Fernández`_)
     + Fix #72
 - v.0.1.0 (`JM Fernández`_)
