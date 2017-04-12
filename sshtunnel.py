@@ -14,6 +14,7 @@ The connection(s) are closed when explicitly calling the
 import os
 import sys
 import socket
+import struct
 import getpass
 import logging
 import argparse
@@ -21,6 +22,8 @@ import warnings
 import threading
 from select import select
 from binascii import hexlify
+
+from builtins import bytes
 
 import paramiko
 
@@ -47,7 +50,7 @@ TRACE_LEVEL = 1
 _CONNECTION_COUNTER = 1
 _LOCK = threading.Lock()
 #: Timeout (seconds) for the connection to the SSH gateway, ``None`` to disable
-SSH_TIMEOUT = None
+SSH_TIMEOUT = 5
 SSH_CONFIG_FILE = '~/.ssh/config'  #: Path of optional ssh configuration file
 DEPRECATIONS = {
     'ssh_address': 'ssh_address_or_host',
@@ -283,11 +286,77 @@ class HandlerSSHTunnelForwarderError(BaseSSHTunnelForwarderError):
     pass
 
 
+class Socks5Error(HandlerSSHTunnelForwarderError):
+    """Exception in handling socks5 dynamic tunnel forwarder"""
+    pass
+
+
 ########################
 #                      #
 #       Handlers       #
 #                      #
 ########################
+
+
+class S5Req(object):
+    def __init__(self, buf):
+        self.ver, self.cmd, self.rsv, self.atyp = struct.unpack("BBBB", buf[0:4])
+        self.dst_addr = None
+        self.dst_port = None
+
+    def parse_port(self, buf):
+        if len(buf) < 2:
+            return False
+        port = struct.unpack("H", buf[0:2])[0]
+        self.dst_port = socket.ntohs(int(port))
+        return True
+
+    def parse_ipv4(self, buf):
+        if len(buf) < 6:
+            return False
+        self.dst_addr = socket.inet_ntoa(buf[0:4])
+        if self.parse_port(buf[4:]):
+            return True
+        return False
+
+    def parse_domain_name(self, buf):
+        buf_size = len(buf)
+        if buf_size < 1:
+            return False
+        name_len = struct.unpack("B", buf[0:1])[0]
+        if name_len + 3 != buf_size:
+            return False
+        self.dst_addr = buf[1:name_len + 1]
+        if self.parse_port(buf[1 + name_len:]):
+            return True
+        return False
+
+    def parse_netloc(self, buf):
+        if self.atyp == 3:
+            return self.parse_domain_name(buf)
+        if self.atyp == 1:
+            return self.parse_ipv4(buf)
+        return False
+
+
+class S5Resp(object):
+    def __init__(self):
+        self.ver = 5
+        self.rep = 1
+        self.rsv = 0
+        self.atyp = 1
+        self.bnd_addr = None
+        self.bnd_port = None
+
+    def pack(self):
+        addr = 0
+        port = 0
+        if self.bnd_addr:
+            addr = struct.unpack("I", socket.inet_aton(self.bnd_addr))[0]
+        if self.bnd_port:
+            port = socket.htons(self.bnd_port)
+        buf = struct.pack("BBBBIH", self.ver, self.rep, self.rsv, self.atyp, addr, port)
+        return buf
 
 
 class _ForwardHandler(socketserver.BaseRequestHandler):
@@ -296,6 +365,7 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
     ssh_transport = None
     logger = None
     info = None
+    _dynamic_bind = None
 
     def _redirect(self, chan):
         while True:
@@ -320,6 +390,43 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                 if len(data) == 0:
                     break
 
+    def _handle_socks5(self):
+
+        resp = S5Resp()
+        error_msg = "SOCKS5 negociation failed at stage {stage}."
+        try:
+            buf = self.request.recv(255)
+            if not buf:
+                raise Socks5Error(error_msg.format(stage=1))
+            self.request.send(bytes(b"\x05\x00"))
+            buf = self.request.recv(4)
+            if not buf or len(buf) != 4:
+                raise Socks5Error(error_msg.format(stage=2))
+            req = S5Req(buf)
+            if req.ver != 5 or req.cmd != 1 or (req.atyp != 1 and req.atyp != 3):
+                raise Socks5Error(error_msg.format(stage=3))
+            buf = self.request.recv(6 if req.atyp == 1 else 255)
+            if not buf or not req.parse_netloc(buf):
+                raise Socks5Error(error_msg.format(stage=4))
+            if req.atyp == 3:
+                try:
+                    addr = socket.gethostbyname(req.dst_addr)
+                except socket.error:
+                    raise Socks5Error(error_msg.format(stage=5))
+            else:
+                addr = req.dst_addr
+            resp.rep = 0
+            resp.dst_addr = addr
+            resp.dst_port = req.dst_port
+            self.request.send(resp.pack())
+            return addr, req.dst_port
+        except Socks5Error as e:
+            self.logger.debug(TRACE_LEVEL, e)
+        except socket.error as e:
+            self.logger.log(TRACE_LEVEL, "socket error during "
+                                         "SOCKS5 negotiation: {}".format(e))
+        return None
+
     def handle(self):
         uid = get_connection_id()
         self.info = '#{0} <-- {1}'.format(uid, self.client_address or
@@ -327,6 +434,12 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
         src_address = self.request.getpeername()
         if not isinstance(src_address, tuple):
             src_address = ('dummy', 12345)
+        if self._dynamic_bind:
+            socks_res = self._handle_socks5()
+            if socks_res is None:
+                self.request.close()
+                return
+            self.remote_address = socks_res
         try:
             chan = self.ssh_transport.open_channel(
                 kind='direct-tcpip',
@@ -748,6 +861,7 @@ class SSHTunnelForwarder(object):
         Make SSH Handler class
         """
         class Handler(_ForwardHandler):
+            _dynamic_bind = self._dynamic_bind
             remote_address = remote_address_
             ssh_transport = self._transport
             logger = self.logger
@@ -815,6 +929,7 @@ class SSHTunnelForwarder(object):
             mute_exceptions=False,
             remote_bind_address=None,
             remote_bind_addresses=None,
+            dynamic_bind=False,
             set_keepalive=0.0,
             threaded=True,  # old version False
             compression=None,
@@ -858,15 +973,20 @@ class SSHTunnelForwarder(object):
         if kwargs:
             raise ValueError('Unknown arguments: {0}'.format(kwargs))
 
-        # remote binds
-        self._remote_binds = self._get_binds(remote_bind_address,
-                                             remote_bind_addresses,
-                                             is_remote=True)
-        # local binds
+        # dynamic bind
+        self._dynamic_bind = dynamic_bind
+
         self._local_binds = self._get_binds(local_bind_address,
                                             local_bind_addresses)
-        self._local_binds = self._consolidate_binds(self._local_binds,
-                                                    self._remote_binds)
+        if self._dynamic_bind:
+            self._remote_binds = self._local_binds
+        else:
+            # remote and local binds
+            self._remote_binds = self._get_binds(remote_bind_address,
+                                                 remote_bind_addresses,
+                                                 is_remote=True)
+            self._local_binds = self._consolidate_binds(self._local_binds,
+                                                        self._remote_binds)
 
         (self.ssh_host,
          self.ssh_username,
@@ -1618,20 +1738,27 @@ def _parse_arguments(args=None):
         dest='ssh_password',
         help='SSH server account password'
     )
-
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
         '-R', '--remote_bind_address',
         type=_bindlist,
         nargs='+',
         default=[],
         metavar='IP:PORT',
-        required=True,
         dest='remote_bind_addresses',
         help='Remote bind address sequence: '
              'ip_1:port_1 ip_2:port_2 ... ip_n:port_n\n'
              'Equivalent to ssh -Lxxxx:IP_ADDRESS:PORT\n'
              'If port is omitted, defaults to 22.\n'
              'Example: -R 10.10.10.10: 10.10.10.10:5900'
+    )
+
+    group.add_argument(
+        '-D', '--dynamic_bind',
+        action='store_true',
+        dest='dynamic_bind',
+        help='Specifies a local dynamic application-level port forwarding\n'
+             'Equivalent to ssh -DIP:PORT'
     )
 
     parser.add_argument(
@@ -1724,7 +1851,7 @@ def _parse_arguments(args=None):
         dest='allow_agent',
         help='Disable looking for keys from an SSH agent'
     )
-    return vars(parser.parse_args(args))
+    return parser
 
 
 def _cli_main(args=None):
@@ -1737,6 +1864,7 @@ def _cli_main(args=None):
         -p (server_port), defaults to 22
         -P (password)
         -L (local_bind_address), default to 0.0.0.0:22
+        -D (dynamic port forwarding)
         -k (ssh_host_key)
         -K (private_key_file), may be gathered from SSH_CONFIG_FILE
         -S (private_key_password)
@@ -1748,7 +1876,14 @@ def _cli_main(args=None):
         -z (compress)
         -n (noagent), disable looking for keys from an Agent
     """
-    arguments = _parse_arguments(args)
+    parser = _parse_arguments(args)
+
+    # Verify dependency of arguments
+    parsed_args = parser.parse_args(args)
+    if parsed_args.dynamic_bind and not parsed_args.local_bind_addresses:
+        parser.error("-D (dynamic bind) is used together "
+                     "with -L (local_bind_address)")
+    arguments = vars(parsed_args)
     # Remove all "None" input values
     _remove_none_values(arguments)
     verbosity = min(arguments.pop('verbose'), 4)
