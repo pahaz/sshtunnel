@@ -1144,9 +1144,10 @@ class SSHTunnelForwarder(object):
             ssh_loaded_pkeys = []
 
         if isinstance(ssh_pkey, string_types):
-            if os.path.exists(ssh_pkey):
+            ssh_pkey_expanded = os.path.expanduser(ssh_pkey)
+            if os.path.exists(ssh_pkey_expanded):
                 ssh_pkey = SSHTunnelForwarder.read_private_key_file(
-                    pkey_file=ssh_pkey,
+                    pkey_file=ssh_pkey_expanded,
                     pkey_password=ssh_pkey_password or ssh_password,
                     logger=logger
                 )
