@@ -51,6 +51,7 @@ _CONNECTION_COUNTER = 1
 _LOCK = threading.Lock()
 #: Timeout (seconds) for the connection to the SSH gateway, ``None`` to disable
 SSH_TIMEOUT = None
+V5_AUTH_METH = bytes(b"\x05\x00")   # Socks Auth method NONE
 DEPRECATIONS = {
     'ssh_address': 'ssh_address_or_host',
     'ssh_host': 'ssh_address_or_host',
@@ -304,7 +305,8 @@ class Socks5Error(HandlerSSHTunnelForwarderError):
 
 class S5Req(object):
     def __init__(self, buf):
-        self.ver, self.cmd, self.rsv, self.atyp = struct.unpack("BBBB", buf[0:4])
+        self.ver, self.cmd, self.rsv, self.atyp = struct.unpack("BBBB",
+                                                                buf[0:4])
         self.dst_addr = None
         self.dst_port = None
 
@@ -359,7 +361,8 @@ class S5Resp(object):
             addr = struct.unpack("I", socket.inet_aton(self.bnd_addr))[0]
         if self.bnd_port:
             port = socket.htons(self.bnd_port)
-        buf = struct.pack("BBBBIH", self.ver, self.rep, self.rsv, self.atyp, addr, port)
+        buf = struct.pack("BBBBIH", self.ver, self.rep,
+                          self.rsv, self.atyp, addr, port)
         return buf
 
 
@@ -403,12 +406,13 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
             buf = self.request.recv(255)
             if not buf:
                 raise Socks5Error(error_msg.format(stage=1))
-            self.request.send(bytes(b"\x05\x00"))
+            self.request.send(V5_AUTH_METH)
             buf = self.request.recv(4)
             if not buf or len(buf) != 4:
                 raise Socks5Error(error_msg.format(stage=2))
             req = S5Req(buf)
-            if req.ver != 5 or req.cmd != 1 or (req.atyp != 1 and req.atyp != 3):
+            if (req.ver != 5 or req.cmd != 1 or
+                    (req.atyp != 1 and req.atyp != 3)):
                 raise Socks5Error(error_msg.format(stage=3))
             buf = self.request.recv(6 if req.atyp == 1 else 255)
             if not buf or not req.parse_netloc(buf):
@@ -946,14 +950,19 @@ class SSHTunnelForwarder(object):
             compression=None,
             allow_agent=True,  # look for keys from an SSH agent
             host_pkey_directories=None,  # look for keys in ~/.ssh
+            ssh_timeout=None,
+            disable_logging=False,
             *args,
             **kwargs  # for backwards compatibility
     ):
         self.logger = logger or create_logger()
+        if disable_logging:
+            logging.disable(logging.CRITICAL)
 
         # Ensure paramiko.transport has a console handler
         _check_paramiko_handlers(logger=logger)
 
+        self.ssh_timeout = ssh_timeout
         self.ssh_host_key = ssh_host_key
         self.set_keepalive = set_keepalive
         self._server_list = []  # reset server list
@@ -1234,7 +1243,7 @@ class SSHTunnelForwarder(object):
         else:
             _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if isinstance(_socket, socket.socket):
-            _socket.settimeout(SSH_TIMEOUT)
+            _socket.settimeout(self.ssh_timeout or SSH_TIMEOUT)
             _socket.connect((self.ssh_host, self.ssh_port))
         transport = paramiko.Transport(_socket)
         transport.set_keepalive(self.set_keepalive)
@@ -1494,7 +1503,7 @@ class SSHTunnelForwarder(object):
                                         password=self.ssh_password)
                 if self._transport.is_alive:
                     return
-            except paramiko.AuthenticationException:
+            except (paramiko.AuthenticationException, ValueError, EOFError):
                 self.logger.debug('Authentication error')
                 self._stop_transport()
 
@@ -1895,6 +1904,14 @@ def _parse_arguments(args=None):
     )
 
     parser.add_argument(
+        '-T', '--ssh_timeout',
+        type=int,
+        dest='ssh_timeout',
+        default=None,
+        help='SSH timeout (default: None)'
+    )
+
+    parser.add_argument(
         '-x', '--proxy',
         type=_bindlist,
         dest='ssh_proxy',
@@ -1952,6 +1969,7 @@ def _cli_main(args=None):
         -t (threaded), allow concurrent connections over tunnels
         -v (verbose), up to 3 (-vvv) to raise loglevel from ERROR to DEBUG
         -V (version)
+        -T (ssh timeout), defaults to None
         -x (proxy), ProxyCommand's IP:PORT, may be gathered from config file
         -c (ssh_config), ssh configuration file (defaults to SSH_CONFIG_FILE)
         -z (compress)
