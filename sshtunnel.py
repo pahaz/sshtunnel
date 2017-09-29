@@ -741,7 +741,7 @@ class SSHTunnelForwarder(object):
             self.skip_tunnel_checkup = False
             self.check_tunnels()
             self.skip_tunnel_checkup = True  # roll it back
-        return self.tunnel_is_up(target)
+        return self.tunnel_is_up.get(target, True)
 
     def _make_ssh_forward_handler_class(self, remote_address_):
         """
