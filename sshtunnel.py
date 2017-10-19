@@ -13,6 +13,7 @@ The connection(s) are closed when explicitly calling the
 
 import os
 import sys
+import signal
 import socket
 import getpass
 import logging
@@ -1759,13 +1760,34 @@ def _cli_main(args=None):
               logging.DEBUG,
               TRACE_LEVEL]
     arguments.setdefault('debug_level', levels[verbosity])
-    with open_tunnel(**arguments) as tunnel:
-        if tunnel.is_alive:
-            input_('''
+    tunnel = open_tunnel(**arguments)
+    try:
+        with tunnel:
+            if tunnel.is_alive:
+                if sys.stdout.isatty():
+                    input('''
 
-            Press <Ctrl-C> or <Enter> to stop!
+                    Press <Ctrl-C> or <Enter> to stop!
 
-            ''')
+                    ''')
+                else:
+
+                    def signal_handler(signal, frame):
+                        sys.exit(0)
+
+                    print('''
+
+                    Press <Ctrl-C> to stop!
+
+                    ''')
+
+                    signal.signal(signal.SIGINT, signal_handler)
+
+                    signal.pause()
+    except Exception as exc:
+        print(exc)
+        tunnel.stop()
+        sys.exit(1)
 
 
 if __name__ == '__main__':  # pragma: no cover
