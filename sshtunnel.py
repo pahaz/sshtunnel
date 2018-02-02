@@ -778,6 +778,7 @@ class SSHTunnelForwarder(object):
             )
 
             if ssh_forward_server:
+                ssh_forward_server.daemon_threads = self.daemon_forward_servers
                 self._server_list.append(ssh_forward_server)
                 self.tunnel_is_up[ssh_forward_server.server_address] = False
             else:
