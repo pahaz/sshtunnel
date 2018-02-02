@@ -1,7 +1,5 @@
 |CircleCI| |AppVeyor| |readthedocs| |coveralls| |version|
 
-|DwnMonth| |DwnWeek| |DwnDay|
-
 |pyversions| |license|
 
 **Author**: `Pahaz Blinov`_
@@ -144,7 +142,7 @@ listening on port 443 and that port is open in the firewall (**Fig2**):
     ) as tunnel:
         client = paramiko.SSHClient()
         client.load_system_host_keys()
-        client.set_missing_host_key_policy(paramko.AutoAddPolicy())
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.connect('127.0.0.1', 10022)
         # do some operations with client session
         client.close()
@@ -247,9 +245,6 @@ CLI usage
    :alt: Documentation Status
 .. |coveralls| image:: https://coveralls.io/repos/github/pahaz/sshtunnel/badge.svg?branch=master
    :target: https://coveralls.io/github/pahaz/sshtunnel?branch=master
-.. |DwnMonth| image:: https://img.shields.io/pypi/dm/sshtunnel.svg
-.. |DwnWeek| image:: https://img.shields.io/pypi/dw/sshtunnel.svg
-.. |DwnDay| image:: https://img.shields.io/pypi/dd/sshtunnel.svg
 .. |pyversions| image:: https://img.shields.io/pypi/pyversions/sshtunnel.svg
 .. |version| image:: https://img.shields.io/pypi/v/sshtunnel.svg
    :target: `sshtunnel`_
