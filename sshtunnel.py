@@ -42,6 +42,7 @@ __author__ = 'pahaz'
 
 DEFAULT_LOGLEVEL = logging.ERROR  #: default level if no logger passed (ERROR)
 TUNNEL_TIMEOUT = 1.0  #: Timeout (seconds) for tunnel connection
+DAEMON = False
 TRACE_LEVEL = 1
 _CONNECTION_COUNTER = 1
 _LOCK = threading.Lock()
@@ -412,7 +413,7 @@ class _ThreadingForwardServer(socketserver.ThreadingMixIn, _ForwardServer):
     Allow concurrent connections to each tunnel
     """
     # If True, cleanly stop threads created by ThreadingMixIn when quitting
-    daemon_threads = False
+    daemon_threads = DAEMON
 
 
 class _UnixStreamForwardServer(UnixStreamServer):
@@ -456,7 +457,7 @@ class _ThreadingUnixStreamForwardServer(socketserver.ThreadingMixIn,
     Allow concurrent connections to each tunnel
     """
     # If True, cleanly stop threads created by ThreadingMixIn when quitting
-    daemon_threads = False
+    daemon_threads = DAEMON
 
 
 class SSHTunnelForwarder(object):
@@ -709,8 +710,8 @@ class SSHTunnelForwarder(object):
 
     """
     skip_tunnel_checkup = True
-    daemon_forward_servers = False  #: flag tunnel threads in daemon mode
-    daemon_transport = False  #: flag SSH transport thread in daemon mode
+    daemon_forward_servers = DAEMON  #: flag tunnel threads in daemon mode
+    daemon_transport = DAEMON  #: flag SSH transport thread in daemon mode
 
     def local_is_up(self, target):
         """
