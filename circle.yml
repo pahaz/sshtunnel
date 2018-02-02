@@ -2,7 +2,6 @@ machine:
   environment:
     CIRCLE_BUILD_IMAGE: ubuntu-14.04
     TOX_PY27: '2.7.12'
-    TOX_PY33: '3.3.6'
     TOX_PY34: '3.4.4'
     TOX_PY35: '3.5.3'
     TOX_PY36: '3.6.2'
@@ -15,7 +14,7 @@ dependencies:
     - pip install --upgrade tox
     - pip install --upgrade tox-pyenv
     - pip install coveralls
-    - pyenv local $TOX_PY36 $TOX_PY35 $TOX_PY34 $TOX_PY33 $TOX_PY27
+    - pyenv local $TOX_PY36 $TOX_PY35 $TOX_PY34 $TOX_PY27
     - pip install --upgrade bashtest
     - python setup.py install
     - bashtest README*
