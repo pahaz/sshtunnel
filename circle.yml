@@ -1,5 +1,6 @@
 machine:
   environment:
+    CIRCLE_BUILD_IMAGE: ubuntu-14.04
     TOX_PY27: '2.7.12'
     TOX_PY33: '3.3.6'
     TOX_PY34: '3.4.4'
