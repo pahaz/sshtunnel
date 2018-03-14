@@ -742,7 +742,7 @@ class SSHTunnelForwarder(object):
             self.skip_tunnel_checkup = False
             self.check_tunnels()
             self.skip_tunnel_checkup = True  # roll it back
-        return self.tunnel_is_up(target)
+        return self.tunnel_is_up.get(target, True)
 
     def _make_ssh_forward_handler_class(self, remote_address_):
         """
@@ -779,6 +779,7 @@ class SSHTunnelForwarder(object):
             )
 
             if ssh_forward_server:
+                ssh_forward_server.daemon_threads = self.daemon_forward_servers
                 self._server_list.append(ssh_forward_server)
                 self.tunnel_is_up[ssh_forward_server.server_address] = False
             else:
@@ -1186,7 +1187,9 @@ class SSHTunnelForwarder(object):
         s.settimeout(TUNNEL_TIMEOUT)
         try:
             # Windows raises WinError 10049 if trying to connect to 0.0.0.0
-            s.connect(('127.0.0.1', _srv.local_port))
+            connect_to = ('127.0.0.1', _srv.local_port) \
+                if _srv.local_host == '0.0.0.0' else _srv.local_address
+            s.connect(connect_to)
             self.tunnel_is_up[_srv.local_address] = _srv.tunnel_ok.get(
                 timeout=TUNNEL_TIMEOUT * 1.1
             )

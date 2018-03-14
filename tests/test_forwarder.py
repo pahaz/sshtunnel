@@ -1109,6 +1109,37 @@ class SSHClientTest(unittest.TestCase):
                 ('127.0.0.1', local_ports[1])
             )
 
+    def check_make_ssh_forward_server_sets_daemon(self, case):
+        self.start_echo_and_ssh_server()
+        tunnel = sshtunnel.open_tunnel(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+            ssh_config_file=None,
+            allow_agent=False
+        )
+        try:
+            tunnel.daemon_forward_servers = case
+            tunnel.start()
+            for server in tunnel._server_list:
+                self.assertEqual(server.daemon_threads, case)
+        finally:
+            tunnel.stop()
+
+    def test_make_ssh_forward_server_sets_daemon_true(self):
+        """
+        Test `make_ssh_forward_server` respects `daemon_forward_servers=True`
+        """
+        self.check_make_ssh_forward_server_sets_daemon(True)
+
+    def test_make_ssh_forward_server_sets_daemon_false(self):
+        """
+        Test `make_ssh_forward_server` respects `daemon_forward_servers=False`
+        """
+        self.check_make_ssh_forward_server_sets_daemon(False)
+
 
 class AuxiliaryTest(unittest.TestCase):
     """ Set of tests that do not need the mock SSH server or logger """
