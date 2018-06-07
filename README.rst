@@ -192,7 +192,7 @@ CLI usage
                      ssh_address
 
     Pure python ssh tunnel utils
-    Version 0.1.3
+    Version 0.1.3.1
 
     positional arguments:
       ssh_address           SSH server IP address (GW for SSH tunnels)

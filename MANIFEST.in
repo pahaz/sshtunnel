@@ -10,3 +10,4 @@ include docs/conf.py
 include docs/Makefile
 include docs/*.rst
 include docs/*.txt
+include tests/*
