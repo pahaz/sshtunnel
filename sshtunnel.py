@@ -298,27 +298,28 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
     info = None
 
     def _redirect(self, chan):
-        while True:
+        while chan.active:
             rqst, _, _ = select([self.request, chan], [], [], 5)
             if self.request in rqst:
                 data = self.request.recv(1024)
-                self.logger.log(TRACE_LEVEL,
-                                '<<< In {0} recv: {1} <<<'.format(self.info,
-                                                                  repr(data)))
-                chan.send(data)
-                if len(data) == 0:
+                if not data:
                     break
-            if chan in rqst:  # else
-                data = chan.recv(1024)
                 self.logger.log(TRACE_LEVEL,
-                                '>>> Out {0} send to {1}: {2} >>>'.format(
+                                '>>> OUT {0} send to {1}: {2} >>>'.format(
                                     self.info,
                                     self.remote_address,
-                                    repr(data)
+                                    hexlify(data)
                                 ))
-                self.request.send(data)
-                if len(data) == 0:
+                chan.send(data)
+            if chan in rqst:  # else
+                if not chan.recv_ready():
                     break
+                data = chan.recv(1024)
+                self.logger.log(
+                    TRACE_LEVEL,
+                    '<<< IN {0} recv: {1} <<<'.format(self.info, hexlify(data))
+                )
+                self.request.send(data)
 
     def handle(self):
         uid = get_connection_id()
@@ -373,9 +374,6 @@ class _ForwardServer(socketserver.TCPServer):  # Not Threading
         self.logger = create_logger(kwargs.pop('logger', None))
         self.tunnel_ok = queue.Queue()
         socketserver.TCPServer.__init__(self, *args, **kwargs)
-
-    def serve_forever(self, poll_interval=0.5):
-        socketserver.TCPServer.serve_forever(self, poll_interval)
 
     def handle_error(self, request, client_address):
         (exc_class, exc, tb) = sys.exc_info()
@@ -1589,7 +1587,8 @@ def _parse_arguments(args=None):
     Parse arguments directly passed from CLI
     """
     parser = argparse.ArgumentParser(
-        description='Pure python ssh tunnel utils',
+        description='Pure python ssh tunnel utils\n'
+                    'Version {0}'.format(__version__),
         formatter_class=argparse.RawTextHelpFormatter
     )
 
