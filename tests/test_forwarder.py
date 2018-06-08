@@ -983,6 +983,11 @@ class SSHClientTest(unittest.TestCase):
         server.check_tunnels()
         self.assertIn('Tunnel to {0} is DOWN'.format(remote_address),
                       self.sshtunnel_log_messages['debug'])
+        # Calling local_is_up() should also return the same
+        server.skip_tunnel_checkup = True
+        server.local_is_up((self.saddr, self.sport))
+        self.assertIn('Tunnel to {0} is DOWN'.format(remote_address),
+                      self.sshtunnel_log_messages['debug'])
 
         self.assertFalse(server.local_is_up("not a valid address"))
         self.assertIn('Target must be a tuple (IP, port), where IP '
@@ -1139,6 +1144,36 @@ class SSHClientTest(unittest.TestCase):
         Test `make_ssh_forward_server` respects `daemon_forward_servers=False`
         """
         self.check_make_ssh_forward_server_sets_daemon(False)
+
+    def test_get_keys(self):
+        """ Test loading keys from the paramiko Agent """
+        with self._test_server(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            local_bind_address=('', self.randomize_eport()),
+            logger=self.log,
+            allow_agent=True
+        ) as server:
+            keys = server.get_keys()
+            self.assertIsInstance(keys, list)
+            self.assertTrue(any('keys loaded from agent' in l) for l in
+                            self.sshtunnel_log_messages['info'])
+
+        with self._test_server(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            local_bind_address=('', self.randomize_eport()),
+            logger=self.log,
+            allow_agent=False
+        ) as server:
+            keys = server.get_keys()
+            self.assertIsInstance(keys, list)
+            self.assertTrue(any('0 keys loaded from agent' in l) for l in
+                            self.sshtunnel_log_messages['info'])
 
 
 class AuxiliaryTest(unittest.TestCase):
