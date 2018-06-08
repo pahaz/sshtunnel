@@ -15,8 +15,9 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
-- v.0.1.3 (`Ignacio Peluffo`_)
+- v.0.1.3 (`Ignacio Peluffo`_ and others)
     + ``pkey_file`` parameter updated to accept relative paths to user folder using ``~``
+    + Several bugfixes
 - v.0.1.2 (`JM Fernández`_)
     + Fix #77
 - v.0.1.1 (`JM Fernández`_)
