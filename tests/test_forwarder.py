@@ -1031,8 +1031,8 @@ class SSHClientTest(unittest.TestCase):
             pkey_password='bad password',
             logger=self.log
         ))
-        self.assertIn("Private key file ({0}) could not be loaded or bad "
-                      "password. Tried with type: {1}"
+        self.assertIn("Private key file ({0}) could not be loaded as type "
+                      "{1} or bad password"
                       .format(encr_pkey, type(_pkey)),
                       self.sshtunnel_log_messages['debug'])
         # Using no password on an encrypted key returns None
