@@ -1149,7 +1149,8 @@ class SSHTunnelForwarder(object):
         ssh_pkey = None
         for pkey_class in (paramiko.RSAKey,
                            paramiko.DSSKey,
-                           paramiko.ECDSAKey):
+                           paramiko.ECDSAKey,
+                           paramiko.Ed25519Key):
             try:
                 ssh_pkey = pkey_class.from_private_key_file(
                     pkey_file,
@@ -1167,7 +1168,7 @@ class SSHTunnelForwarder(object):
             except paramiko.SSHException:
                 if logger:
                     logger.debug('Private key file ({0}) could not be loaded '
-                                 'or bad password. Tried with type: {1}'
+                                 'as type {1} or bad password'
                                  .format(pkey_file, pkey_class))
         return ssh_pkey
 
