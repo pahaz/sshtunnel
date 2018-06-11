@@ -964,22 +964,44 @@ class SSHTunnelForwarder(object):
                     compression)
 
     @staticmethod
-    def get_keys(logger=None):
+    def get_keys(logger=None, host_directories=None):
         """
-        Load public keys from any available SSH agent
+        Load public keys from any available SSH agent or local
+        .ssh directory.
 
         Arguments:
             logger (Optional[logging.Logger])
+            host_directories (Optional[list[str]])
 
         Return:
             list
         """
         paramiko_agent = paramiko.Agent()
-        agent_keys = paramiko_agent.get_keys()
+        keys = list(paramiko_agent.get_keys())
         if logger:
-            logger.info('{0} keys loaded from agent'.format(len(agent_keys)))
+            logger.info('{0} keys loaded from agent'.format(len(keys)))
 
-        return list(agent_keys)
+        if host_directories is None:
+            host_directories = ['~/.ssh', '~/ssh']
+
+        for keytype in ["rsa", "dsa", "ecdsa", "ed25519"]:
+            # ~/ssh/ is for windows
+            for directory in host_directories:
+                ssh_pkey_expanded = os.path.expanduser(
+                    os.path.join(directory, 'id_{}'.format(keytype))
+                )
+                if os.path.isfile(ssh_pkey_expanded):
+                    ssh_pkey = SSHTunnelForwarder.read_private_key_file(
+                        pkey_file=ssh_pkey_expanded,
+                        logger=logger
+                    )
+                    keys.append(ssh_pkey)
+        if logger:
+            logger.info('{0} keys loaded from host directory'.format(
+                len(keys))
+            )
+
+        return keys
 
     @staticmethod
     def _consolidate_binds(local_binds, remote_binds):
