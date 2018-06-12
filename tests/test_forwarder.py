@@ -17,6 +17,8 @@ from contextlib import contextmanager
 import mock
 import paramiko
 import sshtunnel
+import shutil
+import tempfile
 
 if sys.version_info[0] == 2:
     from cStringIO import StringIO
@@ -1031,8 +1033,8 @@ class SSHClientTest(unittest.TestCase):
             pkey_password='bad password',
             logger=self.log
         ))
-        self.assertIn("Private key file ({0}) could not be loaded or bad "
-                      "password. Tried with type: {1}"
+        self.assertIn("Private key file ({0}) could not be loaded as type "
+                      "{1} or bad password"
                       .format(encr_pkey, type(_pkey)),
                       self.sshtunnel_log_messages['debug'])
         # Using no password on an encrypted key returns None
@@ -1153,10 +1155,10 @@ class SSHClientTest(unittest.TestCase):
             ssh_password=SSH_PASSWORD,
             remote_bind_address=(self.eaddr, self.eport),
             local_bind_address=('', self.randomize_eport()),
-            logger=self.log,
-            allow_agent=True
+            logger=self.log
         ) as server:
-            keys = server.get_keys()
+
+            keys = server.get_keys(allow_agent=True)
             self.assertIsInstance(keys, list)
             self.assertTrue(any('keys loaded from agent' in l) for l in
                             self.sshtunnel_log_messages['info'])
@@ -1167,13 +1169,27 @@ class SSHClientTest(unittest.TestCase):
             ssh_password=SSH_PASSWORD,
             remote_bind_address=(self.eaddr, self.eport),
             local_bind_address=('', self.randomize_eport()),
-            logger=self.log,
-            allow_agent=False
+            logger=self.log
         ) as server:
             keys = server.get_keys()
             self.assertIsInstance(keys, list)
-            self.assertTrue(any('0 keys loaded from agent' in l) for l in
-                            self.sshtunnel_log_messages['info'])
+            self.assertFalse(any('keys loaded from agent' in l for l in
+                             self.sshtunnel_log_messages['info']))
+
+        tmp_dir = tempfile.mkdtemp()
+        shutil.copy(get_test_data_path(PKEY_FILE),
+                    os.path.join(tmp_dir, 'id_rsa'))
+
+        keys = sshtunnel.SSHTunnelForwarder.get_keys(
+            self.log,
+            host_pkey_directories=[tmp_dir, ]
+        )
+        self.assertIsInstance(keys, list)
+        self.assertTrue(
+            any('1 keys loaded from host directory' in l
+                for l in self.sshtunnel_log_messages['info'])
+        )
+        shutil.rmtree(tmp_dir)
 
 
 class AuxiliaryTest(unittest.TestCase):

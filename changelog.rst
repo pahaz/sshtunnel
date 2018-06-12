@@ -11,17 +11,24 @@ CONTRIBUTORS
 - `Chronial`_
 - `Dan Harbin`_
 - `Ignacio Peluffo`_
+- `Niels Zeilemaker`_
 
 CHANGELOG
 =========
 
+- v.0.1.4 (`Niels Zeilemaker`_)
+    + Allow loading pkeys from `~/.ssh`
+
 - v.0.1.3 (`Ignacio Peluffo`_ and others)
     + ``pkey_file`` parameter updated to accept relative paths to user folder using ``~``
     + Several bugfixes
+
 - v.0.1.2 (`JM Fernández`_)
     + Fix #77
+
 - v.0.1.1 (`JM Fernández`_)
     + Fix #72
+
 - v.0.1.0 (`JM Fernández`_)
     + Add `tunnel_bindings` property
     + Several bugfixes (#49, #56, #57, #59, #60, #62, #64, #66, ...)
@@ -29,6 +36,7 @@ CHANGELOG
     + Add TRACE logging level (`JM Fernández`_)
     + Code and tests refactoring (`JM Fernández`_)
     + Drop python3.2 support
+
 - v.0.0.8 (`JM Fernández`_)
     + Merge `#31`_: Support Unix domain socket (local) forwarding (`Dan Harbin`_)
     + Simplify API (`JM Fernández`_)
@@ -109,6 +117,7 @@ CHANGELOG
 .. _Chronial: https://github.com/Chronial
 .. _Dan Harbin: https://github.com/RasterBurn
 .. _Ignacio Peluffo: https://github.com/ipeluffo
+.. _Niels Zeilemaker: https://github.com/NielsZeilemaker
 .. _#13: https://github.com/pahaz/sshtunnel/issues/13
 .. _#16: https://github.com/pahaz/sshtunnel/issues/16
 .. _#19: https://github.com/pahaz/sshtunnel/issues/19

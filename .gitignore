@@ -19,6 +19,7 @@ __pycache__/
 .tox
 .cache
 .coverage*
+*cov*
 pytestdebug.log
 
 # due to sphinx
