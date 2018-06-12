@@ -17,6 +17,8 @@ from contextlib import contextmanager
 import mock
 import paramiko
 import sshtunnel
+import shutil
+import tempfile
 
 if sys.version_info[0] == 2:
     from cStringIO import StringIO
@@ -1174,6 +1176,23 @@ class SSHClientTest(unittest.TestCase):
             self.assertIsInstance(keys, list)
             self.assertTrue(any('0 keys loaded from agent' in l) for l in
                             self.sshtunnel_log_messages['info'])
+
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            shutil.copy(get_test_data_path(PKEY_FILE),
+                        os.path.join(tmp_dir, 'id_rsa'))
+
+            keys = sshtunnel.SSHTunnelForwarder.get_keys(
+                self.log,
+                host_directories=[tmp_dir, ]
+            )
+            self.assertIsInstance(keys, list)
+            self.assertTrue(
+                any('1 keys loaded from .ssh directory' in l)
+                for l in self.sshtunnel_log_messages['info']
+            )
+        finally:
+            shutil.rmtree(tmp_dir)
 
 
 class AuxiliaryTest(unittest.TestCase):

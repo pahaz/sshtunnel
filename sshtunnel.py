@@ -36,7 +36,7 @@ else:
     input_ = input
 
 
-__version__ = '0.1.3.1'
+__version__ = '0.1.4'
 __author__ = 'pahaz'
 
 
@@ -608,6 +608,14 @@ class SSHTunnelForwarder(object):
 
             .. versionadded:: 0.0.8
 
+        host_pkey_directories (list):
+            Look for pkeys in folders on this list, for example ['~/.ssh'].
+            An empty list disables this feature
+
+            Default: ``None``
+
+            .. versionadded:: 0.1.4
+
         compression (boolean):
             Turn on/off transport compression. By default compression is
             disabled since it may negatively affect interactive sessions
@@ -818,6 +826,7 @@ class SSHTunnelForwarder(object):
             threaded=True,  # old version False
             compression=None,
             allow_agent=True,  # look for keys from an SSH agent
+            host_pkey_directories=None,  # look for keys in ~/.ssh
             *args,
             **kwargs  # for backwards compatibility
     ):
@@ -888,6 +897,7 @@ class SSHTunnelForwarder(object):
             ssh_pkey=ssh_pkey,
             ssh_pkey_password=ssh_private_key_password,
             allow_agent=allow_agent,
+            host_pkey_directories=host_pkey_directories,
             logger=self.logger
         )
 
@@ -964,9 +974,8 @@ class SSHTunnelForwarder(object):
                     compression)
 
     @staticmethod
-    def get_keys(logger=None):
-        """
-        Load public keys from any available SSH agent
+    def get_agent_keys(logger=None):
+        """ Load public keys from any available SSH agent
 
         Arguments:
             logger (Optional[logging.Logger])
@@ -978,8 +987,49 @@ class SSHTunnelForwarder(object):
         agent_keys = paramiko_agent.get_keys()
         if logger:
             logger.info('{0} keys loaded from agent'.format(len(agent_keys)))
-
         return list(agent_keys)
+
+    @staticmethod
+    def get_keys(logger=None, host_pkey_directories=None, allow_agent=False):
+        """
+        Load public keys from any available SSH agent or local
+        .ssh directory.
+
+        Arguments:
+            logger (Optional[logging.Logger])
+            host_pkey_directories (Optional[list[str]]):
+                List of local directories where host SSH pkeys in the format
+                "id_*" are searched. For example, ['~/.ssh'].
+
+        Return:
+            list
+        """
+        keys = SSHTunnelForwarder.get_agent_keys(logger=logger) \
+            if allow_agent else []
+
+        paramiko_key_types = {'rsa': paramiko.RSAKey,
+                              'dsa': paramiko.DSSKey,
+                              'ecdsa': paramiko.ECDSAKey,
+                              'ed25519': paramiko.Ed25519Key}
+        for directory in host_pkey_directories or ['~/.ssh', '~/ssh']:
+            # ~/ssh/ is for windows
+            for keytype in paramiko_key_types.keys():
+                ssh_pkey_expanded = os.path.expanduser(
+                    os.path.join(directory, 'id_{}'.format(keytype))
+                )
+                if os.path.isfile(ssh_pkey_expanded):
+                    ssh_pkey = SSHTunnelForwarder.read_private_key_file(
+                        pkey_file=ssh_pkey_expanded,
+                        logger=logger,
+                        key_type=paramiko_key_types[keytype]
+                    )
+                    keys.append(ssh_pkey)
+        if logger:
+            logger.info('{0} keys loaded from host directory'.format(
+                len(keys))
+            )
+
+        return keys
 
     @staticmethod
     def _consolidate_binds(local_binds, remote_binds):
@@ -999,6 +1049,7 @@ class SSHTunnelForwarder(object):
                           ssh_pkey=None,
                           ssh_pkey_password=None,
                           allow_agent=True,
+                          host_pkey_directories=None,
                           logger=None):
         """
         Get sure authentication information is in place.
@@ -1008,10 +1059,9 @@ class SSHTunnelForwarder(object):
             - ``paramiko.Pkey`` - it will be transparently added to loaded keys
 
         """
-        if allow_agent:
-            ssh_loaded_pkeys = SSHTunnelForwarder.get_keys(logger)
-        else:
-            ssh_loaded_pkeys = []
+        ssh_loaded_pkeys = SSHTunnelForwarder.get_keys(logger,
+                                                       allow_agent,
+                                                       host_pkey_directories)
 
         if isinstance(ssh_pkey, string_types):
             ssh_pkey_expanded = os.path.expanduser(ssh_pkey)
@@ -1132,6 +1182,7 @@ class SSHTunnelForwarder(object):
     @staticmethod
     def read_private_key_file(pkey_file,
                               pkey_password=None,
+                              key_type=None,
                               logger=None):
         """
         Get SSH Public key from a private key file, given an optional password
@@ -1147,10 +1198,12 @@ class SSHTunnelForwarder(object):
             paramiko.Pkey
         """
         ssh_pkey = None
-        for pkey_class in (paramiko.RSAKey,
-                           paramiko.DSSKey,
-                           paramiko.ECDSAKey,
-                           paramiko.Ed25519Key):
+        for pkey_class in (key_type) if key_type else (
+            paramiko.RSAKey,
+            paramiko.DSSKey,
+            paramiko.ECDSAKey,
+            paramiko.Ed25519Key
+        ):
             try:
                 ssh_pkey = pkey_class.from_private_key_file(
                     pkey_file,
