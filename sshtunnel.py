@@ -988,7 +988,7 @@ class SSHTunnelForwarder(object):
         if logger:
             logger.info('{0} keys loaded from agent'.format(len(agent_keys)))
         return list(agent_keys)
-    
+
     @staticmethod
     def get_keys(logger=None, host_pkey_directories=None, allow_agent=False):
         """
@@ -1004,7 +1004,8 @@ class SSHTunnelForwarder(object):
         Return:
             list
         """
-        keys = self.get_agent_keys(logger=logger) if allow_agent else []
+        keys = SSHTunnelForwarder.get_agent_keys(logger=logger) if \
+               allow_agent else []
         paramiko_key_types = {'rsa': paramiko.RSAKey,
                               'dsa': paramiko.DSSKey,
                               'ecdsa': paramiko.ECDSAKey,
