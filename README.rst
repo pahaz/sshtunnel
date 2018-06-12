@@ -188,11 +188,11 @@ CLI usage
     usage: sshtunnel [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD] -R
                      IP:PORT [IP:PORT ...] [-L [IP:PORT [IP:PORT ...]]]
                      [-k SSH_HOST_KEY] [-K KEY_FILE] [-S KEY_PASSWORD] [-t] [-v]
-                     [-V] [-x IP:PORT] [-c SSH_CONFIG_FILE] [-z] [-n]
+                     [-V] [-x IP:PORT] [-c SSH_CONFIG_FILE] [-z] [-n] [-d [FOLDER [FOLDER ...]]]
                      ssh_address
 
     Pure python ssh tunnel utils
-    Version 0.1.3.1
+    Version 0.1.4
 
     positional arguments:
       ssh_address           SSH server IP address (GW for SSH tunnels)
@@ -233,6 +233,8 @@ CLI usage
                             SSH configuration file, defaults to ~/.ssh/config
       -z, --compress        Request server for compression over SSH transport
       -n, --noagent         Disable looking for keys from an SSH agent
+      -d [FOLDER [FOLDER ...]], --host_pkey_directories [FOLDER [FOLDER ...]]
+                            List of directories where SSH pkeys (in the format `id_*`) may be found
 
 .. _Pahaz Blinov: https://github.com/pahaz
 .. _sshtunnel: https://pypi.python.org/pypi/sshtunnel

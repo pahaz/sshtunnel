@@ -1155,10 +1155,10 @@ class SSHClientTest(unittest.TestCase):
             ssh_password=SSH_PASSWORD,
             remote_bind_address=(self.eaddr, self.eport),
             local_bind_address=('', self.randomize_eport()),
-            logger=self.log,
-            allow_agent=True
+            logger=self.log
         ) as server:
-            keys = server.get_keys()
+
+            keys = server.get_keys(allow_agent=True)
             self.assertIsInstance(keys, list)
             self.assertTrue(any('keys loaded from agent' in l) for l in
                             self.sshtunnel_log_messages['info'])
@@ -1169,30 +1169,27 @@ class SSHClientTest(unittest.TestCase):
             ssh_password=SSH_PASSWORD,
             remote_bind_address=(self.eaddr, self.eport),
             local_bind_address=('', self.randomize_eport()),
-            logger=self.log,
-            allow_agent=False
+            logger=self.log
         ) as server:
             keys = server.get_keys()
             self.assertIsInstance(keys, list)
-            self.assertTrue(any('0 keys loaded from agent' in l) for l in
-                            self.sshtunnel_log_messages['info'])
+            self.assertFalse(any('keys loaded from agent' in l for l in
+                             self.sshtunnel_log_messages['info']))
 
         tmp_dir = tempfile.mkdtemp()
-        try:
-            shutil.copy(get_test_data_path(PKEY_FILE),
-                        os.path.join(tmp_dir, 'id_rsa'))
+        shutil.copy(get_test_data_path(PKEY_FILE),
+                    os.path.join(tmp_dir, 'id_rsa'))
 
-            keys = sshtunnel.SSHTunnelForwarder.get_keys(
-                self.log,
-                host_directories=[tmp_dir, ]
-            )
-            self.assertIsInstance(keys, list)
-            self.assertTrue(
-                any('1 keys loaded from .ssh directory' in l)
-                for l in self.sshtunnel_log_messages['info']
-            )
-        finally:
-            shutil.rmtree(tmp_dir)
+        keys = sshtunnel.SSHTunnelForwarder.get_keys(
+            self.log,
+            host_pkey_directories=[tmp_dir, ]
+        )
+        self.assertIsInstance(keys, list)
+        self.assertTrue(
+            any('1 keys loaded from host directory' in l
+                for l in self.sshtunnel_log_messages['info'])
+        )
+        shutil.rmtree(tmp_dir)
 
 
 class AuxiliaryTest(unittest.TestCase):
