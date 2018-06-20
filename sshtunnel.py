@@ -314,7 +314,7 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                                     self.remote_address,
                                     hexlify(data)
                                 ))
-                chan.send(data)
+                chan.sendall(data)
             if chan in rqst:  # else
                 if not chan.recv_ready():
                     break
@@ -323,7 +323,7 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                     TRACE_LEVEL,
                     '<<< IN {0} recv: {1} <<<'.format(self.info, hexlify(data))
                 )
-                self.request.send(data)
+                self.request.sendall(data)
 
     def handle(self):
         uid = get_connection_id()
