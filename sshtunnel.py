@@ -1090,7 +1090,7 @@ class SSHTunnelForwarder(object):
                 logger.warning('Private key file not found: {0}'
                                .format(ssh_pkey))
         if isinstance(ssh_pkey, paramiko.pkey.PKey):
-            ssh_loaded_pkeys.append(ssh_pkey)
+            ssh_loaded_pkeys.insert(0, ssh_pkey)
 
         if not ssh_password and not ssh_loaded_pkeys:
             raise ValueError('No password or public key available!')
