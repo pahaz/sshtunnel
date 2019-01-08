@@ -614,9 +614,8 @@ class SSHTunnelForwarder(object):
 
         host_pkey_directories (list):
             Look for pkeys in folders on this list, for example ['~/.ssh'].
-            An empty list disables this feature
 
-            Default: ``None``
+            Default: ``None`` (disabled)
 
             .. versionadded:: 0.1.4
 
