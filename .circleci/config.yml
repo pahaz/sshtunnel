@@ -1,57 +1,85 @@
 version: 2
+common: &common
+  working_directory: ~/pahaz/sshtunnel
+  parallelism: 1
+  shell: /bin/bash --login
+  steps:
+  # Machine Setup
+  #   If you break your build into multiple jobs with workflows, you will probably want to do the parts of this that are relevant in each
+  # The following `checkout` command checks out your code to your working directory. In 1.0 we did this implicitly. In 2.0 you can choose where in the course of a job your code should be checked out.
+  - checkout
+  # Prepare for artifact and test results  collection equivalent to how it was done on 1.0.
+  # In many cases you can simplify this from what is generated here.
+  # 'See docs on artifact collection here https://circleci.com/docs/2.0/artifacts/'
+  - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
+  # Dependencies
+  #   This would typically go in either a build or a build-and-test job when using workflows
+  # Restore the dependency cache
+  - restore_cache:
+      keys:
+      # This branch if available
+      - v1-dep-{{ .Branch }}-
+      # Default branch if not
+      - v1-dep-master-
+      # Any branch if there are none on the default branch - this should be unnecessary if you have your default branch configured correctly
+      - v1-dep-
+  - run: pip -V
+  - run: pip install coveralls
+  - run: python setup.py install
+  # Save dependency cache
+  - save_cache:
+      paths:
+      - .tox
+      - ~/.cache/pip
+      - ~/.local
+      - ./eggs
+      key: v2-deps-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+  # Test
+  - run: tox -v --recreate
+  - run: coveralls
+# Save test results
+  - store_test_results:
+      path: /tmp/circleci-test-results
+  # Save artifacts
+  - store_artifacts:
+      path: /tmp/circleci-artifacts
+  - store_artifacts:
+      path: /tmp/circleci-test-results
 jobs:
-  build:
-    working_directory: ~/pahaz/sshtunnel
-    parallelism: 1
-    shell: /bin/bash --login
-    # CircleCI 2.0 does not support environment variables that refer to each other the same way as 1.0 did.
-    # If any of these refer to each other, rewrite them so that they don't or see https://circleci.com/docs/2.0/env-vars/#interpolating-environment-variables-to-set-other-environment-variables .
-    environment:
-      CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
-      CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
+  py27:
+    <<: *common
     docker:
-    - image: themattrix/tox
-    steps:
-    # Machine Setup
-    #   If you break your build into multiple jobs with workflows, you will probably want to do the parts of this that are relevant in each
-    # The following `checkout` command checks out your code to your working directory. In 1.0 we did this implicitly. In 2.0 you can choose where in the course of a job your code should be checked out.
-    - checkout
-    # Prepare for artifact and test results  collection equivalent to how it was done on 1.0.
-    # In many cases you can simplify this from what is generated here.
-    # 'See docs on artifact collection here https://circleci.com/docs/2.0/artifacts/'
-    - run: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
-    # Dependencies
-    #   This would typically go in either a build or a build-and-test job when using workflows
-    # Restore the dependency cache
-    - restore_cache:
-        keys:
-        # This branch if available
-        - v1-dep-{{ .Branch }}-
-        # Default branch if not
-        - v1-dep-master-
-        # Any branch if there are none on the default branch - this should be unnecessary if you have your default branch configured correctly
-        - v1-dep-
-    # This is based on your 1.0 configuration file or project settings
-    - run: pip -V
-    - run: pip install coveralls
-    - run: python setup.py install
-    # Save dependency cache
-    - save_cache:
-        key: v1-dep-{{ .Branch }}-{{ epoch }}
-        paths:
-        - ~/virtualenvs
-    # Test
-    #   This would typically be a build job when using workflows, possibly combined with build
-    # This is based on your 1.0 configuration file or project settings
-    - run: tox -v --recreate
-    - run: coveralls
-    # Teardown
-    #   If you break your build into multiple jobs with workflows, you will probably want to do the parts of this that are relevant in each
-    # Save test results
-    - store_test_results:
-        path: /tmp/circleci-test-results
-    # Save artifacts
-    - store_artifacts:
-        path: /tmp/circleci-artifacts
-    - store_artifacts:
-        path: /tmp/circleci-test-results
+      - image: circleci/python:2.7
+        environment: TOXENV=py27
+  py34:
+    <<: *common
+    docker:
+      - image: circleci/python:3.4
+        environment: TOXENV=py34
+  py35:
+    <<: *common
+    docker:
+      - image: circleci/python:3.5
+        environment: TOXENV=py35
+  py36:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment: TOXENV=py36
+  py37:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment: TOXENV=py37
+  syntax:
+    <<: *common
+    docker:
+      - image: circleci/python:latest
+        environment:
+          - TOXENV=syntax
+  docs:
+    <<: *common
+    docker:
+      - image: circleci/python:latest
+        environment:
+          - TOXENV=docs
