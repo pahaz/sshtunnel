@@ -102,7 +102,7 @@ Code corresponding to **Fig1** above follows, given remote server's address is
 ``pahaz.urfuclub.ru``, password authentication and randomly assigned local bind
 port.
 
-.. code-block:: py
+.. code-block:: python
 
     from sshtunnel import SSHTunnelForwarder
 
@@ -127,12 +127,12 @@ Example of a port forwarding to a private server not directly reachable,
 assuming password protected pkey authentication, remote server's SSH service is
 listening on port 443 and that port is open in the firewall (**Fig2**):
 
-.. code-block:: py
+.. code-block:: python
 
     import paramiko
-    from sshtunnel import SSHTunnelForwarder
+    import sshtunnel
 
-    with SSHTunnelForwarder(
+    with sshtunnel.open_tunnel(
         (REMOTE_SERVER_IP, 443),
         ssh_username="",
         ssh_pkey="/var/ssh/rsa_key",
@@ -154,12 +154,12 @@ Example 3
 
 Example of a port forwarding for the Vagrant MySQL local port:
 
-.. code-block:: py
+.. code-block:: python
 
-    from sshtunnel import SSHTunnelForwarder
+    from sshtunnel import open_tunnel
     from time import sleep
 
-    with SSHTunnelForwarder(
+    with open_tunnel(
         ('localhost', 2222),
         ssh_username="vagrant",
         ssh_password="vagrant",
@@ -179,6 +179,40 @@ Or simply using the CLI:
 
     (bash)$ python -m sshtunnel -U vagrant -P vagrant -L :3306 -R 127.0.0.1:3306 -p 2222 localhost
 
+Example 4
+---------
+
+Opening an SSH session jumping over two tunnels:
+
+.. code-block:: python
+
+    import sshtunnel
+    from paramiko import SSHClient
+
+
+    with sshtunnel.open_tunnel(
+        ssh_address_or_host=('GW1_ip', 20022),
+        remote_bind_address=('GW2_ip', 22),
+        block_on_close=False
+    ) as tunnel1:
+        print('Connection to tunnel1 (GW1_ip:GW1_port) OK...')
+        with sshtunnel.open_tunnel(
+            ssh_address_or_host=('localhost', tunnel1.local_bind_port),
+            remote_bind_address=('target_ip', 22),
+            ssh_username='GW2_user',
+            ssh_password='GW2_pwd',
+            block_on_close=False
+        ) as tunnel2:
+            print('Connection to tunnel2 (GW2_ip:GW2_port) OK...')
+            with SSHClient() as ssh:
+                ssh.connect('localhost',
+                    port=tunnel2.local_bind_port,
+                    username='target_user',
+                    password='target_pwd',
+                )
+                ssh.exec_command(...)
+
+
 CLI usage
 =========
 
@@ -192,7 +226,7 @@ CLI usage
                      ssh_address
 
     Pure python ssh tunnel utils
-    Version 0.1.4
+    Version 0.1.5
 
     positional arguments:
       ssh_address           SSH server IP address (GW for SSH tunnels)

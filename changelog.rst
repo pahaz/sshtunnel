@@ -16,6 +16,9 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
+- v.0.1.5 (`JM Fernández`_)
+    + Introduce `block_on_close` attribute
+
 - v.0.1.4 (`Niels Zeilemaker`_)
     + Allow loading pkeys from `~/.ssh`
 
