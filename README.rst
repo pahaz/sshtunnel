@@ -182,7 +182,9 @@ Or simply using the CLI:
 Example 4
 ---------
 
-Opening an SSH session jumping over two tunnels:
+Opening an SSH session jumping over two tunnels. SSH transport and tunnels
+will be daemonised, which will not wait for the connections to stop at close
+time.
 
 .. code-block:: python
 
