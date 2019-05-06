@@ -1622,7 +1622,7 @@ def open_tunnel(*args, **kwargs):
 
     ssh_port = kwargs.pop('ssh_port', None)
     skip_tunnel_checkup = kwargs.pop('skip_tunnel_checkup', True)
-    block_on_close = kwargs.pop('block_on_close', DAEMON)
+    block_on_close = kwargs.pop('block_on_close', _DAEMON)
     if not args:
         if isinstance(ssh_address_or_host, tuple):
             args = (ssh_address_or_host, )
