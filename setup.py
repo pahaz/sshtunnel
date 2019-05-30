@@ -119,6 +119,9 @@ setup(
     # dependencies). You can install these using the following syntax,
     # for example:
     # $ pip install -e .[dev,test]
+    tests_require=[
+        'tox>=1.8.1',
+    ],
     extras_require={
         'dev': ['check-manifest'],
         'test': [

@@ -1,0 +1,93 @@
+version: 2
+
+jobs:
+  build:
+    docker: &docker
+      - image: circleci/python:latest
+    steps: &steps
+      - run: sudo chmod -R a+r /tmp
+      - checkout
+      - restore_cache: &restore_cache
+          keys:
+            - v2-deps-{{ .Environment.CIRCLE_JOB }}-{{ checksum "sshtunnel.py" }}
+      - run: &install_sshtunnel
+          name: Install sshtunnel
+          command: sudo python setup.py install
+      - run: sudo pip install mock pytest{,-cov,-xdist} coveralls
+      - run: pip list
+      - save_cache: &save_cache
+          paths:
+            - ~/.cache/pip
+          key: v2-deps-{{ .Environment.CIRCLE_JOB }}-{{ checksum "sshtunnel.py" }}
+      - run: py.test --showlocals --cov sshtunnel --durations=10 -n4 tests
+             -W ignore::DeprecationWarning
+      - run: coveralls
+
+  python_2.7:
+    docker:
+      - image: circleci/python:2.7
+    steps: *steps
+
+  python_3.4:
+    docker:
+      - image: circleci/python:3.4
+    steps: *steps
+
+  python_3.5:
+    docker:
+      - image: circleci/python:3.5
+    steps: *steps
+
+  python_3.6:
+    docker:
+      - image: circleci/python:3.6
+    steps: *steps
+
+  docs:
+    docker: *docker
+    steps:
+      - checkout
+      - run: *install_sshtunnel
+      - restore_cache: *restore_cache
+      - run: sudo pip install -r docs/requirements-docs.txt
+      - run: sphinx-build -WavE -b html docs _build/html
+      - save_cache: *save_cache
+
+  syntax:
+    docker: *docker
+    steps:
+      - checkout
+      - run: *install_sshtunnel
+      - restore_cache: *restore_cache
+      - run:
+          name: installing testing dependencies
+          command: sudo pip install bashtest check-manifest docutils flake8
+            mccabe pygments readme twine
+      - run:
+          name: checking MANIFEST.in
+          command: sudo check-manifest --ignore "tox.ini,tests*,*.yml"
+      - run:
+          name: checking RST syntax
+          command: sudo python setup.py sdist ; twine check dist/*
+      - run:
+          name: checking PEP8 compliancy
+          command: flake8 --ignore=W504 .
+      - run:
+          name: checking CLI help
+          command: bashtest README.rst
+      - save_cache: *save_cache
+
+workflows:
+  version: 2
+  tests:
+    jobs:
+      - build  # python3.7
+      - python_2.7
+      - python_3.4
+      - python_3.5
+      - python_3.6
+  syntax_and_docs:
+    jobs:
+      - syntax
+      - docs
+
