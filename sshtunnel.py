@@ -36,13 +36,13 @@ else:
     input_ = input
 
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 __author__ = 'pahaz'
 
 
 DEFAULT_LOGLEVEL = logging.ERROR  #: default level if no logger passed (ERROR)
 TUNNEL_TIMEOUT = 1.0  #: Timeout (seconds) for tunnel connection
-DAEMON = False
+_DAEMON = False  #: Use daemon threads in connections
 TRACE_LEVEL = 1
 _CONNECTION_COUNTER = 1
 _LOCK = threading.Lock()
@@ -415,7 +415,7 @@ class _ThreadingForwardServer(socketserver.ThreadingMixIn, _ForwardServer):
     Allow concurrent connections to each tunnel
     """
     # If True, cleanly stop threads created by ThreadingMixIn when quitting
-    daemon_threads = DAEMON
+    daemon_threads = _DAEMON
 
 
 class _UnixStreamForwardServer(UnixStreamServer):
@@ -459,7 +459,7 @@ class _ThreadingUnixStreamForwardServer(socketserver.ThreadingMixIn,
     Allow concurrent connections to each tunnel
     """
     # If True, cleanly stop threads created by ThreadingMixIn when quitting
-    daemon_threads = DAEMON
+    daemon_threads = _DAEMON
 
 
 class SSHTunnelForwarder(object):
@@ -719,8 +719,8 @@ class SSHTunnelForwarder(object):
 
     """
     skip_tunnel_checkup = True
-    daemon_forward_servers = DAEMON  #: flag tunnel threads in daemon mode
-    daemon_transport = DAEMON  #: flag SSH transport thread in daemon mode
+    daemon_forward_servers = _DAEMON  #: flag tunnel threads in daemon mode
+    daemon_transport = _DAEMON  #: flag SSH transport thread in daemon mode
 
     def local_is_up(self, target):
         """
@@ -1579,6 +1579,12 @@ def open_tunnel(*args, **kwargs):
 
             .. versionadded:: 0.1.0
 
+        block_on_close (boolean):
+            Wait until all connections are done during close by changing the
+            value of :attr:`~SSHTunnelForwarder.block_on_close`
+
+            Default: True
+
     .. note::
         A value of ``debug_level`` set to 1 == ``TRACE`` enables tracing mode
     .. note::
@@ -1616,6 +1622,7 @@ def open_tunnel(*args, **kwargs):
 
     ssh_port = kwargs.pop('ssh_port', None)
     skip_tunnel_checkup = kwargs.pop('skip_tunnel_checkup', True)
+    block_on_close = kwargs.pop('block_on_close', _DAEMON)
     if not args:
         if isinstance(ssh_address_or_host, tuple):
             args = (ssh_address_or_host, )
@@ -1623,6 +1630,8 @@ def open_tunnel(*args, **kwargs):
             args = ((ssh_address_or_host, ssh_port), )
     forwarder = SSHTunnelForwarder(*args, **kwargs)
     forwarder.skip_tunnel_checkup = skip_tunnel_checkup
+    forwarder.daemon_forward_servers = not block_on_close
+    forwarder.daemon_transport = not block_on_close
     return forwarder
 
 

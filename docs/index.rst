@@ -8,9 +8,6 @@ Welcome to sshtunnel's documentation!
 API
 ===
 
-.. toctree::
-   :maxdepth: 3
-
 .. automodule:: sshtunnel
    :members:
    :member-order: bysource
