@@ -2,7 +2,7 @@
 
 |pyversions| |license|
 
-**Author**: `Pahaz Blinov`_
+**Author**: `Pahaz`_
 
 **Repo**: https://github.com/pahaz/sshtunnel/
 
@@ -272,7 +272,7 @@ CLI usage
       -d [FOLDER [FOLDER ...]], --host_pkey_directories [FOLDER [FOLDER ...]]
                             List of directories where SSH pkeys (in the format `id_*`) may be found
 
-.. _Pahaz Blinov: https://github.com/pahaz
+.. _Pahaz: https://github.com/pahaz
 .. _sshtunnel: https://pypi.python.org/pypi/sshtunnel
 .. _paramiko: http://www.paramiko.org/
 .. |CircleCI| image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
