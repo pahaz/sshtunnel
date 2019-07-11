@@ -6,7 +6,7 @@
 
 **Repo**: https://github.com/pahaz/sshtunnel/
 
-Inspired by https://github.com/jmagnusson/bgtunnel, but it doesn't work on
+Inspired by https://github.com/jmagnusson/bgtunnel, which doesn't work on
 Windows.
 
 See also: https://github.com/paramiko/paramiko/blob/master/demos/forward.py
