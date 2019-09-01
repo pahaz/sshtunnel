@@ -642,6 +642,16 @@ class SSHTunnelForwarder(object):
 
             .. versionadded:: 0.0.8
 
+
+        gateway_timeout (float):
+            Time in seconds defining the period after which, if no tunnel
+            has been created, the connection attempt is stopped and a
+            :class:`BaseSSHTunnelForwarderError` is raised.
+
+            Default: 30.0 (gateway must be brought up within 30 seconds)
+
+            .. versionadded:: 0.1.3
+
         set_keepalive (float):
             Interval in seconds defining the period in which, if no data
             was sent over the connection, a *'keepalive'* packet will be
@@ -823,7 +833,7 @@ class SSHTunnelForwarder(object):
             mute_exceptions=False,
             remote_bind_address=None,
             remote_bind_addresses=None,
-            gateway_timeout=30,
+            gateway_timeout=30.0,
             set_keepalive=0.0,
             threaded=True,  # old version False
             compression=None,
