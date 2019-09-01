@@ -849,6 +849,7 @@ class SSHTunnelForwarder(object):
 
         self.ssh_host_key = ssh_host_key
         self.set_keepalive = set_keepalive
+        self.gateway_timeout = gateway_timeout
         self._server_list = []  # reset server list
         self.tunnel_is_up = {}  # handle tunnel status
         self._threaded = threaded
