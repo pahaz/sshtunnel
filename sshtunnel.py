@@ -46,8 +46,6 @@ _DAEMON = False  #: Use daemon threads in connections
 TRACE_LEVEL = 1
 _CONNECTION_COUNTER = 1
 _LOCK = threading.Lock()
-#: Timeout (seconds) for the connection to the SSH gateway, ``None`` to disable
-SSH_TIMEOUT = None
 DEPRECATIONS = {
     'ssh_address': 'ssh_address_or_host',
     'ssh_host': 'ssh_address_or_host',
@@ -825,6 +823,7 @@ class SSHTunnelForwarder(object):
             mute_exceptions=False,
             remote_bind_address=None,
             remote_bind_addresses=None,
+            gateway_timeout=30,
             set_keepalive=0.0,
             threaded=True,  # old version False
             compression=None,
@@ -1113,7 +1112,7 @@ class SSHTunnelForwarder(object):
         else:
             _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if isinstance(_socket, socket.socket):
-            _socket.settimeout(SSH_TIMEOUT)
+            _socket.settimeout(self.gateway_timeout)
             _socket.connect((self.ssh_host, self.ssh_port))
         transport = paramiko.Transport(_socket)
         transport.set_keepalive(self.set_keepalive)
