@@ -1620,7 +1620,7 @@ def open_tunnel(*args, **kwargs):
             kwargs
         )
 
-    ssh_port = kwargs.pop('ssh_port', None)
+    ssh_port = kwargs.pop('ssh_port', 22)
     skip_tunnel_checkup = kwargs.pop('skip_tunnel_checkup', True)
     block_on_close = kwargs.pop('block_on_close', _DAEMON)
     if not args:
