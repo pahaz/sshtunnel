@@ -648,7 +648,7 @@ class SSHTunnelForwarder(object):
             has been created, the connection attempt is stopped and a
             :class:`BaseSSHTunnelForwarderError` is raised.
 
-            Default: 30.0 (gateway must be brought up within 30 seconds)
+            Default: ``None`` (disabled)
 
             .. versionadded:: 0.1.3
 
@@ -833,7 +833,7 @@ class SSHTunnelForwarder(object):
             mute_exceptions=False,
             remote_bind_address=None,
             remote_bind_addresses=None,
-            gateway_timeout=30.0,
+            gateway_timeout=None,
             set_keepalive=0.0,
             threaded=True,  # old version False
             compression=None,
