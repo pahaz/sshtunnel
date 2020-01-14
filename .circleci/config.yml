@@ -43,6 +43,11 @@ jobs:
       - image: circleci/python:3.6
     steps: *steps
 
+  python_3.7:
+    docker:
+      - image: circleci/python:3.7
+    steps: *steps
+
   docs:
     docker: *docker
     steps:
@@ -86,8 +91,8 @@ workflows:
       - python_3.4
       - python_3.5
       - python_3.6
+      - python_3.7
   syntax_and_docs:
     jobs:
       - syntax
       - docs
-
