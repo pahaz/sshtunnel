@@ -5,6 +5,7 @@ machine:
     TOX_PY34: '3.4.4'
     TOX_PY35: '3.5.3'
     TOX_PY36: '3.6.2'
+    TOX_PY37: '3.7.5'
 
 dependencies:
   override:
