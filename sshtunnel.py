@@ -642,7 +642,6 @@ class SSHTunnelForwarder(object):
 
             .. versionadded:: 0.0.8
 
-
         gateway_timeout (float):
             Time in seconds defining the period after which, if no tunnel
             has been created, the connection attempt is stopped and a
