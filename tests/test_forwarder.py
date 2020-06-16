@@ -169,18 +169,15 @@ class NullServer(paramiko.ServerInterface):
         return paramiko.AUTH_SUCCESSFUL if _ok else paramiko.AUTH_FAILED
 
     def check_channel_request(self, kind, chanid):
-        self.log.debug('NullServer.check_channel_request()'
-                       .format(kind, chanid))
+        self.log.debug('NullServer.check_channel_request()')
         return paramiko.OPEN_SUCCEEDED
 
     def check_channel_exec_request(self, channel, command):
-        self.log.debug('NullServer.check_channel_exec_request()'
-                       .format(channel, command))
+        self.log.debug('NullServer.check_channel_exec_request()')
         return True
 
     def check_port_forward_request(self, address, port):
-        self.log.debug('NullServer.check_port_forward_request()'
-                       .format(address, port))
+        self.log.debug('NullServer.check_port_forward_request()')
         return True
 
     def check_global_request(self, kind, msg):
@@ -961,8 +958,8 @@ class SSHClientTest(unittest.TestCase):
         ) as server:
             self.assertIsInstance(server.local_bind_addresses, list)
             self.assertListEqual(server.local_bind_addresses,
-                                 [l for l in zip([self.saddr] * 2,
-                                                 server.local_bind_ports)])
+                                 list(zip([self.saddr] * 2,
+                                          server.local_bind_ports)))
             with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
                 self.log.info(server.local_bind_address)
 
@@ -1084,7 +1081,7 @@ class SSHClientTest(unittest.TestCase):
             s.close
             log = 'send to {0}'.format((self.eaddr, self.eport))
 
-        self.assertTrue(any(log in l for l in
+        self.assertTrue(any(log in msg for msg in
                             self.sshtunnel_log_messages['trace']))
         # set loglevel back to the original value
         logger = sshtunnel.create_logger(logger=self.log,
@@ -1160,8 +1157,8 @@ class SSHClientTest(unittest.TestCase):
 
             keys = server.get_keys(allow_agent=True)
             self.assertIsInstance(keys, list)
-            self.assertTrue(any('keys loaded from agent' in l) for l in
-                            self.sshtunnel_log_messages['info'])
+            self.assertTrue(any('keys loaded from agent' in msg for msg in
+                            self.sshtunnel_log_messages['info']))
 
         with self._test_server(
             (self.saddr, self.sport),
@@ -1173,7 +1170,7 @@ class SSHClientTest(unittest.TestCase):
         ) as server:
             keys = server.get_keys()
             self.assertIsInstance(keys, list)
-            self.assertFalse(any('keys loaded from agent' in l for l in
+            self.assertFalse(any('keys loaded from agent' in msg for msg in
                              self.sshtunnel_log_messages['info']))
 
         tmp_dir = tempfile.mkdtemp()
@@ -1186,8 +1183,8 @@ class SSHClientTest(unittest.TestCase):
         )
         self.assertIsInstance(keys, list)
         self.assertTrue(
-            any('1 keys loaded from host directory' in l
-                for l in self.sshtunnel_log_messages['info'])
+            any('1 keys loaded from host directory' in msg
+                for msg in self.sshtunnel_log_messages['info'])
         )
         shutil.rmtree(tmp_dir)
 
