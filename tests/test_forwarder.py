@@ -1167,7 +1167,7 @@ class SSHClientTest(unittest.TestCase):
             local_bind_address=('', self.randomize_eport()),
             logger=self.log
         ) as server:
-            keys = server.get_keys()
+            keys = server.get_keys(logger=self.log)
             self.assertIsInstance(keys, list)
             self.assertFalse(any('keys loaded from agent' in msg for msg in
                              self.sshtunnel_log_messages['info']))
