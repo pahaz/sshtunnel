@@ -1155,7 +1155,7 @@ class SSHClientTest(unittest.TestCase):
             logger=self.log
         ) as server:
 
-            keys = server.get_keys(allow_agent=True)
+            keys = server.get_keys(logger=self.log, allow_agent=True)
             self.assertIsInstance(keys, list)
             self.assertTrue(any('keys loaded from agent' in msg for msg in
                             self.sshtunnel_log_messages['info']))
