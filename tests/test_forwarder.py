@@ -1153,11 +1153,10 @@ class SSHClientTest(unittest.TestCase):
             local_bind_address=('', self.randomize_eport()),
             logger=self.log
         ) as server:
-
-            keys = server.get_keys(logger=self.log, allow_agent=True)
+            keys = server.get_keys(logger=self.log)
             self.assertIsInstance(keys, list)
-            self.assertTrue(any('keys loaded from agent' in msg for msg in
-                            self.sshtunnel_log_messages['info']))
+            self.assertFalse(any('keys loaded from agent' in msg for msg in
+                             self.sshtunnel_log_messages['info']))
 
         with self._test_server(
             (self.saddr, self.sport),
@@ -1167,10 +1166,10 @@ class SSHClientTest(unittest.TestCase):
             local_bind_address=('', self.randomize_eport()),
             logger=self.log
         ) as server:
-            keys = server.get_keys(logger=self.log)
+            keys = server.get_keys(logger=self.log, allow_agent=True)
             self.assertIsInstance(keys, list)
-            self.assertFalse(any('keys loaded from agent' in msg for msg in
-                             self.sshtunnel_log_messages['info']))
+            self.assertTrue(any('keys loaded from agent' in msg for msg in
+                            self.sshtunnel_log_messages['info']))
 
         tmp_dir = tempfile.mkdtemp()
         shutil.copy(get_test_data_path(PKEY_FILE),
