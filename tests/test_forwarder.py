@@ -181,8 +181,7 @@ class NullServer(paramiko.ServerInterface):
         return True
 
     def check_global_request(self, kind, msg):
-        self.log.debug('NullServer.check_port_forward_request()'
-                       .format(kind, msg))
+        self.log.debug('NullServer.check_port_forward_request()')
         return True
 
     def check_channel_direct_tcpip_request(self, chanid, origin, destination):
