@@ -1303,7 +1303,7 @@ class SSHTunnelForwarder(object):
             self._check_tunnel(_srv)
 
             # Signal shutdown to the thread if the Tunnel is DOWN.
-            # Otherwise _stop_transport() will only signal shutdown to 
+            # Otherwise _stop_transport() will only signal shutdown to
             # tunnels that are UP.
             if not self.tunnel_is_up[_srv.local_address]:
                 _srv.shutdown()
