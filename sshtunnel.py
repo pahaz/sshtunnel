@@ -1301,9 +1301,10 @@ class SSHTunnelForwarder(object):
             thread.daemon = self.daemon_forward_servers
             thread.start()
             self._check_tunnel(_srv)
-            
+
             # Signal shutdown to the thread if the Tunnel is DOWN.
-            # Otherwise _stop_transport() will only signal shutdown to tunnels that are UP.
+            # Otherwise _stop_transport() will only signal shutdown to 
+            # tunnels that are UP.
             if not self.tunnel_is_up[_srv.local_address]:
                 _srv.shutdown()
         self.is_alive = any(self.tunnel_is_up.values())
