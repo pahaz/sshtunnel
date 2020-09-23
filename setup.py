@@ -6,12 +6,9 @@ https://github.com/pypa/sampleproject
 """
 
 import re
-import sys
 from os import path
 from codecs import open  # To use a consistent encoding
-
 from setuptools import setup  # Always prefer setuptools over distutils
-from setuptools.command.test import test as TestCommand
 
 here = path.abspath(path.dirname(__file__))
 name = 'sshtunnel'
@@ -32,21 +29,6 @@ with open(path.join(here, name + '.py'), encoding='utf-8') as f:
     version = eval(re.search("__version__[ ]*=[ ]*([^\r\n]+)", data).group(1))
 
 
-class Tox(TestCommand):
-    """ Integration with tox """
-
-    def finalize_options(self):
-        TestCommand.finalize_options(self)
-        self.test_args = ['--recreate', '-v']
-        self.test_suite = True
-
-    def run_tests(self):
-        # import here, otherwise eggs aren't loaded
-        import tox
-        errcode = tox.cmdline(self.test_args)
-        sys.exit(errcode)
-
-
 setup(
     name=name,
 
@@ -57,6 +39,7 @@ setup(
 
     description=description,
     long_description='\n'.join((long_description, documentation, changelog)),
+    long_description_content_type='text/x-rst',
 
     # The project's main homepage.
     url=url,
@@ -93,6 +76,7 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
 
     platforms=['unix', 'macos', 'windows'],
@@ -150,6 +134,4 @@ setup(
         ]
     },
 
-    # Integrate tox with setuptools
-    cmdclass={'test': Tox},
 )

@@ -63,7 +63,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'sshtunnel'
-copyright = '2014-2019, Pahaz Blinov and contributors'
+copyright = '2014-2020, Pahaz Blinov and contributors'
 author = 'Pahaz Blinov'
 
 # The version info for the project you're documenting, acts as replacement for

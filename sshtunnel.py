@@ -1532,7 +1532,7 @@ class SSHTunnelForwarder(object):
             self.ssh_proxy.cmd[1] if self.ssh_proxy else 'no',
             self.ssh_username,
             credentials,
-            self.ssh_host_key if self.ssh_host_key else'not checked',
+            self.ssh_host_key if self.ssh_host_key else 'not checked',
             '' if self.is_alive else 'not ',
             'disabled' if not self.set_keepalive else
             'every {0} sec'.format(self.set_keepalive),
