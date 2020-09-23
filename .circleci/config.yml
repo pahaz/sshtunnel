@@ -1,33 +1,47 @@
-version: 2
+params: &params
+  parameters:
+    version:
+      description: Python docker image version
+      default: latest
+      type: string
+
+job_defaults: &job_defaults
+  <<: *params
+  executor:
+    name: python
+    version: << parameters.version >>
+
+version: 2.1
+
+executors:
+  python:
+    <<: *params
+    docker:
+      - image: circleci/python:<< parameters.version >>
 
 jobs:
-  test:
-    parameters:
-      python_version:
-        description: Tag for python docker image
-        default: latest
-        type: string
-    docker: &docker
-      - image: circleci/python:<< parameters.python_version >>
-    steps: &steps
+  tests:
+    description: Run test suite for a specific python version
+    <<: *job_defaults
+    steps:
       - checkout
       - restore_cache: &restore_cache
           keys:
-            - sshtunnel-py<< python_version >>
+            - sshtunnel-py<< parameters.version >>
       - run:
           name: Install sshtunnel
           command: pipenv install --dev -r tests/requirements.txt -e .
           environment:
             - PIPENV_VENV_IN_PROJECT: 1
       - save_cache:
-          key: sshtunnel-py<< python_version >>-{{ checksum "Pipfile.lock" }}
+          key: sshtunnel-py<< parameters.version >>-{{ checksum "Pipfile.lock" }}
           paths:
             - .venv/
       - run:
           name: Run test suite
           command: |
             args=( '--showlocals', '--durations=10', '-n4', '-W ignore::DeprecationWarning' )
-            (( << python_version >> != '2.7' )) && args+=( '--cov sshtunnel' )
+            (( << parameters.version >> != '2.7' )) && args+=( '--cov sshtunnel' )
             pipenv run py.test tests "${args[@]}"
       - run:
           name: Scan dependency graph for known vulnerabilities
@@ -37,7 +51,8 @@ jobs:
           path: test_results/
 
   docs:
-    docker: *docker
+    description: Produce documentation from source
+    <<: *job_defaults
     steps:
       - restore_cache: *restore_cache
       - run:
@@ -46,12 +61,13 @@ jobs:
       - run:
           name: Build documentation
           command: pipenv run sphinx-build -WavE -b html docs _build/html
-      - store-artifacts:
+      - store_artifacts:
           path: _build/html
           destination: sshtunnel-docs
 
   syntax:
-    docker: *docker
+    description: Run syntax validation tests
+    <<: *job_defaults
     steps:
       - restore_cache: *restore_cache
       - run:
@@ -71,15 +87,14 @@ jobs:
           command: pipenv run bashtest README.rst
 
   deploy:
-    docker: *docker
+    description: Build and upload artifacts to PyPI
+    <<: *job_defaults
     steps:
       - restore_cache: *restore_cache
       - run:
           name: Install twine
           command: pipenv install --dev twine --skip-lock
       - run: pipenv run python setup.py bdist_egg bdist_wheel
-      - save_cache:
-          key: 
       - run:
           name: Check artifacts
           command: pipenv run twine check dist/*
@@ -93,7 +108,6 @@ jobs:
           command: pipenv run twine upload dist/*
 
 workflows:
-  version: 2
   syntax_and_docs:
     jobs:
       - syntax
@@ -101,35 +115,16 @@ workflows:
 
   test_and_deploy:
     jobs:
-      - test:
-          name: test-27
-          python_version: 2.7
-      - test:
-          name: test-34
-          python_version: 3.4
-      - test:
-          name: test-35
-          python_version: 3.5
-      - test:
-          name: test-36
-          python_version: 3.6
-      - test:
-          name: test-37
-          python_version: 3.7
-      - test:
-          name: test-38
-          python_version: 3.8
+      - tests:
+          matrix:
+            parameters:
+              version:
+                - "2.7"
+                - "3.4"
+                - "3.5"
+                - "3.6"
+                - "3.7"
+                - "3.8"
       - deploy:
           requires:
-            - syntax
-            - test27
-            - test34
-            - test35
-            - test36
-            - test37
-            - test38
-          filters:
-            branches:
-              only:
-                - master
-                - main
+            - tests
