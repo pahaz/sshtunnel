@@ -2,3 +2,4 @@ mock
 pytest
 pytest-cov
 pytest-xdist
+twine

@@ -95,9 +95,6 @@ jobs:
       - checkout
       - restore_cache: *restore_cache
       - run:
-          name: Install twine
-          command: pipenv install --dev twine --skip-lock
-      - run:
           name: Build artifact
           command: |
             formats=( 'bdist_egg' )
@@ -121,9 +118,6 @@ jobs:
     steps:
       - checkout
       - restore_cache: *restore_cache
-      - run:
-          name: Install twine
-          command: pipenv install --dev twine --skip-lock
       - run:
           name: Build artifact
           command: |
