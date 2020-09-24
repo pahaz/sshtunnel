@@ -72,7 +72,7 @@ jobs:
       - restore_cache: *restore_cache
       - run:
           name: Installing syntax checks dependencies
-          command: pipenv install --dev -r tests/requirements-syntax-tests.txt --skip-lock
+          command: pipenv install --dev -r tests/requirements-syntax.txt --skip-lock
       - run:
           name: checking MANIFEST.in
           command: pipenv run check-manifest --ignore tox.ini,tests*,*.yml
