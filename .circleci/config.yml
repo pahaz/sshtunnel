@@ -44,7 +44,7 @@ jobs:
             args=( '--showlocals' '--durations=10' '-n4' '-W ignore::DeprecationWarning' )
             [[ << parameters.version >> != '2.7' ]] && args+=( '--cov sshtunnel' )
             pipenv run py.test tests ${args[@]}
-      - run: coveralls
+      - run: pipenv run coveralls
       - store_test_results:
           path: test_results/
 
