@@ -31,8 +31,7 @@ jobs:
       - run: &install
           name: Install sshtunnel and build&test dependencies
           command: |
-            pipenv install --dev -r tests/requirements.txt
-            pipenv install -e .
+            pipenv install -e . -r tests/requirements.txt --python $PYTHON_VERSION
           environment:
             - PIPENV_VENV_IN_PROJECT: 1
       - save_cache: &save_cache
