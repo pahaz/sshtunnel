@@ -40,8 +40,8 @@ jobs:
       - run:
           name: Run test suite
           command: |
-            args=( '--showlocals', '--durations=10', '-n4', '-W ignore::DeprecationWarning' )
-            (( << parameters.version >> != '2.7' )) && args+=( '--cov sshtunnel' )
+            args=( '--showlocals' '--durations=10' '-n4' '-W ignore::DeprecationWarning' )
+            [[ << parameters.version >> != '2.7' ]] && args+=( '--cov sshtunnel' )
             pipenv run py.test tests "${args[@]}"
       - run:
           name: Scan dependency graph for known vulnerabilities
@@ -98,7 +98,7 @@ jobs:
           name: Build artifact
           command: |
             formats=( 'bdist_egg' )
-            (( << parameters.version >> == 'latest' )) && formats+=( 'bdist_wheel' )
+            [[ << parameters.version >> == 'latest' ]] && formats+=( 'bdist_wheel' )
             pipenv run setup.py "${formats[@]}"
       - run:
           name: Check artifacts
