@@ -29,8 +29,10 @@ jobs:
           keys:
             - sshtunnel-py<< parameters.version >>
       - run:
-          name: Install sshtunnel
-          command: pipenv install --dev -r tests/requirements.txt -e .
+          name: Install sshtunnel and build&test dependencies
+          command: |
+            pipenv install --dev -r tests/requirements.txt
+            pipenv install -e .
           environment:
             - PIPENV_VENV_IN_PROJECT: 1
       - save_cache:
