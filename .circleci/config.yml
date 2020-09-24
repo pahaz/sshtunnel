@@ -58,7 +58,7 @@ jobs:
       - save_cache: *save_cache
       - run:
           name: Installing documentation dependencies
-          command: pipenv install --dev -r docs/requirements-docs.txt --skip-lock
+          command: pipenv install --dev -r docs/requirements.txt
       - run:
           name: Build documentation
           command: pipenv run sphinx-build -WavE -b html docs _build/html
@@ -76,13 +76,15 @@ jobs:
       - save_cache: *save_cache
       - run:
           name: Installing syntax checks dependencies
-          command: pipenv install --dev -r tests/requirements-syntax.txt --skip-lock
+          command: pipenv install --dev -r tests/requirements-syntax.txt
       - run:
           name: checking MANIFEST.in
           command: pipenv run check-manifest --ignore tox.ini,tests*,*.yml
       - run:
           name: checking RST syntax
-          command: pipenv run python setup.py sdist ; twine check dist/*
+          command: |
+            pipenv run python setup.py sdist
+            pipenv run twine check dist/*
       - run:
           name: checking PEP8 compliancy
           command: pipenv run flake8 --ignore=W504 .
