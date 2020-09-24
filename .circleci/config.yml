@@ -54,6 +54,7 @@ jobs:
     description: Produce documentation from source
     <<: *job_defaults
     steps:
+      - checkout
       - restore_cache: *restore_cache
       - run:
           name: Installing documentation dependencies
@@ -69,6 +70,7 @@ jobs:
     description: Run syntax validation tests
     <<: *job_defaults
     steps:
+      - checkout
       - restore_cache: *restore_cache
       - run:
           name: Installing syntax checks dependencies
@@ -90,6 +92,7 @@ jobs:
     description: Build and upload artifacts to Test PyPI
     <<: *job_defaults
     steps:
+      - checkout
       - restore_cache: *restore_cache
       - run:
           name: Install twine
@@ -116,6 +119,7 @@ jobs:
     description: Build and upload artifacts to PyPI
     <<: *job_defaults
     steps:
+      - checkout
       - restore_cache: *restore_cache
       - run:
           name: Install twine
