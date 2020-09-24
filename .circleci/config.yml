@@ -31,7 +31,8 @@ jobs:
       - run: &install
           name: Install sshtunnel and build&test dependencies
           command: |
-            pipenv install -e . -r tests/requirements.txt --python $PYTHON_VERSION
+            pipenv install --python $PYTHON_VERSION -e .
+            pipenv install --dev -r tests/requirements.txt
           environment:
             - PIPENV_VENV_IN_PROJECT: 1
       - save_cache: &save_cache
@@ -44,7 +45,11 @@ jobs:
             args=( '--showlocals' '--durations=10' '-n4' '-W ignore::DeprecationWarning' )
             [[ << parameters.version >> != '2.7' ]] && args+=( '--cov sshtunnel' )
             pipenv run py.test tests ${args[@]}
-      - run: pipenv run coveralls
+      - run:
+          name: Coveralls
+          command: |
+            pipenv install --dev coveralls
+            pipenv run coveralls
       - store_test_results:
           path: test_results/
 
@@ -87,7 +92,7 @@ jobs:
             pipenv run twine check dist/*
       - run:
           name: checking PEP8 compliancy
-          command: pipenv run flake8 --ignore=W504 .
+          command: pipenv run flake8 --exclude .venv --ignore=W504 .
       - run:
           name: checking CLI help
           command: pipenv run bashtest README.rst
