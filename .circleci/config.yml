@@ -86,6 +86,32 @@ jobs:
           name: checking CLI help
           command: pipenv run bashtest README.rst
 
+  testdeploy:
+    description: Build and upload artifacts to Test PyPI
+    <<: *job_defaults
+    steps:
+      - restore_cache: *restore_cache
+      - run:
+          name: Install twine
+          command: pipenv install --dev twine --skip-lock
+      - run:
+          name: Build artifact
+          command: |
+            formats=( 'bdist_egg' )
+            (( << parameters.version >> == 'latest' )) && formats+=( 'bdist_wheel' )
+            pipenv run setup.py "${formats[@]}"
+      - run:
+          name: Check artifacts
+          command: pipenv run twine check dist/*
+      - store_artifacts:
+          path: dist/
+      - run:
+          name: Upload to TestPyPI
+          environment:
+            - TWINE_USERNAME: ${{ Environment.TESTPYPI_USERNAME }}
+            - TWINE_PASSWORD: ${{ Environment.TESTPYPI_TOKEN }}
+          command: pipenv run twine upload --repository testpypi dist/*
+
   deploy:
     description: Build and upload artifacts to PyPI
     <<: *job_defaults
@@ -94,17 +120,17 @@ jobs:
       - run:
           name: Install twine
           command: pipenv install --dev twine --skip-lock
-      - run: pipenv run python setup.py bdist_egg bdist_wheel
       - run:
-          name: Check artifacts
-          command: pipenv run twine check dist/*
-      - store_artifacts:
-          path: dist/
+          name: Build artifact
+          command: |
+            formats=( 'bdist_egg' )
+            (( << parameters.version >> == 'latest' )) && formats+=( 'bdist_wheel' )
+            pipenv run setup.py "${formats[@]}"
       - run:
           name: Upload to PyPI
           environment:
             - TWINE_USERNAME: ${{ Environment.PYPI_USERNAME }}
-            - TWINE_PASSWORD: ${{ Environment.PYPI_PASSWORD }}
+            - TWINE_PASSWORD: ${{ Environment.PYPI_TOKEN }}
           command: pipenv run twine upload dist/*
 
 workflows:
@@ -125,6 +151,34 @@ workflows:
                 - "3.6"
                 - "3.7"
                 - "3.8"
-      - deploy:
+      - testdeploy:
           requires:
             - tests
+          matrix:
+            parameters:
+              version:
+                - "2.7"
+                - "3.4"
+                - "3.5"
+                - "3.6"
+                - "3.7"
+                - "latest"
+
+      - hold:
+          type: approval
+          requires:
+            - testdeploy
+
+      - deploy:
+          requires:
+            - hold
+          matrix:
+            parameters:
+              version:
+                - "2.7"
+                - "3.4"
+                - "3.5"
+                - "3.6"
+                - "3.7"
+                - "latest"
+
