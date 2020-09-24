@@ -28,14 +28,14 @@ jobs:
       - restore_cache: &restore_cache
           keys:
             - sshtunnel-py<< parameters.version >>
-      - run:
+      - run: &install
           name: Install sshtunnel and build&test dependencies
           command: |
             pipenv install --dev -r tests/requirements.txt
             pipenv install -e .
           environment:
             - PIPENV_VENV_IN_PROJECT: 1
-      - save_cache:
+      - save_cache: &save_cache
           key: sshtunnel-py<< parameters.version >>-{{ checksum "Pipfile.lock" }}
           paths:
             - .venv/
@@ -45,9 +45,9 @@ jobs:
             args=( '--showlocals' '--durations=10' '-n4' '-W ignore::DeprecationWarning' )
             [[ << parameters.version >> != '2.7' ]] && args+=( '--cov sshtunnel' )
             pipenv run py.test tests "${args[@]}"
-      - run:
-          name: Scan dependency graph for known vulnerabilities
-          command: pipenv check
+      # - run:
+      #     name: Scan dependency graph for known vulnerabilities
+      #     command: pipenv check
       - run: coveralls
       - store_test_results:
           path: test_results/
@@ -58,6 +58,8 @@ jobs:
     steps:
       - checkout
       - restore_cache: *restore_cache
+      - run: *install
+      - save_cache: *save_cache
       - run:
           name: Installing documentation dependencies
           command: pipenv install --dev -r docs/requirements-docs.txt --skip-lock
@@ -74,6 +76,8 @@ jobs:
     steps:
       - checkout
       - restore_cache: *restore_cache
+      - run: *install
+      - save_cache: *save_cache
       - run:
           name: Installing syntax checks dependencies
           command: pipenv install --dev -r tests/requirements-syntax.txt --skip-lock
