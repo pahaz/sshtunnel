@@ -125,7 +125,7 @@ jobs:
           command: >-
             pipenv run twine upload
             --repository testpypi
-            --username $TESTPYPI_USERNAME
+            --username __token__
             --password $TESTPYPI_TOKEN
             --skip-existing
             dist/*
@@ -146,7 +146,7 @@ jobs:
           name: Upload to PyPI
           command: >-
             pipenv run twine upload
-            --username $PYPI_USERNAME
+            --username __token__
             --password $PYPI_TOKEN
             --skip-existing
             dist/*
