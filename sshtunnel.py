@@ -29,7 +29,7 @@ if sys.version_info[0] < 3:  # pragma: no cover
     import SocketServer as socketserver
     string_types = basestring,  # noqa
     input_ = raw_input  # noqa
-else:
+else:  # pragma: no cover
     import queue
     import socketserver
     string_types = str
