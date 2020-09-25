@@ -43,14 +43,14 @@ jobs:
           name: Run test suite
           command: >-
             pipenv run py.test tests
-            --showlocals
-            --durations=10
-            -n4
-            -W ignore::DeprecationWarning
-            --cov sshtunnel
-            --cov-report=xml
-            --cov-report=term
-            --junit-xml=test_results/report.xml
+              --showlocals
+              --durations=10
+              -n4
+              -W ignore::DeprecationWarning
+              --cov sshtunnel
+              --cov-report=xml:test_results/coverage.xml
+              --cov-report=term
+              --junit-xml=test_results/report.xml
       - run:
           name: Coveralls
           command: pipenv run coveralls
