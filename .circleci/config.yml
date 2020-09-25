@@ -25,14 +25,6 @@ jobs:
     <<: *job_defaults
     steps:
       - checkout
-      - run:
-          name: Upload to TestPyPI
-          environment:
-            - TWINE_USERNAME: "{{ .Environment.TESTPYPI_USERNAME }}"
-            - TWINE_PASSWORD: $TESTPYPI_TOKEN
-          command: |
-            echo $TESTPYPI_USERNAME
-            echo $TWINE_USERNAME
       - restore_cache: &restore_cache
           keys:
             - sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}
@@ -130,10 +122,13 @@ jobs:
           path: dist/
       - run:
           name: Upload to TestPyPI
-          environment:
-            - TWINE_USERNAME: $TESTPYPI_USERNAME
-            - TWINE_PASSWORD: $TESTPYPI_TOKEN
-          command: pipenv run twine upload --repository testpypi dist/*
+          command: >-
+            pipenv run twine upload
+            --repository testpypi
+            --username $TESTPYPI_USERNAME
+            --password $TESTPYPI_TOKEN
+            --skip-existing
+            dist/*
 
   deploy:
     description: Build and upload artifacts to PyPI
@@ -149,10 +144,12 @@ jobs:
             pipenv run python setup.py ${formats[@]}
       - run:
           name: Upload to PyPI
-          environment:
-            - TWINE_USERNAME: $PYPI_USERNAME
-            - TWINE_PASSWORD: $PYPI_TOKEN
-          command: pipenv run twine upload dist/*
+          command: >-
+            pipenv run twine upload
+            --username $PYPI_USERNAME
+            --password $PYPI_TOKEN
+            --skip-existing
+            dist/*
 
 workflows:
   syntax_and_docs:
