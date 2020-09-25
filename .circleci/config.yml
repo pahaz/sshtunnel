@@ -47,9 +47,7 @@ jobs:
             pipenv run py.test tests ${args[@]}
       - run:
           name: Coveralls
-          command: |
-            pipenv install --dev coveralls
-            pipenv run coveralls
+          command: pipenv run coveralls
       - store_test_results:
           path: test_results/
 
@@ -92,7 +90,7 @@ jobs:
             pipenv run twine check dist/*
       - run:
           name: checking PEP8 compliancy
-          command: pipenv run flake8 --exclude .venv --ignore=W504 .
+          command: pipenv run flake8 --exclude .venv,docs --ignore=W504 .
       - run:
           name: checking CLI help
           command: pipenv run bashtest README.rst

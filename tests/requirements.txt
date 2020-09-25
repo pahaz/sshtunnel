@@ -1,3 +1,4 @@
+coveralls
 mock
 pytest
 pytest-cov
