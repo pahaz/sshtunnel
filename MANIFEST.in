@@ -9,4 +9,5 @@ include docs/*.txt
 include tests/*
 exclude .circleci/*
 exclude *.pyc
+exclude __pycache__
 exclude Pipfile*
