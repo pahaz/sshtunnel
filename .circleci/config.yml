@@ -1,98 +1,202 @@
-version: 2
+params: &params
+  parameters:
+    version:
+      description: Python docker image version
+      default: latest
+      type: string
+
+job_defaults: &job_defaults
+  <<: *params
+  executor:
+    name: python
+    version: << parameters.version >>
+
+version: 2.1
+
+executors:
+  python:
+    <<: *params
+    docker:
+      - image: circleci/python:<< parameters.version >>
 
 jobs:
-  build:
-    docker: &docker
-      - image: circleci/python:latest
-    steps: &steps
-      - run: sudo chmod -R a+r /tmp
+  tests:
+    description: Run test suite for a specific python version
+    <<: *job_defaults
+    steps:
       - checkout
       - restore_cache: &restore_cache
           keys:
-            - v2-deps-{{ .Environment.CIRCLE_JOB }}-{{ checksum "sshtunnel.py" }}
-      - run: &install_sshtunnel
-          name: Install sshtunnel
-          command: sudo python setup.py install
-      - run: sudo pip install mock pytest{,-cov,-xdist} coveralls
-      - run: pip list
+            - sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}
+      - run: &install
+          name: Install sshtunnel and build&test dependencies
+          command: |
+            pipenv install --python $PYTHON_VERSION -e .
+            pipenv install --dev -r tests/requirements.txt
+          environment:
+            - PIPENV_VENV_IN_PROJECT: 1
       - save_cache: &save_cache
+          key: sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}
           paths:
-            - ~/.cache/pip
-          key: v2-deps-{{ .Environment.CIRCLE_JOB }}-{{ checksum "sshtunnel.py" }}
-      - run: py.test --showlocals --cov sshtunnel --durations=10 -n4 tests
-             -W ignore::DeprecationWarning
-      - run: coveralls
-
-  python_2.7:
-    docker:
-      - image: circleci/python:2.7
-    steps: *steps
-
-  python_3.4:
-    docker:
-      - image: circleci/python:3.4
-    steps: *steps
-
-  python_3.5:
-    docker:
-      - image: circleci/python:3.5
-    steps: *steps
-
-  python_3.6:
-    docker:
-      - image: circleci/python:3.6
-    steps: *steps
-
-  python_3.7:
-    docker:
-      - image: circleci/python:3.7
-    steps: *steps
+            - .venv/
+      - run:
+          name: Run test suite
+          command: >-
+            pipenv run py.test tests
+            --showlocals
+            --durations=10
+            -n4
+            -W ignore::DeprecationWarning
+            --cov sshtunnel
+            --cov-report=html:test_results/coverage.html
+            --cov-report=term
+            --junit-xml=test_results/report.xml
+      - run:
+          name: Coveralls
+          command: pipenv run coveralls
+      - store_test_results:
+          path: test_results
+      - store_artifacts:
+          path: test_results
 
   docs:
-    docker: *docker
+    description: Produce documentation from source
+    <<: *job_defaults
     steps:
       - checkout
-      - run: *install_sshtunnel
       - restore_cache: *restore_cache
-      - run: sudo pip install -r docs/requirements-docs.txt
-      - run: sphinx-build -WavE -b html docs _build/html
+      - run: *install
       - save_cache: *save_cache
+      - run:
+          name: Installing documentation dependencies
+          command: pipenv install --dev -r docs/requirements.txt
+      - run:
+          name: Build documentation
+          command: pipenv run sphinx-build -WavE -b html docs _build/html
+      - store_artifacts:
+          path: _build/html
+          destination: sshtunnel-docs
 
   syntax:
-    docker: *docker
+    description: Run syntax validation tests
+    <<: *job_defaults
     steps:
       - checkout
-      - run: *install_sshtunnel
       - restore_cache: *restore_cache
+      - run: *install
+      - save_cache: *save_cache
       - run:
-          name: installing testing dependencies
-          command: sudo pip install bashtest check-manifest docutils flake8
-            mccabe pygments readme twine
+          name: Installing syntax checks dependencies
+          command: pipenv install --dev -r tests/requirements-syntax.txt
       - run:
           name: checking MANIFEST.in
-          command: sudo check-manifest --ignore "tox.ini,tests*,*.yml"
+          command: pipenv run check-manifest --ignore tox.ini,tests*,*.yml
       - run:
           name: checking RST syntax
-          command: sudo python setup.py sdist ; twine check dist/*
+          command: |
+            pipenv run python setup.py sdist
+            pipenv run twine check dist/*
       - run:
           name: checking PEP8 compliancy
-          command: flake8 --ignore=W504 .
+          command: pipenv run flake8 --exclude .venv,build,docs --max-complexity 10 --ignore=W504
       - run:
           name: checking CLI help
-          command: bashtest README.rst
-      - save_cache: *save_cache
+          command: pipenv run bashtest README.rst
+
+  testdeploy:
+    description: Build and upload artifacts to Test PyPI
+    <<: *job_defaults
+    steps:
+      - checkout
+      - restore_cache: *restore_cache
+      - run:
+          name: Build artifact
+          command: |
+            formats=( 'bdist_egg' )
+            [[ << parameters.version >> == 'latest' ]] && formats+=( 'bdist_wheel' 'sdist' )
+            pipenv run python setup.py ${formats[@]}
+      - run:
+          name: Check artifacts
+          command: pipenv run twine check dist/*
+      - store_artifacts:
+          path: dist/
+      - run:
+          name: Upload to TestPyPI
+          command: >-
+            pipenv run twine upload
+            --repository testpypi
+            --username __token__
+            --password $TESTPYPI_TOKEN
+            --skip-existing
+            dist/*
+
+  deploy:
+    description: Build and upload artifacts to PyPI
+    <<: *job_defaults
+    steps:
+      - checkout
+      - restore_cache: *restore_cache
+      - run:
+          name: Build artifact
+          command: |
+            formats=( 'bdist_egg' )
+            (( << parameters.version >> == 'latest' )) && formats+=( 'bdist_wheel' )
+            pipenv run python setup.py ${formats[@]}
+      - run:
+          name: Upload to PyPI
+          command: >-
+            pipenv run twine upload
+            --username __token__
+            --password $PYPI_TOKEN
+            --skip-existing
+            dist/*
 
 workflows:
-  version: 2
-  tests:
-    jobs:
-      - build  # python3.7
-      - python_2.7
-      - python_3.4
-      - python_3.5
-      - python_3.6
-      - python_3.7
   syntax_and_docs:
     jobs:
       - syntax
       - docs
+
+  test_and_deploy:
+    jobs:
+      - tests:
+          matrix:
+            parameters:
+              version:
+                - "2.7"
+                - "3.4"
+                - "3.5"
+                - "3.6"
+                - "3.7"
+                - "3.8"
+      - testdeploy:
+          requires:
+            - tests
+          matrix:
+            parameters:
+              version:
+                - "2.7"
+                - "3.4"
+                - "3.5"
+                - "3.6"
+                - "3.7"
+                - "latest"
+
+      - hold:
+          type: approval
+          requires:
+            - testdeploy
+
+      - deploy:
+          requires:
+            - hold
+          matrix:
+            parameters:
+              version:
+                - "2.7"
+                - "3.4"
+                - "3.5"
+                - "3.6"
+                - "3.7"
+                - "latest"
+
