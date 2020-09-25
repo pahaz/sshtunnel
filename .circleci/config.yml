@@ -25,6 +25,14 @@ jobs:
     <<: *job_defaults
     steps:
       - checkout
+      - run:
+          name: Upload to TestPyPI
+          environment:
+            - TWINE_USERNAME: $TESTPYPI_USERNAME
+            - TWINE_PASSWORD: $TESTPYPI_TOKEN
+          command: |
+            echo $TESTPYPI_USERNAME
+            echo $TWINE_USERNAME
       - restore_cache: &restore_cache
           keys:
             - sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}
@@ -48,7 +56,7 @@ jobs:
             -n4
             -W ignore::DeprecationWarning
             --cov sshtunnel
-            --cov-report=xml:test_results/coverage.xml
+            --cov-report=html:test_results/coverage.html
             --cov-report=term
             --junit-xml=test_results/report.xml
       - run:
