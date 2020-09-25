@@ -113,7 +113,7 @@ jobs:
           name: Build artifact
           command: |
             formats=( 'bdist_egg' )
-            [[ << parameters.version >> == 'latest' ]] && formats+=( 'bdist_wheel' )
+            [[ << parameters.version >> == 'latest' ]] && formats+=( 'bdist_wheel' 'sdist' )
             pipenv run python setup.py ${formats[@]}
       - run:
           name: Check artifacts
