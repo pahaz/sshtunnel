@@ -28,7 +28,7 @@ jobs:
       - run:
           name: Upload to TestPyPI
           environment:
-            - TWINE_USERNAME: $TESTPYPI_USERNAME
+            - TWINE_USERNAME: "{{ .Environment.TESTPYPI_USERNAME }}"
             - TWINE_PASSWORD: $TESTPYPI_TOKEN
           command: |
             echo $TESTPYPI_USERNAME
