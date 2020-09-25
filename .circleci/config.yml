@@ -41,15 +41,21 @@ jobs:
             - .venv/
       - run:
           name: Run test suite
-          command: |
-            args=( '--showlocals' '--durations=10' '-n4' '-W ignore::DeprecationWarning' )
-            [[ << parameters.version >> != '2.7' ]] && args+=( '--cov sshtunnel' )
-            pipenv run py.test tests ${args[@]}
+          command: >-
+            pipenv run py.test tests
+            --showlocals
+            --durations=10
+            -n4
+            -W ignore::DeprecationWarning
+            --cov sshtunnel
+            --cov-report=xml
+            --cov-report=term
+            --junit-xml=test_results/report.xml
       - run:
           name: Coveralls
           command: pipenv run coveralls
       - store_test_results:
-          path: test_results/
+          path: test_results
 
   docs:
     description: Produce documentation from source
@@ -90,7 +96,7 @@ jobs:
             pipenv run twine check dist/*
       - run:
           name: checking PEP8 compliancy
-          command: pipenv run flake8 --exclude .venv,docs --ignore=W504 .
+          command: pipenv run flake8 --exclude .venv,build,docs --max-complexity 10 --ignore=W504
       - run:
           name: checking CLI help
           command: pipenv run bashtest README.rst

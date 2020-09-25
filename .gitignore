@@ -24,3 +24,6 @@ pytestdebug.log
 
 # due to sphinx
 docs/_build/
+
+# Pipfile
+Pipfile*
