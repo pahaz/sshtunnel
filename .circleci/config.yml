@@ -56,6 +56,8 @@ jobs:
           command: pipenv run coveralls
       - store_test_results:
           path: test_results
+      - store_artifacts:
+          path: test_results
 
   docs:
     description: Produce documentation from source
@@ -121,8 +123,8 @@ jobs:
       - run:
           name: Upload to TestPyPI
           environment:
-            - TWINE_USERNAME: ${{ Environment.TESTPYPI_USERNAME }}
-            - TWINE_PASSWORD: ${{ Environment.TESTPYPI_TOKEN }}
+            - TWINE_USERNAME: $TESTPYPI_USERNAME
+            - TWINE_PASSWORD: $TESTPYPI_TOKEN
           command: pipenv run twine upload --repository testpypi dist/*
 
   deploy:
@@ -140,8 +142,8 @@ jobs:
       - run:
           name: Upload to PyPI
           environment:
-            - TWINE_USERNAME: ${{ Environment.PYPI_USERNAME }}
-            - TWINE_PASSWORD: ${{ Environment.PYPI_TOKEN }}
+            - TWINE_USERNAME: $PYPI_USERNAME
+            - TWINE_PASSWORD: $PYPI_TOKEN
           command: pipenv run twine upload dist/*
 
 workflows:
