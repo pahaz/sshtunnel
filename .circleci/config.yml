@@ -181,7 +181,13 @@ workflows:
           type: approval
           requires:
             - testdeploy
+          filters:
+            branches:
+              only: master
 
       - deploy:
           requires:
             - hold
+          filters:
+            branches:
+              only: master
