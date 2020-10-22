@@ -63,8 +63,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'sshtunnel'
-copyright = '2014-2020, Pahaz Blinov and contributors'
-author = 'Pahaz Blinov'
+copyright = '2014-2020, Pahaz White and contributors'
+author = 'Pahaz White'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

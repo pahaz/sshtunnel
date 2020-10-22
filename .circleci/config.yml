@@ -2,7 +2,7 @@ params: &params
   parameters:
     version:
       description: Python docker image version
-      default: latest
+      default: 3.8.6
       type: string
 
 job_defaults: &job_defaults
@@ -27,16 +27,20 @@ jobs:
       - checkout
       - restore_cache: &restore_cache
           keys:
-            - sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}
+            - sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}
       - run: &install
           name: Install sshtunnel and build&test dependencies
           command: |
-            pipenv install --python $PYTHON_VERSION -e .
+            python --version
+            pipenv --version
+            pip --version
+            pipenv install -e .
             pipenv install --dev -r tests/requirements.txt
+            cat Pipfile.lock
           environment:
             - PIPENV_VENV_IN_PROJECT: 1
       - save_cache: &save_cache
-          key: sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}
+          key: sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}
           paths:
             - .venv/
       - run:
@@ -172,31 +176,18 @@ workflows:
       - testdeploy:
           requires:
             - tests
-          matrix:
-            parameters:
-              version:
-                - "2.7"
-                - "3.4"
-                - "3.5"
-                - "3.6"
-                - "3.7"
-                - "latest"
 
       - hold:
           type: approval
           requires:
             - testdeploy
+          filters:
+            branches:
+              only: master
 
       - deploy:
           requires:
             - hold
-          matrix:
-            parameters:
-              version:
-                - "2.7"
-                - "3.4"
-                - "3.5"
-                - "3.6"
-                - "3.7"
-                - "latest"
-
+          filters:
+            branches:
+              only: master

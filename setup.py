@@ -46,8 +46,8 @@ setup(
     download_url=ppa + version + '.zip',  # noqa
 
     # Author details
-    author='Pahaz Blinov',
-    author_email='pahaz.blinov@gmail.com',
+    author='Pahaz White',
+    author_email='pahaz.white@gmail.com',
 
     # Choose your license
     license='MIT',
