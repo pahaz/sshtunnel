@@ -6,4 +6,5 @@ pytest-xdist
 twine
 # readme-renderer (required by twine) 25.0 has removed support for Python 3.4
 readme-renderer>21.0,<25.0; python_version == '3.4'
-importlib-metadata<2,>=0.12; python_version == '3.5'
+# try to solve CI problem
+importlib-metadata==1.7.0; python_version == '3.5'
