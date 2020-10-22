@@ -176,15 +176,6 @@ workflows:
       - testdeploy:
           requires:
             - tests
-          matrix:
-            parameters:
-              version:
-                - "2.7"
-                - "3.4"
-                - "3.5"
-                - "3.6"
-                - "3.7"
-                - "latest"
 
       - hold:
           type: approval
@@ -194,13 +185,3 @@ workflows:
       - deploy:
           requires:
             - hold
-          matrix:
-            parameters:
-              version:
-                - "2.7"
-                - "3.4"
-                - "3.5"
-                - "3.6"
-                - "3.7"
-                - "latest"
-
