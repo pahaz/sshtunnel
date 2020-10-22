@@ -33,7 +33,7 @@ jobs:
           command: |
             python --version
             pipenv --version
-            pipenv install --python $PYTHON_VERSION -e .
+            pipenv install -e .
             pipenv install --dev -r tests/requirements.txt
           environment:
             - PIPENV_VENV_IN_PROJECT: 1
