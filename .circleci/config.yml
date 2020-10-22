@@ -34,7 +34,6 @@ jobs:
             python --version
             pipenv --version
             pip --version
-            pip install -U pip
             pipenv install -e .
             pipenv install --dev -r tests/requirements.txt
             cat Pipfile.lock
