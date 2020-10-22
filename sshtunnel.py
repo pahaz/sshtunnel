@@ -1111,11 +1111,10 @@ class SSHTunnelForwarder(object):
             self.logger.debug('Connecting via proxy: {0}'.format(proxy_repr))
             _socket = self.ssh_proxy
         else:
-            _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        if isinstance(_socket, socket.socket):
-            _socket.settimeout(SSH_TIMEOUT)
-            _socket.connect((self.ssh_host, self.ssh_port))
+            _socket = (self.ssh_host, self.ssh_port)
         transport = paramiko.Transport(_socket)
+        if isinstance(transport.sock, socket.socket):
+            transport.sock.settimeout(SSH_TIMEOUT)
         transport.set_keepalive(self.set_keepalive)
         transport.use_compression(compress=self.compression)
         transport.daemon = self.daemon_transport
