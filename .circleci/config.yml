@@ -35,6 +35,7 @@ jobs:
             pipenv --version
             pipenv install -e .
             pipenv install --dev -r tests/requirements.txt
+            cat Pipfile.lock
           environment:
             - PIPENV_VENV_IN_PROJECT: 1
       - save_cache: &save_cache
