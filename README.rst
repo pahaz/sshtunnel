@@ -224,11 +224,12 @@ CLI usage
     usage: sshtunnel [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD] -R
                      IP:PORT [IP:PORT ...] [-L [IP:PORT [IP:PORT ...]]]
                      [-k SSH_HOST_KEY] [-K KEY_FILE] [-S KEY_PASSWORD] [-t] [-v]
-                     [-V] [-x IP:PORT] [-c SSH_CONFIG_FILE] [-z] [-n] [-d [FOLDER [FOLDER ...]]]
+                     [-V] [-x IP:PORT] [-c SSH_CONFIG_FILE] [-z] [-n]
+                     [-d [FOLDER [FOLDER ...]]]
                      ssh_address
 
     Pure python ssh tunnel utils
-    Version 0.1.5
+    Version 0.2.0
 
     positional arguments:
       ssh_address           SSH server IP address (GW for SSH tunnels)
