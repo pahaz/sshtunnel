@@ -13,9 +13,14 @@ CONTRIBUTORS
 - `Ignacio Peluffo`_
 - `Niels Zeilemaker`_
 - `Georgy Rylov`_
+- `Eddie Chiang`_
+- `kkrasovskii`_
 
 CHANGELOG
 =========
+
+- v.0.2.1 (`Pahaz`_, `Eddie Chiang`_ and `kkrasovskii`_)
+      + Fixes bug with orphan thread for a tunnel that is DOWN (`#170`_)
 
 - v.0.2.0 (`Georgy Rylov`_)
       + Support IPv6 without proxy command. Use built-in paramiko create socket logic. The logic tries to use ipv6 socket family first, then ipv4 socket family.
@@ -114,6 +119,7 @@ CHANGELOG
     + ``open`` function (`Pahaz`_)
 
 
+.. _Pahaz: https://github.com/pahaz
 .. _Cameron Maske: https://github.com/cameronmaske
 .. _Gustavo Machado: https://github.com/gdmachado
 .. _Colin Jermain: https://github.com/cjermain
@@ -126,6 +132,8 @@ CHANGELOG
 .. _Ignacio Peluffo: https://github.com/ipeluffo
 .. _Niels Zeilemaker: https://github.com/NielsZeilemaker
 .. _Georgy Rylov: https://github.com/g0djan
+.. _Eddie Chiang: https://github.com/eddie-chiang
+.. _kkrasovskii: https://github.com/kkrasovskii
 .. _#13: https://github.com/pahaz/sshtunnel/issues/13
 .. _#16: https://github.com/pahaz/sshtunnel/issues/16
 .. _#19: https://github.com/pahaz/sshtunnel/issues/19
@@ -139,4 +147,5 @@ CHANGELOG
 .. _#41: https://github.com/pahaz/sshtunnel/issues/41
 .. _#43: https://github.com/pahaz/sshtunnel/issues/43
 .. _#46: https://github.com/pahaz/sshtunnel/issues/46
+.. _#170: https://github.com/pahaz/sshtunnel/issues/170
 .. _detail: https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127
