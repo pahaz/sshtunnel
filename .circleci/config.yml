@@ -116,9 +116,7 @@ jobs:
       - run:
           name: Build artifact
           command: |
-            formats=( 'bdist_egg' )
-            [[ << parameters.version >> == 'latest' ]] && formats+=( 'bdist_wheel' 'sdist' )
-            pipenv run python setup.py ${formats[@]}
+            pipenv run python setup.py bdist_egg bdist_wheel sdist
       - run:
           name: Check artifacts
           command: pipenv run twine check dist/*
@@ -143,9 +141,7 @@ jobs:
       - run:
           name: Build artifact
           command: |
-            formats=( 'bdist_egg' )
-            (( << parameters.version >> == 'latest' )) && formats+=( 'bdist_wheel' )
-            pipenv run python setup.py ${formats[@]}
+            pipenv run python setup.py bdist_egg bdist_wheel sdist
       - run:
           name: Upload to PyPI
           command: >-
