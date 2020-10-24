@@ -18,7 +18,7 @@ CHANGELOG
 =========
 
 - v.0.2.0 (`Georgy Rylov`_)
-      + Support IPv6 without proxy command
+      + Support IPv6 without proxy command. Use built-in paramiko create socket logic. The logic tries to use ipv6 socket family first, then ipv4 socket family.
 
 - v.0.1.5 (`JM Fernández`_)
     + Introduce `block_on_close` attribute
