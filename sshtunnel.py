@@ -36,7 +36,7 @@ else:  # pragma: no cover
     input_ = input
 
 
-__version__ = '0.1.5'
+__version__ = '0.2.0'
 __author__ = 'pahaz'
 
 
@@ -1111,7 +1111,7 @@ class SSHTunnelForwarder(object):
             self.logger.debug('Connecting via proxy: {0}'.format(proxy_repr))
             _socket = self.ssh_proxy
         else:
-            _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            _socket = (self.ssh_host, self.ssh_port) 
         if isinstance(_socket, socket.socket):
             _socket.settimeout(SSH_TIMEOUT)
             _socket.connect((self.ssh_host, self.ssh_port))

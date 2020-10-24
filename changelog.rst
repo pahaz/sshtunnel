@@ -12,9 +12,13 @@ CONTRIBUTORS
 - `Dan Harbin`_
 - `Ignacio Peluffo`_
 - `Niels Zeilemaker`_
+- `Georgy Rylov`_
 
 CHANGELOG
 =========
+
+- v.0.2.0 (`Georgy Rylov`_)
+      + Support IPv6 without proxy command
 
 - v.0.1.5 (`JM Fernández`_)
     + Introduce `block_on_close` attribute
@@ -121,6 +125,7 @@ CHANGELOG
 .. _Dan Harbin: https://github.com/RasterBurn
 .. _Ignacio Peluffo: https://github.com/ipeluffo
 .. _Niels Zeilemaker: https://github.com/NielsZeilemaker
+.. _Georgy Rylov: https://github.com/g0djan
 .. _#13: https://github.com/pahaz/sshtunnel/issues/13
 .. _#16: https://github.com/pahaz/sshtunnel/issues/16
 .. _#19: https://github.com/pahaz/sshtunnel/issues/19
