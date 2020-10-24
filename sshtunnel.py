@@ -381,8 +381,9 @@ class _ForwardServer(socketserver.TCPServer):  # Not Threading
 
     def handle_error(self, request, client_address):
         (exc_class, exc, tb) = sys.exc_info()
-        self.logger.error('Could not establish connection from {0} to remote '
-                          'side of the tunnel'.format(request.getsockname()))
+        self.logger.error('Could not establish connection from local {0} '
+                          'to remote {1} side of the tunnel'
+                          .format(request.getsockname(), self.remote_address))
         self.tunnel_ok.put(False)
 
     @property
@@ -1402,10 +1403,13 @@ class SSHTunnelForwarder(object):
                 HandlerSSHTunnelForwarderError) as e:
             self.logger.warning(e)
         for _srv in self._server_list:
-            tunnel = _srv.local_address
-            if self.tunnel_is_up[tunnel]:
-                self.logger.info('Shutting down tunnel {0}'.format(tunnel))
-                _srv.shutdown()
+            status = 'up' if self.tunnel_is_up[_srv.local_address] else 'down'
+            self.logger.info('Shutting down tunnel: {0} <> {1} ({2})'.format(
+                address_to_str(_srv.local_address),
+                address_to_str(_srv.remote_address),
+                status
+            ))
+            _srv.shutdown()
             _srv.server_close()
             # clean up the UNIX domain socket if we're using one
             if isinstance(_srv, _UnixStreamForwardServer):
