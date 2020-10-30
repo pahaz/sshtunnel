@@ -318,7 +318,8 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                         self.info,
                         self.remote_address,
                         hexlify(data)
-                ))
+                    )
+                )
                 chan.sendall(data)
             if chan in rqst:  # else
                 if not chan.recv_ready():
@@ -1325,7 +1326,7 @@ class SSHTunnelForwarder(object):
             self._raise(HandlerSSHTunnelForwarderError,
                         'An error occurred while opening tunnels.')
 
-    def stop(self):
+    def stop(self, force=False):
         """
         Shut the tunnel down.
 
@@ -1348,7 +1349,7 @@ class SSHTunnelForwarder(object):
             (address_to_str(k.local_address) for k in self._server_list)
         ) or 'None'
         self.logger.debug('Listening tunnels: ' + opened_address_text)
-        self._stop_transport()
+        self._stop_transport(force=force)
         self._server_list = []  # reset server list
         self.tunnel_is_up = {}  # reset tunnel status
 
@@ -1413,13 +1414,18 @@ class SSHTunnelForwarder(object):
             address_to_str(_srv.remote_address))
         )
 
-    def _stop_transport(self):
+    def _stop_transport(self, force=False):
         """ Close the underlying transport when nothing more is needed """
         try:
             self._check_is_started()
         except (BaseSSHTunnelForwarderError,
                 HandlerSSHTunnelForwarderError) as e:
             self.logger.warning(e)
+        if force and self.is_active:
+            # don't wait connections
+            self.logger.info('Closing ssh transport')
+            self._transport.close()
+            self._transport.stop_thread()
         for _srv in self._server_list:
             status = 'up' if self.tunnel_is_up[_srv.local_address] else 'down'
             self.logger.info('Shutting down tunnel: {0} <> {1} ({2})'.format(
@@ -1438,6 +1444,7 @@ class SSHTunnelForwarder(object):
                                       .format(self.local_address, repr(e)))
         self.is_alive = False
         if self.is_active:
+            self.logger.info('Closing ssh transport')
             self._transport.close()
             self._transport.stop_thread()
         self.logger.debug('Transport is closed')
