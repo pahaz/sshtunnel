@@ -190,7 +190,7 @@ def create_logger(logger=None,
         :class:`logging.Logger`
     """
     logger = logger or logging.getLogger(
-        '{0}.SSHTunnelForwarder'.format(__name__)
+        'sshtunnel.SSHTunnelForwarder'
     )
     if not any(isinstance(x, logging.Handler) for x in logger.handlers):
         logger.setLevel(loglevel or DEFAULT_LOGLEVEL)
@@ -307,16 +307,26 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
             if self.request in rqst:
                 data = self.request.recv(1024)
                 if not data:
+                    self.logger.log(
+                        TRACE_LEVEL,
+                        '>>> OUT {0} recv empty data >>>'.format(self.info)
+                    )
                     break
-                self.logger.log(TRACE_LEVEL,
-                                '>>> OUT {0} send to {1}: {2} >>>'.format(
-                                    self.info,
-                                    self.remote_address,
-                                    hexlify(data)
-                                ))
+                self.logger.log(
+                    TRACE_LEVEL,
+                    '>>> OUT {0} send to {1}: {2} >>>'.format(
+                        self.info,
+                        self.remote_address,
+                        hexlify(data)
+                    )
+                )
                 chan.sendall(data)
             if chan in rqst:  # else
                 if not chan.recv_ready():
+                    self.logger.log(
+                        TRACE_LEVEL,
+                        '<<< IN {0} recv is not ready <<<'.format(self.info)
+                    )
                     break
                 data = chan.recv(1024)
                 self.logger.log(
@@ -339,15 +349,12 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                 src_addr=src_address,
                 timeout=TUNNEL_TIMEOUT
             )
-        except paramiko.SSHException:
-            chan = None
-        if chan is None:
-            msg = '{0} to {1} was rejected by the SSH server'.format(
-                self.info,
-                self.remote_address
-            )
-            self.logger.log(TRACE_LEVEL, msg)
-            raise HandlerSSHTunnelForwarderError(msg)
+        except Exception as e:
+            msg_tupe = 'ssh ' if isinstance(e, paramiko.SSHException) else ''
+            exc_msg = 'open new channel {0}error: {1}'.format(msg_tupe, e)
+            log_msg = '{0} {1}'.format(self.info, exc_msg)
+            self.logger.log(TRACE_LEVEL, log_msg)
+            raise HandlerSSHTunnelForwarderError(exc_msg)
 
         self.logger.log(TRACE_LEVEL, '{0} connected'.format(self.info))
         try:
@@ -376,15 +383,23 @@ class _ForwardServer(socketserver.TCPServer):  # Not Threading
 
     def __init__(self, *args, **kwargs):
         self.logger = create_logger(kwargs.pop('logger', None))
-        self.tunnel_ok = queue.Queue()
+        self.tunnel_ok = queue.Queue(1)
         socketserver.TCPServer.__init__(self, *args, **kwargs)
 
     def handle_error(self, request, client_address):
         (exc_class, exc, tb) = sys.exc_info()
+        local_side = request.getsockname()
+        remote_side = self.remote_address
         self.logger.error('Could not establish connection from local {0} '
-                          'to remote {1} side of the tunnel'
-                          .format(request.getsockname(), self.remote_address))
-        self.tunnel_ok.put(False)
+                          'to remote {1} side of the tunnel: {2}'
+                          .format(local_side, remote_side, exc))
+        try:
+            self.tunnel_ok.put(False, block=False, timeout=0.1)
+        except queue.Full:
+            # wait untill tunnel_ok.get is called
+            pass
+        except exc:
+            self.logger.error('unexpected internal error: {0}'.format(exc))
 
     @property
     def local_address(self):
@@ -426,7 +441,7 @@ class _UnixStreamForwardServer(UnixStreamServer):
 
     def __init__(self, *args, **kwargs):
         self.logger = create_logger(kwargs.pop('logger', None))
-        self.tunnel_ok = queue.Queue()
+        self.tunnel_ok = queue.Queue(1)
         UnixStreamServer.__init__(self, *args, **kwargs)
 
     @property
@@ -747,11 +762,58 @@ class SSHTunnelForwarder(object):
                                 'target can be a valid UNIX domain socket.')
             return False
 
-        if self.skip_tunnel_checkup:  # force tunnel check at this point
-            self.skip_tunnel_checkup = False
-            self.check_tunnels()
-            self.skip_tunnel_checkup = True  # roll it back
+        self.check_tunnels()
         return self.tunnel_is_up.get(target, True)
+
+    def check_tunnels(self):
+        """
+        Check that if all tunnels are established and populates
+        :attr:`.tunnel_is_up`
+        """
+        skip_tunnel_checkup = self.skip_tunnel_checkup
+        try:
+            # force tunnel check at this point
+            self.skip_tunnel_checkup = False
+            for _srv in self._server_list:
+                self._check_tunnel(_srv)
+        finally:
+            self.skip_tunnel_checkup = skip_tunnel_checkup  # roll it back
+
+    def _check_tunnel(self, _srv):
+        """ Check if tunnel is already established """
+        if self.skip_tunnel_checkup:
+            self.tunnel_is_up[_srv.local_address] = True
+            return
+        self.logger.info('Checking tunnel to: {0}'.format(_srv.remote_address))
+        if isinstance(_srv.local_address, string_types):  # UNIX stream
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        else:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(TUNNEL_TIMEOUT)
+        try:
+            # Windows raises WinError 10049 if trying to connect to 0.0.0.0
+            connect_to = ('127.0.0.1', _srv.local_port) \
+                if _srv.local_host == '0.0.0.0' else _srv.local_address
+            s.connect(connect_to)
+            self.tunnel_is_up[_srv.local_address] = _srv.tunnel_ok.get(
+                timeout=TUNNEL_TIMEOUT * 1.1
+            )
+            self.logger.debug(
+                'Tunnel to {0} is DOWN'.format(_srv.remote_address)
+            )
+        except socket.error:
+            self.logger.debug(
+                'Tunnel to {0} is DOWN'.format(_srv.remote_address)
+            )
+            self.tunnel_is_up[_srv.local_address] = False
+
+        except queue.Empty:
+            self.logger.debug(
+                'Tunnel to {0} is UP'.format(_srv.remote_address)
+            )
+            self.tunnel_is_up[_srv.local_address] = True
+        finally:
+            s.close()
 
     def _make_ssh_forward_handler_class(self, remote_address_):
         """
@@ -1242,50 +1304,6 @@ class SSHTunnelForwarder(object):
                                  .format(pkey_file, pkey_class))
         return ssh_pkey
 
-    def _check_tunnel(self, _srv):
-        """ Check if tunnel is already established """
-        if self.skip_tunnel_checkup:
-            self.tunnel_is_up[_srv.local_address] = True
-            return
-        self.logger.info('Checking tunnel to: {0}'.format(_srv.remote_address))
-        if isinstance(_srv.local_address, string_types):  # UNIX stream
-            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        else:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(TUNNEL_TIMEOUT)
-        try:
-            # Windows raises WinError 10049 if trying to connect to 0.0.0.0
-            connect_to = ('127.0.0.1', _srv.local_port) \
-                if _srv.local_host == '0.0.0.0' else _srv.local_address
-            s.connect(connect_to)
-            self.tunnel_is_up[_srv.local_address] = _srv.tunnel_ok.get(
-                timeout=TUNNEL_TIMEOUT * 1.1
-            )
-            self.logger.debug(
-                'Tunnel to {0} is DOWN'.format(_srv.remote_address)
-            )
-        except socket.error:
-            self.logger.debug(
-                'Tunnel to {0} is DOWN'.format(_srv.remote_address)
-            )
-            self.tunnel_is_up[_srv.local_address] = False
-
-        except queue.Empty:
-            self.logger.debug(
-                'Tunnel to {0} is UP'.format(_srv.remote_address)
-            )
-            self.tunnel_is_up[_srv.local_address] = True
-        finally:
-            s.close()
-
-    def check_tunnels(self):
-        """
-        Check that if all tunnels are established and populates
-        :attr:`.tunnel_is_up`
-        """
-        for _srv in self._server_list:
-            self._check_tunnel(_srv)
-
     def start(self):
         """ Start the SSH tunnels """
         if self.is_alive:
@@ -1309,7 +1327,7 @@ class SSHTunnelForwarder(object):
             self._raise(HandlerSSHTunnelForwarderError,
                         'An error occurred while opening tunnels.')
 
-    def stop(self):
+    def stop(self, force=False):
         """
         Shut the tunnel down.
 
@@ -1332,7 +1350,7 @@ class SSHTunnelForwarder(object):
             (address_to_str(k.local_address) for k in self._server_list)
         ) or 'None'
         self.logger.debug('Listening tunnels: ' + opened_address_text)
-        self._stop_transport()
+        self._stop_transport(force=force)
         self._server_list = []  # reset server list
         self.tunnel_is_up = {}  # reset tunnel status
 
@@ -1397,13 +1415,18 @@ class SSHTunnelForwarder(object):
             address_to_str(_srv.remote_address))
         )
 
-    def _stop_transport(self):
+    def _stop_transport(self, force=False):
         """ Close the underlying transport when nothing more is needed """
         try:
             self._check_is_started()
         except (BaseSSHTunnelForwarderError,
                 HandlerSSHTunnelForwarderError) as e:
             self.logger.warning(e)
+        if force and self.is_active:
+            # don't wait connections
+            self.logger.info('Closing ssh transport')
+            self._transport.close()
+            self._transport.stop_thread()
         for _srv in self._server_list:
             status = 'up' if self.tunnel_is_up[_srv.local_address] else 'down'
             self.logger.info('Shutting down tunnel: {0} <> {1} ({2})'.format(
@@ -1422,6 +1445,7 @@ class SSHTunnelForwarder(object):
                                       .format(self.local_address, repr(e)))
         self.is_alive = False
         if self.is_active:
+            self.logger.info('Closing ssh transport')
             self._transport.close()
             self._transport.stop_thread()
         self.logger.debug('Transport is closed')
