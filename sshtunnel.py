@@ -190,7 +190,7 @@ def create_logger(logger=None,
         :class:`logging.Logger`
     """
     logger = logger or logging.getLogger(
-        '{0}.SSHTunnelForwarder'.format(__name__)
+        'sshtunnel.SSHTunnelForwarder'
     )
     if not any(isinstance(x, logging.Handler) for x in logger.handlers):
         logger.setLevel(loglevel or DEFAULT_LOGLEVEL)
