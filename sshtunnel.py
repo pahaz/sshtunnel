@@ -772,7 +772,8 @@ class SSHTunnelForwarder(object):
         """
         skip_tunnel_checkup = self.skip_tunnel_checkup
         try:
-            self.skip_tunnel_checkup = False  # force tunnel check at this point
+            # force tunnel check at this point
+            self.skip_tunnel_checkup = False
             for _srv in self._server_list:
                 self._check_tunnel(_srv)
         finally:
