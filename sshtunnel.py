@@ -382,15 +382,23 @@ class _ForwardServer(socketserver.TCPServer):  # Not Threading
 
     def __init__(self, *args, **kwargs):
         self.logger = create_logger(kwargs.pop('logger', None))
-        self.tunnel_ok = queue.Queue()
+        self.tunnel_ok = queue.Queue(1)
         socketserver.TCPServer.__init__(self, *args, **kwargs)
 
     def handle_error(self, request, client_address):
         (exc_class, exc, tb) = sys.exc_info()
+        local_side = request.getsockname()
+        remote_side = self.remote_address
         self.logger.error('Could not establish connection from local {0} '
-                          'to remote {1} side of the tunnel'
-                          .format(request.getsockname(), self.remote_address))
-        self.tunnel_ok.put(False)
+                          'to remote {1} side of the tunnel: {2}'
+                          .format(local_side, remote_side, exc))
+        try:
+            self.tunnel_ok.put(False, block=False, timeout=0.1)
+        except queue.Full:
+            # wait untill tunnel_ok.get is called
+            pass
+        except exc:
+            self.logger.error('unexpected internal error: {0}'.format(exc))
 
     @property
     def local_address(self):
@@ -432,7 +440,7 @@ class _UnixStreamForwardServer(UnixStreamServer):
 
     def __init__(self, *args, **kwargs):
         self.logger = create_logger(kwargs.pop('logger', None))
-        self.tunnel_ok = queue.Queue()
+        self.tunnel_ok = queue.Queue(1)
         UnixStreamServer.__init__(self, *args, **kwargs)
 
     @property
@@ -753,11 +761,57 @@ class SSHTunnelForwarder(object):
                                 'target can be a valid UNIX domain socket.')
             return False
 
-        if self.skip_tunnel_checkup:  # force tunnel check at this point
-            self.skip_tunnel_checkup = False
-            self.check_tunnels()
-            self.skip_tunnel_checkup = True  # roll it back
+        self.check_tunnels()
         return self.tunnel_is_up.get(target, True)
+
+    def check_tunnels(self):
+        """
+        Check that if all tunnels are established and populates
+        :attr:`.tunnel_is_up`
+        """
+        skip_tunnel_checkup = self.skip_tunnel_checkup
+        try:
+            self.skip_tunnel_checkup = False  # force tunnel check at this point
+            for _srv in self._server_list:
+                self._check_tunnel(_srv)
+        finally:
+            self.skip_tunnel_checkup = skip_tunnel_checkup  # roll it back
+
+    def _check_tunnel(self, _srv):
+        """ Check if tunnel is already established """
+        if self.skip_tunnel_checkup:
+            self.tunnel_is_up[_srv.local_address] = True
+            return
+        self.logger.info('Checking tunnel to: {0}'.format(_srv.remote_address))
+        if isinstance(_srv.local_address, string_types):  # UNIX stream
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        else:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(TUNNEL_TIMEOUT)
+        try:
+            # Windows raises WinError 10049 if trying to connect to 0.0.0.0
+            connect_to = ('127.0.0.1', _srv.local_port) \
+                if _srv.local_host == '0.0.0.0' else _srv.local_address
+            s.connect(connect_to)
+            self.tunnel_is_up[_srv.local_address] = _srv.tunnel_ok.get(
+                timeout=TUNNEL_TIMEOUT * 1.1
+            )
+            self.logger.debug(
+                'Tunnel to {0} is DOWN'.format(_srv.remote_address)
+            )
+        except socket.error:
+            self.logger.debug(
+                'Tunnel to {0} is DOWN'.format(_srv.remote_address)
+            )
+            self.tunnel_is_up[_srv.local_address] = False
+
+        except queue.Empty:
+            self.logger.debug(
+                'Tunnel to {0} is UP'.format(_srv.remote_address)
+            )
+            self.tunnel_is_up[_srv.local_address] = True
+        finally:
+            s.close()
 
     def _make_ssh_forward_handler_class(self, remote_address_):
         """
@@ -1247,50 +1301,6 @@ class SSHTunnelForwarder(object):
                                  'as type {1} or bad password'
                                  .format(pkey_file, pkey_class))
         return ssh_pkey
-
-    def _check_tunnel(self, _srv):
-        """ Check if tunnel is already established """
-        if self.skip_tunnel_checkup:
-            self.tunnel_is_up[_srv.local_address] = True
-            return
-        self.logger.info('Checking tunnel to: {0}'.format(_srv.remote_address))
-        if isinstance(_srv.local_address, string_types):  # UNIX stream
-            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        else:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(TUNNEL_TIMEOUT)
-        try:
-            # Windows raises WinError 10049 if trying to connect to 0.0.0.0
-            connect_to = ('127.0.0.1', _srv.local_port) \
-                if _srv.local_host == '0.0.0.0' else _srv.local_address
-            s.connect(connect_to)
-            self.tunnel_is_up[_srv.local_address] = _srv.tunnel_ok.get(
-                timeout=TUNNEL_TIMEOUT * 1.1
-            )
-            self.logger.debug(
-                'Tunnel to {0} is DOWN'.format(_srv.remote_address)
-            )
-        except socket.error:
-            self.logger.debug(
-                'Tunnel to {0} is DOWN'.format(_srv.remote_address)
-            )
-            self.tunnel_is_up[_srv.local_address] = False
-
-        except queue.Empty:
-            self.logger.debug(
-                'Tunnel to {0} is UP'.format(_srv.remote_address)
-            )
-            self.tunnel_is_up[_srv.local_address] = True
-        finally:
-            s.close()
-
-    def check_tunnels(self):
-        """
-        Check that if all tunnels are established and populates
-        :attr:`.tunnel_is_up`
-        """
-        for _srv in self._server_list:
-            self._check_tunnel(_srv)
 
     def start(self):
         """ Start the SSH tunnels """
