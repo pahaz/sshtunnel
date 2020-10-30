@@ -307,16 +307,25 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
             if self.request in rqst:
                 data = self.request.recv(1024)
                 if not data:
+                    self.logger.log(
+                        TRACE_LEVEL,
+                        '>>> OUT {0} recv empty data >>>'.format(self.info)
+                    )
                     break
-                self.logger.log(TRACE_LEVEL,
-                                '>>> OUT {0} send to {1}: {2} >>>'.format(
-                                    self.info,
-                                    self.remote_address,
-                                    hexlify(data)
-                                ))
+                self.logger.log(
+                    TRACE_LEVEL,
+                    '>>> OUT {0} send to {1}: {2} >>>'.format(
+                        self.info,
+                        self.remote_address,
+                        hexlify(data)
+                ))
                 chan.sendall(data)
             if chan in rqst:  # else
                 if not chan.recv_ready():
+                    self.logger.log(
+                        TRACE_LEVEL,
+                        '<<< IN {0} recv is not ready <<<'.format(self.info)
+                    )
                     break
                 data = chan.recv(1024)
                 self.logger.log(
@@ -339,15 +348,12 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                 src_addr=src_address,
                 timeout=TUNNEL_TIMEOUT
             )
-        except paramiko.SSHException:
-            chan = None
-        if chan is None:
-            msg = '{0} to {1} was rejected by the SSH server'.format(
-                self.info,
-                self.remote_address
-            )
-            self.logger.log(TRACE_LEVEL, msg)
-            raise HandlerSSHTunnelForwarderError(msg)
+        except Exception as e:
+            msg_tupe = 'ssh ' if isinstance(e, paramiko.SSHException) else ''
+            exc_msg = 'open new channel {0}error: {1}'.format(msg_tupe, e)
+            log_msg = '{0} {1}'.format(self.info, exc_msg)
+            self.logger.log(TRACE_LEVEL, log_msg)
+            raise HandlerSSHTunnelForwarderError(exc_msg)
 
         self.logger.log(TRACE_LEVEL, '{0} connected'.format(self.info))
         try:
