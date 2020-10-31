@@ -107,7 +107,7 @@ port.
     from sshtunnel import SSHTunnelForwarder
 
     server = SSHTunnelForwarder(
-        'pahaz.urfuclub.ru',
+        'alfa.8iq.dev',
         ssh_username="pahaz",
         ssh_password="secret",
         remote_bind_address=('127.0.0.1', 8080)
@@ -229,7 +229,7 @@ CLI usage
                      ssh_address
 
     Pure python ssh tunnel utils
-    Version 0.2.1
+    Version 0.2.2
 
     positional arguments:
       ssh_address           SSH server IP address (GW for SSH tunnels)

@@ -19,6 +19,9 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
+- v.0.2.2 (`Pahaz`_)
+      + Add `.stop(force=True)` for force close active connections (`#201`_)
+
 - v.0.2.1 (`Pahaz`_, `Eddie Chiang`_ and `kkrasovskii`_)
       + Fixes bug with orphan thread for a tunnel that is DOWN (`#170`_)
 
@@ -148,4 +151,5 @@ CHANGELOG
 .. _#43: https://github.com/pahaz/sshtunnel/issues/43
 .. _#46: https://github.com/pahaz/sshtunnel/issues/46
 .. _#170: https://github.com/pahaz/sshtunnel/issues/170
+.. _#201: https://github.com/pahaz/sshtunnel/issues/201
 .. _detail: https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127
