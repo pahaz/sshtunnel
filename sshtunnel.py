@@ -1329,7 +1329,7 @@ class SSHTunnelForwarder(object):
 
     def stop(self, force=False):
         """
-        Shut the tunnel down. By default we are always waiting until closing 
+        Shut the tunnel down. By default we are always waiting until closing
         all connections. You can use `force=True` to force close connections
 
         Keyword Arguments:
