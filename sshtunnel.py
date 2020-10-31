@@ -36,7 +36,7 @@ else:  # pragma: no cover
     input_ = input
 
 
-__version__ = '0.2.1'
+__version__ = '0.2.2'
 __author__ = 'pahaz'
 
 
@@ -1329,7 +1329,12 @@ class SSHTunnelForwarder(object):
 
     def stop(self, force=False):
         """
-        Shut the tunnel down.
+        Shut the tunnel down. By default we are always waiting until closing 
+        all connections. You can use `force=True` to force close connections
+
+        Keyword Arguments:
+            force (bool):
+                Force close current connections
 
         .. note:: This **had** to be handled with care before ``0.1.0``:
 
