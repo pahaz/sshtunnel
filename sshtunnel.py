@@ -46,8 +46,6 @@ _DAEMON = False  #: Use daemon threads in connections
 TRACE_LEVEL = 1
 _CONNECTION_COUNTER = 1
 _LOCK = threading.Lock()
-#: Timeout (seconds) for the connection to the SSH gateway, ``None`` to disable
-SSH_TIMEOUT = None
 DEPRECATIONS = {
     'ssh_address': 'ssh_address_or_host',
     'ssh_host': 'ssh_address_or_host',
@@ -660,6 +658,15 @@ class SSHTunnelForwarder(object):
 
             .. versionadded:: 0.0.8
 
+        gateway_timeout (float):
+            Time in seconds defining the period after which, if no tunnel
+            has been created, the connection attempt is stopped and a
+            :class:`BaseSSHTunnelForwarderError` is raised.
+
+            Default: ``None`` (disabled)
+
+            .. versionadded:: 0.1.3
+
         set_keepalive (float):
             Interval in seconds defining the period in which, if no data
             was sent over the connection, a *'keepalive'* packet will be
@@ -888,6 +895,7 @@ class SSHTunnelForwarder(object):
             mute_exceptions=False,
             remote_bind_address=None,
             remote_bind_addresses=None,
+            gateway_timeout=None,
             set_keepalive=0.0,
             threaded=True,  # old version False
             compression=None,
@@ -903,6 +911,7 @@ class SSHTunnelForwarder(object):
 
         self.ssh_host_key = ssh_host_key
         self.set_keepalive = set_keepalive
+        self.gateway_timeout = gateway_timeout
         self._server_list = []  # reset server list
         self.tunnel_is_up = {}  # handle tunnel status
         self._threaded = threaded
@@ -1176,7 +1185,7 @@ class SSHTunnelForwarder(object):
         else:
             _socket = (self.ssh_host, self.ssh_port)
         if isinstance(_socket, socket.socket):
-            _socket.settimeout(SSH_TIMEOUT)
+            _socket.settimeout(self.gateway_timeout)
             _socket.connect((self.ssh_host, self.ssh_port))
         transport = paramiko.Transport(_socket)
         if isinstance(transport.sock, socket.socket):
