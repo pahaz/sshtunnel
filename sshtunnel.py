@@ -40,9 +40,9 @@ __version__ = '0.3.0'
 __author__ = 'pahaz'
 
 
-#: Timeout (seconds) for transport socket! ``None`` may cause a block of transport thread
-SSH_TIMEOUT = 0.1  # same as paramiko inner value
-#: Timeout (seconds) for tunnel connection (open_channel)!
+#: Timeout (seconds) for transport socket (``socket.settimeout``)
+SSH_TIMEOUT = 0.1  # ``None`` may cause a block of transport thread
+#: Timeout (seconds) for tunnel connection (open_channel timeout)
 TUNNEL_TIMEOUT = 1.0
 
 _DAEMON = False  #: Use daemon threads in connections
