@@ -1183,12 +1183,17 @@ class SSHTunnelForwarder(object):
             _socket.settimeout(SSH_TIMEOUT)
             _socket.connect((self.ssh_host, self.ssh_port))
         transport = paramiko.Transport(_socket)
-        if isinstance(transport.sock, socket.socket):
-            transport.sock.settimeout(SSH_TIMEOUT)
+        sock = transport.sock
+        if isinstance(sock, socket.socket):
+            sock.settimeout(SSH_TIMEOUT)
         transport.set_keepalive(self.set_keepalive)
         transport.use_compression(compress=self.compression)
         transport.daemon = self.daemon_transport
-
+        if isinstance(sock, socket.socket):
+            sock_timeout = sock.gettimeout()
+            sock_info = repr((sock.family, sock.type, sock.proto))
+            self.logger.debug('Transport socket info: {0}, timeout={1}'
+                              .format(sock_info, sock_timeout))
         return transport
 
     def _create_tunnels(self):
