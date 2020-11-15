@@ -20,7 +20,8 @@ CHANGELOG
 =========
 
 - v.0.3.0 (`Pahaz`_)
-    + Change default with context behavior to use `.stop(force=True)` on exit (backward incmpatible)
+    + Change default with context behavior to use `.stop(force=True)` on exit (is not fully backward compatible)
+    + Set transport keepalive to 5 second by default (disabled for version < 0.3.0)
     + Deprecate and remove `block_on_close` option
     + Drop `daemon_forward_servers = True` hack for "deadlocks" / "tunneling hangs" (`#173`_, `#201`_, `#162`_)
 
