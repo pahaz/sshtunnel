@@ -19,6 +19,10 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
+
+- v.0.3.1 (`Pahaz`_)
+    + Increase open connection timeout to 10 secods
+
 - v.0.3.0 (`Pahaz`_)
     + Change default with context behavior to use `.stop(force=True)` on exit (is not fully backward compatible)
     + Remove useless `daemon_forward_servers = True` hack for hangs prevention (is not fully backward compatible)
