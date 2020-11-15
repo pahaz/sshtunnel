@@ -19,14 +19,19 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
+- v.0.3.0 (`Pahaz`_)
+    + Change default with context behavior to use `.stop(force=True)` on exit (backward incmpatible)
+    + Deprecate and remove `block_on_close` option
+    + Drop `daemon_forward_servers = True` hack for "deadlocks" / "tunneling hangs" (`#173`_, `#201`_, `#162`_)
+
 - v.0.2.2 (`Pahaz`_)
-      + Add `.stop(force=True)` for force close active connections (`#201`_)
+    + Add `.stop(force=True)` for force close active connections (`#201`_)
 
 - v.0.2.1 (`Pahaz`_, `Eddie Chiang`_ and `kkrasovskii`_)
-      + Fixes bug with orphan thread for a tunnel that is DOWN (`#170`_)
+    + Fixes bug with orphan thread for a tunnel that is DOWN (`#170`_)
 
 - v.0.2.0 (`Georgy Rylov`_)
-      + Support IPv6 without proxy command. Use built-in paramiko create socket logic. The logic tries to use ipv6 socket family first, then ipv4 socket family.
+    + Support IPv6 without proxy command. Use built-in paramiko create socket logic. The logic tries to use ipv6 socket family first, then ipv4 socket family.
 
 - v.0.1.5 (`JM Fernández`_)
     + Introduce `block_on_close` attribute
@@ -151,5 +156,8 @@ CHANGELOG
 .. _#43: https://github.com/pahaz/sshtunnel/issues/43
 .. _#46: https://github.com/pahaz/sshtunnel/issues/46
 .. _#170: https://github.com/pahaz/sshtunnel/issues/170
+.. _#201: https://github.com/pahaz/sshtunnel/issues/201
+.. _#162: https://github.com/pahaz/sshtunnel/issues/162
+.. _#173: https://github.com/pahaz/sshtunnel/issues/173
 .. _#201: https://github.com/pahaz/sshtunnel/issues/201
 .. _detail: https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127
