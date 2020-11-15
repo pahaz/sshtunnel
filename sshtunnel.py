@@ -1336,6 +1336,10 @@ class SSHTunnelForwarder(object):
             force (bool):
                 Force close current connections
 
+                Default: False
+
+                .. versionadded:: 0.2.2
+
         .. note:: This **had** to be handled with care before ``0.1.0``:
 
             - if a port redirection is opened
@@ -1590,7 +1594,7 @@ class SSHTunnelForwarder(object):
             self.__exit__()
 
     def __exit__(self, *args):
-        self._stop_transport()
+        self.stop(force=True)
 
 
 def open_tunnel(*args, **kwargs):
@@ -1613,12 +1617,6 @@ def open_tunnel(*args, **kwargs):
             Default: True
 
             .. versionadded:: 0.1.0
-
-        block_on_close (boolean):
-            Wait until all connections are done during close by changing the
-            value of :attr:`~SSHTunnelForwarder.block_on_close`
-
-            Default: True
 
     .. note::
         A value of ``debug_level`` set to 1 == ``TRACE`` enables tracing mode
@@ -1658,6 +1656,12 @@ def open_tunnel(*args, **kwargs):
     ssh_port = kwargs.pop('ssh_port', 22)
     skip_tunnel_checkup = kwargs.pop('skip_tunnel_checkup', True)
     block_on_close = kwargs.pop('block_on_close', _DAEMON)
+    if block_on_close:
+        warnings.warn("'block_on_close' is DEPRECATED. You should use either"
+                      " .stop() or .stop(force=True), depends on what you do"
+                      " with the active connections. This option has no"
+                      " affect since 0.3.0",
+                      DeprecationWarning)
     if not args:
         if isinstance(ssh_address_or_host, tuple):
             args = (ssh_address_or_host, )
@@ -1665,8 +1669,6 @@ def open_tunnel(*args, **kwargs):
             args = ((ssh_address_or_host, ssh_port), )
     forwarder = SSHTunnelForwarder(*args, **kwargs)
     forwarder.skip_tunnel_checkup = skip_tunnel_checkup
-    forwarder.daemon_forward_servers = not block_on_close
-    forwarder.daemon_transport = not block_on_close
     return forwarder
 
 

@@ -195,7 +195,6 @@ time.
     with sshtunnel.open_tunnel(
         ssh_address_or_host=('GW1_ip', 20022),
         remote_bind_address=('GW2_ip', 22),
-        block_on_close=False
     ) as tunnel1:
         print('Connection to tunnel1 (GW1_ip:GW1_port) OK...')
         with sshtunnel.open_tunnel(
@@ -203,7 +202,6 @@ time.
             remote_bind_address=('target_ip', 22),
             ssh_username='GW2_user',
             ssh_password='GW2_pwd',
-            block_on_close=False
         ) as tunnel2:
             print('Connection to tunnel2 (GW2_ip:GW2_port) OK...')
             with SSHClient() as ssh:
