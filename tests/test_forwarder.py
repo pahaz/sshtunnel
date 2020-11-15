@@ -689,7 +689,7 @@ class SSHClientTest(unittest.TestCase):
                 open_tunnel(**_kwargs)
                 logged_message = "'{0}' is DEPRECATED use '{1}' instead"\
                     .format(deprecated_arg,
-                            sshtunnel.DEPRECATIONS[deprecated_arg])
+                            sshtunnel._DEPRECATIONS[deprecated_arg])
                 self.assertTrue(issubclass(w[-1].category, DeprecationWarning))
                 self.assertEqual(logged_message, str(w[-1].message))
 
@@ -709,7 +709,7 @@ class SSHClientTest(unittest.TestCase):
                 open_tunnel(**_kwargs)
                 logged_message = "'{0}' is DEPRECATED use '{1}' instead"\
                     .format(deprecated_arg,
-                            sshtunnel.DEPRECATIONS[deprecated_arg])
+                            sshtunnel._DEPRECATIONS[deprecated_arg])
                 self.assertTrue(issubclass(w[-1].category, DeprecationWarning))
                 self.assertEqual(logged_message, str(w[-1].message))
 
