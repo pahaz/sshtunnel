@@ -21,9 +21,11 @@ CHANGELOG
 
 - v.0.3.0 (`Pahaz`_)
     + Change default with context behavior to use `.stop(force=True)` on exit (is not fully backward compatible)
+    + Remove useless `daemon_forward_servers = True` hack for hangs prevention (is not fully backward compatible)
     + Set transport keepalive to 5 second by default (disabled for version < 0.3.0)
+    + Set default transport timeout to 0.1
     + Deprecate and remove `block_on_close` option
-    + Drop `daemon_forward_servers = True` hack for "deadlocks" / "tunneling hangs" (`#173`_, `#201`_, `#162`_)
+    + Fix "deadlocks" / "tunneling hangs" (`#173`_, `#201`_, `#162`_, `#211`_)
 
 - v.0.2.2 (`Pahaz`_)
     + Add `.stop(force=True)` for force close active connections (`#201`_)
@@ -161,4 +163,5 @@ CHANGELOG
 .. _#162: https://github.com/pahaz/sshtunnel/issues/162
 .. _#173: https://github.com/pahaz/sshtunnel/issues/173
 .. _#201: https://github.com/pahaz/sshtunnel/issues/201
+.. _#211: https://github.com/pahaz/sshtunnel/issues/211
 .. _detail: https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127
