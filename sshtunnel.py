@@ -664,9 +664,10 @@ class SSHTunnelForwarder(object):
             Interval in seconds defining the period in which, if no data
             was sent over the connection, a *'keepalive'* packet will be
             sent (and ignored by the remote host). This can be useful to
-            keep connections alive over a NAT
+            keep connections alive over a NAT. You can set to 0.0 for
+            disable keepalive.
 
-            Default: 0.0 (no keepalive packets are sent)
+            Default: 5.0 (no keepalive packets are sent)
 
             .. versionadded:: 0.0.7
 
@@ -888,7 +889,7 @@ class SSHTunnelForwarder(object):
             mute_exceptions=False,
             remote_bind_address=None,
             remote_bind_addresses=None,
-            set_keepalive=0.0,
+            set_keepalive=5.0,
             threaded=True,  # old version False
             compression=None,
             allow_agent=True,  # look for keys from an SSH agent
