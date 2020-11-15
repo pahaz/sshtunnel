@@ -40,21 +40,24 @@ __version__ = '0.3.0'
 __author__ = 'pahaz'
 
 
-DEFAULT_LOGLEVEL = logging.ERROR  #: default level if no logger passed (ERROR)
-TUNNEL_TIMEOUT = 1.0  #: Timeout (seconds) for tunnel connection
+#: Timeout (seconds) for transport socket (``socket.settimeout``)
+SSH_TIMEOUT = 0.1  # ``None`` may cause a block of transport thread
+#: Timeout (seconds) for tunnel connection (open_channel timeout)
+TUNNEL_TIMEOUT = 1.0
+
 _DAEMON = False  #: Use daemon threads in connections
-TRACE_LEVEL = 1
 _CONNECTION_COUNTER = 1
 _LOCK = threading.Lock()
-#: Timeout (seconds) for the connection to the SSH gateway, ``None`` to disable
-SSH_TIMEOUT = None
-DEPRECATIONS = {
+_DEPRECATIONS = {
     'ssh_address': 'ssh_address_or_host',
     'ssh_host': 'ssh_address_or_host',
     'ssh_private_key': 'ssh_pkey',
     'raise_exception_if_any_forwarder_have_a_problem': 'mute_exceptions'
 }
 
+# logging
+DEFAULT_LOGLEVEL = logging.ERROR  #: default level if no logger passed (ERROR)
+TRACE_LEVEL = 1
 logging.addLevelName(TRACE_LEVEL, 'TRACE')
 
 if os.name == 'posix':
@@ -1180,12 +1183,17 @@ class SSHTunnelForwarder(object):
             _socket.settimeout(SSH_TIMEOUT)
             _socket.connect((self.ssh_host, self.ssh_port))
         transport = paramiko.Transport(_socket)
-        if isinstance(transport.sock, socket.socket):
-            transport.sock.settimeout(SSH_TIMEOUT)
+        sock = transport.sock
+        if isinstance(sock, socket.socket):
+            sock.settimeout(SSH_TIMEOUT)
         transport.set_keepalive(self.set_keepalive)
         transport.use_compression(compress=self.compression)
         transport.daemon = self.daemon_transport
-
+        if isinstance(sock, socket.socket):
+            sock_timeout = sock.gettimeout()
+            sock_info = repr((sock.family, sock.type, sock.proto))
+            self.logger.debug('Transport socket info: {0}, timeout={1}'
+                              .format(sock_info, sock_timeout))
         return transport
 
     def _create_tunnels(self):
@@ -1242,19 +1250,19 @@ class SSHTunnelForwarder(object):
         """
         Processes optional deprecate arguments
         """
-        if deprecated_attrib not in DEPRECATIONS:
+        if deprecated_attrib not in _DEPRECATIONS:
             raise ValueError('{0} not included in deprecations list'
                              .format(deprecated_attrib))
         if deprecated_attrib in kwargs:
             warnings.warn("'{0}' is DEPRECATED use '{1}' instead"
                           .format(deprecated_attrib,
-                                  DEPRECATIONS[deprecated_attrib]),
+                                  _DEPRECATIONS[deprecated_attrib]),
                           DeprecationWarning)
             if attrib:
                 raise ValueError("You can't use both '{0}' and '{1}'. "
                                  "Please only use one of them"
                                  .format(deprecated_attrib,
-                                         DEPRECATIONS[deprecated_attrib]))
+                                         _DEPRECATIONS[deprecated_attrib]))
             else:
                 return kwargs.pop(deprecated_attrib)
         return attrib
