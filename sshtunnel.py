@@ -1866,7 +1866,7 @@ def _parse_arguments(args=None):
     return vars(parser.parse_args(args))
 
 
-def _cli_main(args=None, **extra):
+def _cli_main(args=None, **extras):
     """ Pass input arguments to open_tunnel
 
         Mandatory: ssh_address, -R (remote bind address list)
@@ -1898,7 +1898,10 @@ def _cli_main(args=None, **extra):
               logging.DEBUG,
               TRACE_LEVEL]
     arguments.setdefault('debug_level', levels[verbosity])
-    with open_tunnel(**arguments, **extra) as tunnel:
+    # do this while supporting py27/py34 instead of merging dicts
+    for (extra, value) in extras.items():
+        arguments.setdefault(extra, value)
+    with open_tunnel(**arguments) as tunnel:
         if tunnel.is_alive:
             input_('''
 
