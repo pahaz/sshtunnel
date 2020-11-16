@@ -1085,24 +1085,23 @@ class SSHTunnelForwarder(object):
         keys = SSHTunnelForwarder.get_agent_keys(logger=logger) \
             if allow_agent else []
 
-        if host_pkey_directories is not None:
-            paramiko_key_types = {'rsa': paramiko.RSAKey,
-                                  'dsa': paramiko.DSSKey,
-                                  'ecdsa': paramiko.ECDSAKey,
-                                  'ed25519': paramiko.Ed25519Key}
-            for directory in host_pkey_directories or [DEFAULT_SSH_DIRECTORY]:
-                for keytype in paramiko_key_types.keys():
-                    ssh_pkey_expanded = os.path.expanduser(
-                        os.path.join(directory, 'id_{}'.format(keytype))
+        paramiko_key_types = {'rsa': paramiko.RSAKey,
+                              'dsa': paramiko.DSSKey,
+                              'ecdsa': paramiko.ECDSAKey,
+                              'ed25519': paramiko.Ed25519Key}
+        for directory in host_pkey_directories or [DEFAULT_SSH_DIRECTORY]:
+            for keytype in paramiko_key_types.keys():
+                ssh_pkey_expanded = os.path.expanduser(
+                    os.path.join(directory, 'id_{}'.format(keytype))
+                )
+                if os.path.isfile(ssh_pkey_expanded):
+                    ssh_pkey = SSHTunnelForwarder.read_private_key_file(
+                        pkey_file=ssh_pkey_expanded,
+                        logger=logger,
+                        key_type=paramiko_key_types[keytype]
                     )
-                    if os.path.isfile(ssh_pkey_expanded):
-                        ssh_pkey = SSHTunnelForwarder.read_private_key_file(
-                            pkey_file=ssh_pkey_expanded,
-                            logger=logger,
-                            key_type=paramiko_key_types[keytype]
-                        )
-                        if ssh_pkey:
-                            keys.append(ssh_pkey)
+                    if ssh_pkey:
+                        keys.append(ssh_pkey)
         if logger:
             logger.info('{0} keys loaded from host directory'.format(
                 len(keys))
