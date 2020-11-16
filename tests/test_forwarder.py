@@ -74,6 +74,7 @@ open_tunnel = partial(
     ssh_config_file=None,
     allow_agent=False,
     skip_tunnel_checkup=True,
+    host_pkey_directories=[],
 )
 
 # CONSTANTS
@@ -409,9 +410,9 @@ class SSHClientTest(unittest.TestCase):
             self.log.info('<<< forward-server received STOP signal')
         except socket.error:
             self.log.critical('{0} sending RST'.format(info))
-        except Exception as e:
-            # we reach this point usually when schan is None (paramiko bug?)
-            self.log.critical(repr(e))
+        # except Exception as e:
+        #     # we reach this point usually when schan is None (paramiko bug?)
+        #     self.log.critical(repr(e))
         finally:
             if schan:
                 self.log.debug('{0} closing connection...'.format(info))
@@ -487,7 +488,8 @@ class SSHClientTest(unittest.TestCase):
             remote_bind_address=(self.eaddr, self.eport),
             logger=self.log,
             ssh_config_file=None,
-            allow_agent=False
+            allow_agent=False,
+            host_pkey_directories=[],
         )
         self.assertEqual(server.ssh_host, self.saddr)
         self.assertEqual(server.ssh_port, self.sport)
@@ -1005,7 +1007,8 @@ class SSHClientTest(unittest.TestCase):
                                   '-R', '{0}:{1}'.format(self.eaddr,
                                                          self.eport),
                                   '-c', '',
-                                  '-n'])
+                                  '-n'],
+                            host_pkey_directories=[])
         self.stop_echo_and_ssh_server()
 
     @unittest.skipIf(sys.version_info < (2, 7),
@@ -1121,7 +1124,8 @@ class SSHClientTest(unittest.TestCase):
             remote_bind_address=(self.eaddr, self.eport),
             logger=self.log,
             ssh_config_file=None,
-            allow_agent=False
+            allow_agent=False,
+            host_pkey_directories=[],
         )
         try:
             tunnel.daemon_forward_servers = case
@@ -1181,7 +1185,7 @@ class SSHClientTest(unittest.TestCase):
         )
         self.assertIsInstance(keys, list)
         self.assertTrue(
-            any('1 keys loaded from host directory' in msg
+            any('1 key(s) loaded' in msg
                 for msg in self.sshtunnel_log_messages['info'])
         )
         shutil.rmtree(tmp_dir)
