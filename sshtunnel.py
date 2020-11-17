@@ -59,13 +59,10 @@ _DEPRECATIONS = {
 DEFAULT_LOGLEVEL = logging.ERROR  #: default level if no logger passed (ERROR)
 TRACE_LEVEL = 1
 logging.addLevelName(TRACE_LEVEL, 'TRACE')
+DEFAULT_SSH_DIRECTORY = '~/.ssh'
 
-if os.name == 'posix':
-    DEFAULT_SSH_DIRECTORY = '~/.ssh'
-    UnixStreamServer = socketserver.UnixStreamServer
-else:
-    DEFAULT_SSH_DIRECTORY = '~/ssh'
-    UnixStreamServer = socketserver.TCPServer
+StreamServer = socketserver.UnixStreamServer if os.name == 'posix' \
+    else socketserver.TCPServer
 
 #: Path of optional ssh configuration file
 SSH_CONFIG_FILE = os.path.join(DEFAULT_SSH_DIRECTORY, 'config')
@@ -352,7 +349,7 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                 src_addr=src_address,
                 timeout=TUNNEL_TIMEOUT
             )
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             msg_tupe = 'ssh ' if isinstance(e, paramiko.SSHException) else ''
             exc_msg = 'open new channel {0}error: {1}'.format(msg_tupe, e)
             log_msg = '{0} {1}'.format(self.info, exc_msg)
@@ -437,15 +434,15 @@ class _ThreadingForwardServer(socketserver.ThreadingMixIn, _ForwardServer):
     daemon_threads = _DAEMON
 
 
-class _UnixStreamForwardServer(UnixStreamServer):
+class _StreamForwardServer(StreamServer):
     """
-    Serve over UNIX domain sockets (does not work on Windows)
+    Serve over domain sockets (does not work on Windows)
     """
 
     def __init__(self, *args, **kwargs):
         self.logger = create_logger(kwargs.pop('logger', None))
         self.tunnel_ok = queue.Queue(1)
-        UnixStreamServer.__init__(self, *args, **kwargs)
+        StreamServer.__init__(self, *args, **kwargs)
 
     @property
     def local_address(self):
@@ -472,8 +469,8 @@ class _UnixStreamForwardServer(UnixStreamServer):
         return self.RequestHandlerClass.remote_address[1]
 
 
-class _ThreadingUnixStreamForwardServer(socketserver.ThreadingMixIn,
-                                        _UnixStreamForwardServer):
+class _ThreadingStreamForwardServer(socketserver.ThreadingMixIn,
+                                    _StreamForwardServer):
     """
     Allow concurrent connections to each tunnel
     """
@@ -832,9 +829,9 @@ class SSHTunnelForwarder(object):
     def _make_ssh_forward_server_class(self, remote_address_):
         return _ThreadingForwardServer if self._threaded else _ForwardServer
 
-    def _make_unix_ssh_forward_server_class(self, remote_address_):
-        return _ThreadingUnixStreamForwardServer if \
-            self._threaded else _UnixStreamForwardServer
+    def _make_stream_ssh_forward_server_class(self, remote_address_):
+        return _ThreadingStreamForwardServer if \
+            self._threaded else _StreamForwardServer
 
     def _make_ssh_forward_server(self, remote_address, local_bind_address):
         """
@@ -843,7 +840,7 @@ class SSHTunnelForwarder(object):
         _Handler = self._make_ssh_forward_handler_class(remote_address)
         try:
             if isinstance(local_bind_address, string_types):
-                forward_maker_class = self._make_unix_ssh_forward_server_class
+                forward_maker_class = self._make_stream_ssh_forward_server_class
             else:
                 forward_maker_class = self._make_ssh_forward_server_class
             _Server = forward_maker_class(remote_address)
@@ -1459,12 +1456,12 @@ class SSHTunnelForwarder(object):
             _srv.shutdown()
             _srv.server_close()
             # clean up the UNIX domain socket if we're using one
-            if isinstance(_srv, _UnixStreamForwardServer):
+            if isinstance(_srv, _StreamForwardServer):
                 try:
                     os.unlink(_srv.local_address)
                 except Exception as e:
                     self.logger.error('Unable to unlink socket {0}: {1}'
-                                      .format(self.local_address, repr(e)))
+                                      .format(_srv.local_address, repr(e)))
         self.is_alive = False
         if self.is_active:
             self.logger.info('Closing ssh transport')
