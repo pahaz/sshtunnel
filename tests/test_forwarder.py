@@ -1386,7 +1386,7 @@ class AuxiliaryTest(unittest.TestCase):
                                                              'item',
                                                              kwargs.copy())
 
-    def check_address(self):
+    def test_check_address(self):
         """ Test that an exception is raised with incorrect bind addresses """
         address_list = [('10.0.0.1', 10000),
                         ('10.0.0.1', 10001)]
