@@ -421,7 +421,7 @@ class SSHClientTest(unittest.TestCase):
                 self.log.debug('{0} connection closed.'.format(info))
 
     def randomize_eport(self):
-        return self.eport + random.randint(1, 999)
+        return random.randint(49152, 65535)
 
     def test_echo_server(self):
         with self._test_server(
