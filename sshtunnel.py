@@ -830,8 +830,8 @@ class SSHTunnelForwarder(object):
         return _ThreadingForwardServer if self._threaded else _ForwardServer
 
     def _make_stream_ssh_forward_server_class(self, remote_address_):
-        return _ThreadingStreamForwardServer if \
-            self._threaded else _StreamForwardServer
+        return _ThreadingStreamForwardServer if self._threaded \
+            else _StreamForwardServer
 
     def _make_ssh_forward_server(self, remote_address, local_bind_address):
         """
@@ -839,10 +839,9 @@ class SSHTunnelForwarder(object):
         """
         _Handler = self._make_ssh_forward_handler_class(remote_address)
         try:
-            if isinstance(local_bind_address, string_types):
-                forward_maker_class = self._make_stream_ssh_forward_server_class
-            else:
-                forward_maker_class = self._make_ssh_forward_server_class
+            forward_maker_class = self._make_stream_ssh_forward_server_class \
+                if isinstance(local_bind_address, string_types) \
+                else self._make_ssh_forward_server_class
             _Server = forward_maker_class(remote_address)
             ssh_forward_server = _Server(
                 local_bind_address,
