@@ -11,6 +11,14 @@ environment:
       PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "64"
 
+    - PYTHON: "C:\\Python35"
+      PYTHON_VERSION: "3.5.x"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python35-x64"
+      PYTHON_VERSION: "3.5.x"
+      PYTHON_ARCH: "64"
+
     - PYTHON: "C:\\Python36"
       PYTHON_VERSION: "3.6.x"
       PYTHON_ARCH: "32"
@@ -26,18 +34,26 @@ environment:
     - PYTHON: "C:\\Python37-x64"
       PYTHON_VERSION: "3.7.x"
       PYTHON_ARCH: "64"
+
+    - PYTHON: "C:\\Python38"
+      PYTHON_VERSION: "3.8.x"
+      PYTHON_ARCH: "32"
+
+    - PYTHON: "C:\\Python38-x64"
+      PYTHON_VERSION: "3.8.x"
+      PYTHON_ARCH: "64"
 init:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
 
 install:
   - set "PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\Tools\\Scripts;%PATH%"
-  - "python -m pip install --upgrade pip"
-  - "pip install paramiko"
-  - "pip install mock pytest pytest-cov pytest-xdist"
+  - python -m pip install --upgrade pip
+  - pip install paramiko
+  - pip install mock pytest pytest-cov pytest-xdist
 
 build: off
 
 test_script:
-  - "python setup.py install"
-  - "py.test --showlocals --durations=10 -n4 tests"
+  - python setup.py install
+  - py.test --showlocals --durations=10 -n4 tests
 
