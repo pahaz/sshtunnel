@@ -1392,10 +1392,10 @@ class AuxiliaryTest(unittest.TestCase):
                         ('10.0.0.1', 10001)]
         if os.name == 'posix':  # UNIX sockets supported by the platform
             address_list.append('/tmp/unix-socket')
+            # UNIX sockets not supported on remote addresses
+            with self.assertRaises(AssertionError):
+                sshtunnel.check_addresses(address_list, is_remote=True)
         self.assertIsNone(sshtunnel.check_addresses(address_list))
-        # UNIX sockets not supported on remote addresses
-        with self.assertRaises(AssertionError):
-            sshtunnel.check_addresses(address_list, is_remote=True)
         with self.assertRaises(ValueError):
             sshtunnel.check_address('this is not valid')
         with self.assertRaises(ValueError):
