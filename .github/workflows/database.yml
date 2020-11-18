@@ -23,6 +23,7 @@ jobs:
       - name: Run db tests
         run: |
           set -x
+          uname -a
           # cd e2e_tests && docker-compose logs ssh; cd ..
           # cd e2e_tests && docker-compose exec ssh cat /config/logs/openssh/current; cd ..
           chmod 600 ./e2e_tests/ssh-server-config/ssh_host_rsa_key
