@@ -738,7 +738,9 @@ class SSHTunnelForwarder(object):
 
     """
     skip_tunnel_checkup = True
+    # This option affects the `ForwardServer` and all his threads
     daemon_forward_servers = _DAEMON  #: flag tunnel threads in daemon mode
+    # This option affect only `Transport` thread
     daemon_transport = _DAEMON  #: flag SSH transport thread in daemon mode
 
     def local_is_up(self, target):
@@ -1667,7 +1669,7 @@ def open_tunnel(*args, **kwargs):
 
     ssh_port = kwargs.pop('ssh_port', 22)
     skip_tunnel_checkup = kwargs.pop('skip_tunnel_checkup', True)
-    block_on_close = kwargs.pop('block_on_close', _DAEMON)
+    block_on_close = kwargs.pop('block_on_close', None)
     if block_on_close:
         warnings.warn("'block_on_close' is DEPRECATED. You should use either"
                       " .stop() or .stop(force=True), depends on what you do"
