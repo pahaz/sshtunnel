@@ -1612,6 +1612,14 @@ class SSHTunnelForwarder(object):
     def __exit__(self, *args):
         self.stop(force=True)
 
+    def __del__(self):
+        if self.is_active or self.is_alive:
+            self.logger.warning(
+                "It looks like you didn't call the .stop() before "
+                "the SSHTunnelForwarder obj was collected by "
+                "the garbage collector! Running .stop(force=True)")
+            self.stop(force=True)
+
 
 def open_tunnel(*args, **kwargs):
     """
