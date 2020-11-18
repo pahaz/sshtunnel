@@ -4,7 +4,7 @@ services:
   ssh:
     image: ghcr.io/linuxserver/openssh-server
     container_name: openssh-server
-    hostname: openssh-server #optional
+    hostname: openssh-server
     environment:
       - PUID=1000
       - PGID=1000
@@ -14,7 +14,7 @@ services:
       - PASSWORD_ACCESS=false
       - USER_NAME=linuxserver
     volumes:
-      - ./ssh-server-config:/config/ssh_host_keys
+      - ./ssh-server-config:/config/ssh_host_keys:ro
     ports:
       - "127.0.0.1:2223:2222"
     networks:
