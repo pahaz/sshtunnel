@@ -1196,7 +1196,7 @@ class SSHTunnelForwarder(object):
         transport.use_compression(compress=self.compression)
         transport.daemon = self.daemon_transport
         # try to solve https://github.com/paramiko/paramiko/issues/1181
-        transport.banner_timeout = 200
+        # transport.banner_timeout = 200
         if isinstance(sock, socket.socket):
             sock_timeout = sock.gettimeout()
             sock_info = repr((sock.family, sock.type, sock.proto))
