@@ -7,6 +7,7 @@ from sshtunnel import SSHTunnelForwarder
 import sshtunnel
 import logging
 import threading
+import paramiko
 
 sshtunnel.DEFAULT_LOGLEVEL = 1
 logging.basicConfig(
@@ -131,7 +132,8 @@ def run_mongo_query(port, query=MONGO_QUERY):
 
 
 def create_tunnel():
-    logging.info('Creating SSHTunnelForwarder... (v%s)', sshtunnel.__version__)
+    logging.info('Creating SSHTunnelForwarder... (sshtunnel v%s, paramiko v%s)',
+                 sshtunnel.__version__, paramiko.__version__)
     tunnel = SSHTunnelForwarder(
         SSH_SERVER_ADDRESS,
         ssh_username=SSH_SERVER_USERNAME,
