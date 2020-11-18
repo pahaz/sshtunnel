@@ -23,5 +23,5 @@ jobs:
       - name: Run tests
         run: |
           cat /etc/ssh/ssh_config
-          ssh -o "StrictHostKeyChecking=no" linuxserver@127.0.0.1 -p 2222 -i ./e2e_tests/ssh-server-config/ssh_host_rsa_key -v "uname -a"
+          ssh -o "StrictHostKeyChecking=no" linuxserver@127.0.0.1 -p 2223 -i ./e2e_tests/ssh-server-config/ssh_host_rsa_key -v "uname -a"
           python e2e_tests/run_docker_e2e_tests.py

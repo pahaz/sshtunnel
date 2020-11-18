@@ -13,7 +13,7 @@ sshtunnel.DEFAULT_LOGLEVEL = 1
 logging.basicConfig(
     format='%(asctime)s| %(levelname)-4.3s|%(threadName)10.9s/%(lineno)04d@%(module)-10.9s| %(message)s', level=1)
 
-SSH_SERVER_ADDRESS = ('127.0.0.1', 2222)
+SSH_SERVER_ADDRESS = ('127.0.0.1', 2223)
 SSH_SERVER_USERNAME = 'linuxserver'
 SSH_PKEY = os.path.join(os.path.dirname(__file__), 'ssh-server-config', 'ssh_host_rsa_key')
 SSH_SERVER_REMOTE_SIDE_ADDRESS_PG = ('10.5.0.5', 5432)
