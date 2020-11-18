@@ -13,6 +13,7 @@ logging.basicConfig(
 
 SSH_SERVER_ADDRESS = ('127.0.0.1', 2222)
 SSH_SERVER_USERNAME = 'linuxserver'
+SSH_PKEY = './ssh-server-config/ssh_host_rsa_key'
 SSH_SERVER_REMOTE_SIDE_ADDRESS_PG = ('10.5.0.5', 5432)
 SSH_SERVER_REMOTE_SIDE_ADDRESS_MYSQL = ('10.5.0.6', 3306)
 SSH_SERVER_REMOTE_SIDE_ADDRESS_MONGO = ('10.5.0.7', 27017)
@@ -133,7 +134,7 @@ def create_tunnel():
     tunnel = SSHTunnelForwarder(
         SSH_SERVER_ADDRESS,
         ssh_username=SSH_SERVER_USERNAME,
-        ssh_pkey='./tests/ssh-server-config/ssh_host_rsa_key',
+        ssh_pkey=SSH_PKEY,
         remote_bind_addresses=[
             SSH_SERVER_REMOTE_SIDE_ADDRESS_PG, SSH_SERVER_REMOTE_SIDE_ADDRESS_MYSQL,
             SSH_SERVER_REMOTE_SIDE_ADDRESS_MONGO,
