@@ -11,6 +11,10 @@ jobs:
 
     runs-on: ubuntu-18.04
 
+    strategy:
+      matrix:
+        python: [python2, python3]
+
     steps:
       - uses: actions/checkout@v2
       - name: Docker compose up databases and ssh-server
@@ -19,26 +23,17 @@ jobs:
         run: |
           uname -a
           lsb_release -a
-          python2 -V
-          python3 -V
+          ${{ matrix.python }} -V
           curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-          python2 get-pip.py
-          python3 get-pip.py
-          python2 -m pip install --upgrade pip
-          python2 -m pip install .
-          python2 -m pip install psycopg2 pymysql pymongo
-          python3 -m pip install --upgrade pip
-          python3 -m pip install .
-          python3 -m pip install psycopg2 pymysql pymongo
+          ${{ matrix.python }} get-pip.py
+          ${{ matrix.python }} -m pip install --upgrade pip
+          ${{ matrix.python }} -m pip install .
+          ${{ matrix.python }} -m pip install psycopg2 pymysql pymongo
           # cd e2e_tests && docker-compose logs ssh; cd ..
           # cd e2e_tests && docker-compose exec ssh cat /config/logs/openssh/current; cd ..
           chmod 600 ./e2e_tests/ssh-server-config/ssh_host_rsa_key
           # ssh -o "StrictHostKeyChecking=no" linuxserver@127.0.0.1 -p 2223 -i ./e2e_tests/ssh-server-config/ssh_host_rsa_key -v "uname -a"
-      - name: Run db tests python2
-        run: python2 e2e_tests/run_docker_e2e_db_tests.py
-      - name: Run db tests python3
-        run: python3 e2e_tests/run_docker_e2e_db_tests.py
-      - name: Run hungs tests python2
-        run: timeout 10s python2 e2e_tests/run_docker_e2e_hangs_tests.py
-      - name: Run hungs tests python3
-        run: timeout 10s python3 e2e_tests/run_docker_e2e_hangs_tests.py
+      - name: Run db tests ${{ matrix.python }}
+        run: ${{ matrix.python }} e2e_tests/run_docker_e2e_db_tests.py
+      - name: Run hungs tests ${{ matrix.python }}
+        run: timeout 10s ${{ matrix.python }} e2e_tests/run_docker_e2e_hangs_tests.py
