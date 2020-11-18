@@ -152,6 +152,7 @@ def start(tunnel):
         tunnel.start()
     except Exception as e:
         logging.exception('Tunnel start exception: %r', e)
+        raise
 
 
 def run_db_queries(tunnel):
@@ -163,6 +164,7 @@ def run_db_queries(tunnel):
         logging.info('PG query: %r', result1)
     except Exception as e:
         logging.exception('PG query exception: %r', e)
+        raise
 
     try:
         logging.info('Trying to run MYSQL query...')
@@ -170,6 +172,7 @@ def run_db_queries(tunnel):
         logging.info('MYSQL query: %r', result2)
     except Exception as e:
         logging.exception('MYSQL query exception: %r', e)
+        raise
 
     try:
         logging.info('Trying to run MONGO query...')
@@ -177,6 +180,7 @@ def run_db_queries(tunnel):
         logging.info('MONGO query: %r', result3)
     except Exception as e:
         logging.exception('MONGO query exception: %r', e)
+        raise
 
     return result1, result2, result3
 
@@ -201,6 +205,7 @@ def stop(tunnel, force=True):
         tunnel.stop(force=force)
     except Exception as e:
         logging.exception('Tunnel stop exception: %r', e)
+        raise
 
 
 def show_threading_state_if_required():
