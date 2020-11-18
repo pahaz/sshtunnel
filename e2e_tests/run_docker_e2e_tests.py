@@ -1,6 +1,7 @@
 import select
 import traceback
 import sys
+import os
 import time
 from sshtunnel import SSHTunnelForwarder
 import sshtunnel
@@ -13,7 +14,7 @@ logging.basicConfig(
 
 SSH_SERVER_ADDRESS = ('127.0.0.1', 2222)
 SSH_SERVER_USERNAME = 'linuxserver'
-SSH_PKEY = './ssh-server-config/ssh_host_rsa_key'
+SSH_PKEY = os.path.join(os.path.dirname(__file__), 'ssh-server-config', 'ssh_host_rsa_key')
 SSH_SERVER_REMOTE_SIDE_ADDRESS_PG = ('10.5.0.5', 5432)
 SSH_SERVER_REMOTE_SIDE_ADDRESS_MYSQL = ('10.5.0.6', 3306)
 SSH_SERVER_REMOTE_SIDE_ADDRESS_MONGO = ('10.5.0.7', 27017)
@@ -226,8 +227,8 @@ if __name__ == '__main__':
     start(tunnel)
     res = run_db_queries(tunnel)
     stop(tunnel)
-    wait_and_check_or_restart_if_required(tunnel)
-    show_threading_state_if_required()
-    logging.warning('EOF')
+    # wait_and_check_or_restart_if_required(tunnel)
+    # show_threading_state_if_required()
+    # logging.warning('EOF')
 
     assert res == (PG_EXPECT, MYSQL_EXPECT, MONGO_EXPECT)
