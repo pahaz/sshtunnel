@@ -234,8 +234,8 @@ if __name__ == '__main__':
     start(tunnel)
     res = run_db_queries(tunnel)
     stop(tunnel)
-    # wait_and_check_or_restart_if_required(tunnel)
-    # show_threading_state_if_required()
-    # logging.warning('EOF')
+    wait_and_check_or_restart_if_required(tunnel)
+    show_threading_state_if_required()
+    logging.warning('EOF')
 
     assert res == (PG_EXPECT, MYSQL_EXPECT, MONGO_EXPECT)
