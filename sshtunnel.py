@@ -45,7 +45,7 @@ SSH_TIMEOUT = 0.1  # ``None`` may cause a block of transport thread
 #: Timeout (seconds) for tunnel connection (open_channel timeout)
 TUNNEL_TIMEOUT = 10.0
 
-_DAEMON = False  #: Use daemon threads in connections
+_DAEMON = True  #: Use daemon threads in connections
 _CONNECTION_COUNTER = 1
 _LOCK = threading.Lock()
 _DEPRECATIONS = {
