@@ -102,7 +102,7 @@ jobs:
             pipenv run twine check dist/*
       - run:
           name: checking PEP8 compliancy
-          command: pipenv run flake8 --exclude .venv,build,docs --max-complexity 10 --ignore=W504
+          command: pipenv run flake8 --exclude .venv,build,docs,e2e_tests --max-complexity 10 --ignore=W504
       - run:
           name: checking CLI help
           command: pipenv run bashtest README.rst
