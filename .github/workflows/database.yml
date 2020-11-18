@@ -22,5 +22,5 @@ jobs:
           python -m pip install psycopg2 pymysql pymongo
       - name: Run tests
         run: |
-          ssh -o "StrictHostKeyChecking=no" linuxserver@127.0.0.1 -p 2222 -i ./ssh-server-config/ssh_host_rsa_key -v "uname -a"
+          ssh -o "StrictHostKeyChecking=no" linuxserver@127.0.0.1 -p 2222 -i ./e2e_tests/ssh-server-config/ssh_host_rsa_key -v "uname -a"
           python e2e_tests/run_docker_e2e_tests.py
