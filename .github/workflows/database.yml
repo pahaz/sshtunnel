@@ -27,5 +27,6 @@ jobs:
           # ls -lah ./e2e_tests/ssh-server-config/ssh_host_rsa_key
           cd e2e_tests && docker-compose logs ssh && cd ..
           # cd e2e_tests && docker-compose exec ssh cat /config/logs/openssh/current && cd ..
+          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_rsa_key
           ssh -o "StrictHostKeyChecking=no" linuxserver@127.0.0.1 -p 2223 -i ./e2e_tests/ssh-server-config/ssh_host_rsa_key -v "uname -a"
           python e2e_tests/run_docker_e2e_tests.py
