@@ -431,6 +431,7 @@ class _ThreadingForwardServer(socketserver.ThreadingMixIn, _ForwardServer):
     Allow concurrent connections to each tunnel
     """
     # If True, cleanly stop threads created by ThreadingMixIn when quitting
+    # This value is overrides by SSHTunnelForwarder.daemon_forward_servers
     daemon_threads = _DAEMON
 
 
@@ -475,6 +476,7 @@ class _ThreadingStreamForwardServer(socketserver.ThreadingMixIn,
     Allow concurrent connections to each tunnel
     """
     # If True, cleanly stop threads created by ThreadingMixIn when quitting
+    # This value is overrides by SSHTunnelForwarder.daemon_forward_servers
     daemon_threads = _DAEMON
 
 
@@ -1086,8 +1088,10 @@ class SSHTunnelForwarder(object):
 
         paramiko_key_types = {'rsa': paramiko.RSAKey,
                               'dsa': paramiko.DSSKey,
-                              'ecdsa': paramiko.ECDSAKey,
-                              'ed25519': paramiko.Ed25519Key}
+                              'ecdsa': paramiko.ECDSAKey}
+        if hasattr(paramiko, 'Ed25519Key'):
+            # new in paramiko>=2.2: http://docs.paramiko.org/en/stable/api/keys.html#module-paramiko.ed25519key
+            paramiko_key_types['ed25519'] = paramiko.Ed25519Key
         for directory in host_pkey_directories:
             for keytype in paramiko_key_types.keys():
                 ssh_pkey_expanded = os.path.expanduser(
