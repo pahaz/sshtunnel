@@ -59,6 +59,7 @@ _DEPRECATIONS = {
 DEFAULT_LOGLEVEL = logging.ERROR  #: default level if no logger passed (ERROR)
 TRACE_LEVEL = 1
 logging.addLevelName(TRACE_LEVEL, 'TRACE')
+DEFAULT_SSH_DIRECTORY = '~/.ssh'
 
 _StreamServer = socketserver.UnixStreamServer if os.name == 'posix' \
     else socketserver.TCPServer
