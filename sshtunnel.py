@@ -443,7 +443,7 @@ class _StreamForwardServer(_StreamServer):
     def __init__(self, *args, **kwargs):
         self.logger = create_logger(kwargs.pop('logger', None))
         self.tunnel_ok = queue.Queue(1)
-        super().__init__(self, *args, **kwargs)
+        _StreamServer.__init__(self, *args, **kwargs)
 
     @property
     def local_address(self):
