@@ -59,12 +59,12 @@ _DEPRECATIONS = {
 DEFAULT_LOGLEVEL = logging.ERROR  #: default level if no logger passed (ERROR)
 TRACE_LEVEL = 1
 logging.addLevelName(TRACE_LEVEL, 'TRACE')
-DEFAULT_SSH_DIRECTORY = '~/.ssh'
 
-StreamServer = socketserver.UnixStreamServer if os.name == 'posix' \
+_StreamServer = socketserver.UnixStreamServer if os.name == 'posix' \
     else socketserver.TCPServer
 
 #: Path of optional ssh configuration file
+DEFAULT_SSH_DIRECTORY = '~/.ssh'
 SSH_CONFIG_FILE = os.path.join(DEFAULT_SSH_DIRECTORY, 'config')
 
 ########################
@@ -434,7 +434,7 @@ class _ThreadingForwardServer(socketserver.ThreadingMixIn, _ForwardServer):
     daemon_threads = _DAEMON
 
 
-class _StreamForwardServer(StreamServer):
+class _StreamForwardServer(_StreamServer):
     """
     Serve over domain sockets (does not work on Windows)
     """
@@ -442,7 +442,7 @@ class _StreamForwardServer(StreamServer):
     def __init__(self, *args, **kwargs):
         self.logger = create_logger(kwargs.pop('logger', None))
         self.tunnel_ok = queue.Queue(1)
-        StreamServer.__init__(self, *args, **kwargs)
+        super().__init__(self, *args, **kwargs)
 
     @property
     def local_address(self):
