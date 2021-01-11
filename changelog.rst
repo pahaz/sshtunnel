@@ -20,6 +20,10 @@ CHANGELOG
 =========
 
 
+- v.0.3.2 (`Pahaz`_, `JM Fernández`_)
+    + Fix host key directory detection
+    + Unify default ssh config folder to `~/.ssh`
+
 - v.0.3.1 (`Pahaz`_)
     + Increase open connection timeout to 10 secods
 
