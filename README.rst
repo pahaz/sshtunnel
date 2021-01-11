@@ -227,7 +227,7 @@ CLI usage
                      ssh_address
 
     Pure python ssh tunnel utils
-    Version 0.3.2
+    Version 0.4.0
 
     positional arguments:
       ssh_address           SSH server IP address (GW for SSH tunnels)
