@@ -1,0 +1,60 @@
+---
+version: "2.1"
+services:
+  ssh:
+    image: ghcr.io/linuxserver/openssh-server
+    container_name: openssh-server
+    hostname: openssh-server
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - PUBLIC_KEY_FILE=/config/ssh_host_keys/ssh_host_rsa_key.pub
+      - SUDO_ACCESS=false
+      - PASSWORD_ACCESS=false
+      - USER_NAME=linuxserver
+    volumes:
+      - ./ssh-server-config:/config/ssh_host_keys:ro
+    ports:
+      - "127.0.0.1:2223:2222"
+    networks:
+      - inner
+
+  postgresdb:
+    image: postgres:13.0
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: main
+    networks:
+      inner:
+        ipv4_address: 10.5.0.5
+
+  mysqldb:
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: main
+      MYSQL_USER: mysql
+      MYSQL_PASSWORD: mysql
+      MYSQL_ROOT_PASSWORD: mysqlroot
+    networks:
+      inner:
+        ipv4_address: 10.5.0.6
+
+  mongodb:
+    image: mongo:3.6
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: mongo
+      MONGO_INITDB_DATABASE: main
+    networks:
+      inner:
+        ipv4_address: 10.5.0.7
+
+networks:
+  inner:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.5.0.0/16
+         gateway: 10.5.0.1

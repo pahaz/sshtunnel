@@ -45,7 +45,7 @@ SSH_TIMEOUT = 0.1  # ``None`` may cause a block of transport thread
 #: Timeout (seconds) for tunnel connection (open_channel timeout)
 TUNNEL_TIMEOUT = 10.0
 
-_DAEMON = False  #: Use daemon threads in connections
+_DAEMON = True  #: Use daemon threads in connections
 _CONNECTION_COUNTER = 1
 _LOCK = threading.Lock()
 _DEPRECATIONS = {
@@ -432,6 +432,7 @@ class _ThreadingForwardServer(socketserver.ThreadingMixIn, _ForwardServer):
     Allow concurrent connections to each tunnel
     """
     # If True, cleanly stop threads created by ThreadingMixIn when quitting
+    # This value is overrides by SSHTunnelForwarder.daemon_forward_servers
     daemon_threads = _DAEMON
 
 
@@ -476,6 +477,7 @@ class _ThreadingStreamForwardServer(socketserver.ThreadingMixIn,
     Allow concurrent connections to each tunnel
     """
     # If True, cleanly stop threads created by ThreadingMixIn when quitting
+    # This value is overrides by SSHTunnelForwarder.daemon_forward_servers
     daemon_threads = _DAEMON
 
 
@@ -737,7 +739,9 @@ class SSHTunnelForwarder(object):
 
     """
     skip_tunnel_checkup = True
+    # This option affects the `ForwardServer` and all his threads
     daemon_forward_servers = _DAEMON  #: flag tunnel threads in daemon mode
+    # This option affect only `Transport` thread
     daemon_transport = _DAEMON  #: flag SSH transport thread in daemon mode
 
     def local_is_up(self, target):
@@ -1087,8 +1091,10 @@ class SSHTunnelForwarder(object):
 
         paramiko_key_types = {'rsa': paramiko.RSAKey,
                               'dsa': paramiko.DSSKey,
-                              'ecdsa': paramiko.ECDSAKey,
-                              'ed25519': paramiko.Ed25519Key}
+                              'ecdsa': paramiko.ECDSAKey}
+        if hasattr(paramiko, 'Ed25519Key'):
+            # NOQA: new in paramiko>=2.2: http://docs.paramiko.org/en/stable/api/keys.html#module-paramiko.ed25519key
+            paramiko_key_types['ed25519'] = paramiko.Ed25519Key
         for directory in host_pkey_directories:
             for keytype in paramiko_key_types.keys():
                 ssh_pkey_expanded = os.path.expanduser(
@@ -1190,6 +1196,8 @@ class SSHTunnelForwarder(object):
         transport.set_keepalive(self.set_keepalive)
         transport.use_compression(compress=self.compression)
         transport.daemon = self.daemon_transport
+        # try to solve https://github.com/paramiko/paramiko/issues/1181
+        # transport.banner_timeout = 200
         if isinstance(sock, socket.socket):
             sock_timeout = sock.gettimeout()
             sock_info = repr((sock.family, sock.type, sock.proto))
@@ -1287,12 +1295,11 @@ class SSHTunnelForwarder(object):
             paramiko.Pkey
         """
         ssh_pkey = None
-        for pkey_class in (key_type,) if key_type else (
-            paramiko.RSAKey,
-            paramiko.DSSKey,
-            paramiko.ECDSAKey,
-            paramiko.Ed25519Key
-        ):
+        key_types = (paramiko.RSAKey, paramiko.DSSKey, paramiko.ECDSAKey)
+        if hasattr(paramiko, 'Ed25519Key'):
+            # NOQA: new in paramiko>=2.2: http://docs.paramiko.org/en/stable/api/keys.html#module-paramiko.ed25519key
+            key_types += (paramiko.Ed25519Key, )
+        for pkey_class in (key_type,) if key_type else key_types:
             try:
                 ssh_pkey = pkey_class.from_private_key_file(
                     pkey_file,
@@ -1606,6 +1613,14 @@ class SSHTunnelForwarder(object):
     def __exit__(self, *args):
         self.stop(force=True)
 
+    def __del__(self):
+        if self.is_active or self.is_alive:
+            self.logger.warning(
+                "It looks like you didn't call the .stop() before "
+                "the SSHTunnelForwarder obj was collected by "
+                "the garbage collector! Running .stop(force=True)")
+            self.stop(force=True)
+
 
 def open_tunnel(*args, **kwargs):
     """
@@ -1665,7 +1680,7 @@ def open_tunnel(*args, **kwargs):
 
     ssh_port = kwargs.pop('ssh_port', 22)
     skip_tunnel_checkup = kwargs.pop('skip_tunnel_checkup', True)
-    block_on_close = kwargs.pop('block_on_close', _DAEMON)
+    block_on_close = kwargs.pop('block_on_close', None)
     if block_on_close:
         warnings.warn("'block_on_close' is DEPRECATED. You should use either"
                       " .stop() or .stop(force=True), depends on what you do"
