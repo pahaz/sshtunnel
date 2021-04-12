@@ -28,16 +28,17 @@ if sys.version_info[0] < 3:  # pragma: no cover
     import Queue as queue
     import SocketServer as socketserver
     string_types = basestring,  # noqa
-    path_types = string_types
     input_ = raw_input  # noqa
 else:  # pragma: no cover
     import queue
     import socketserver
-    from pathlib import Path
     string_types = str
-    path_types = (string_types, Path)
     input_ = input
 
+path_types = string_types
+if sys.version_info[0] + sys.version_info[1] / 10 >= 3.4:
+    from pathlib import Path
+    path_types = (string_types, Path)
 
 
 __version__ = '0.4.0'
