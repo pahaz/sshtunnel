@@ -28,12 +28,16 @@ if sys.version_info[0] < 3:  # pragma: no cover
     import Queue as queue
     import SocketServer as socketserver
     string_types = basestring,  # noqa
+    path_types = string_types
     input_ = raw_input  # noqa
 else:  # pragma: no cover
     import queue
     import socketserver
+    from pathlib import Path
     string_types = str
+    path_types = (string_types, Path)
     input_ = input
+
 
 
 __version__ = '0.4.0'
@@ -1151,8 +1155,8 @@ class SSHTunnelForwarder(object):
             allow_agent=allow_agent
         )
 
-        if isinstance(ssh_pkey, string_types):
-            ssh_pkey_expanded = os.path.expanduser(ssh_pkey)
+        if isinstance(ssh_pkey,  path_types):
+            ssh_pkey_expanded = os.path.expanduser(ssh_pkey)  # expanduser returns a String when given a Path
             if os.path.exists(ssh_pkey_expanded):
                 ssh_pkey = SSHTunnelForwarder.read_private_key_file(
                     pkey_file=ssh_pkey_expanded,
