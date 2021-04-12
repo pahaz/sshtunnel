@@ -35,10 +35,11 @@ else:  # pragma: no cover
     string_types = str
     input_ = input
 
-path_types = string_types
-if sys.version_info[0] + sys.version_info[1] / 10 >= 3.4:
+if sys.version_info >= (3, 4):  # pragma: no cover
     from pathlib import Path
-    path_types = (string_types, Path)
+    path_types = (string_types, Path)  # Will need adjusting if Python 3 string_types becomes a tuple
+else:
+    path_types = string_types
 
 
 __version__ = '0.4.0'
