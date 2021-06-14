@@ -1020,8 +1020,13 @@ class SSHTunnelForwarder(object):
             )
             ssh_host = hostname_info.get('hostname')
             ssh_port = ssh_port or hostname_info.get('port')
+            
+            if 'proxycommand' in hostname_info:
+                proxycommand = hostname_info.get('proxycommand')
+                config_port = hostname_info.get('port', "22")
+                if ssh_port != config_port:
+                    proxycommand = proxycommand.replace(config_port, ssh_port)
 
-            proxycommand = hostname_info.get('proxycommand')
             ssh_proxy = ssh_proxy or (paramiko.ProxyCommand(proxycommand) if
                                       proxycommand else None)
             if compression is None:
