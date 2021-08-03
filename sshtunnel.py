@@ -596,7 +596,7 @@ class SSHTunnelForwarder(object):
             the tuple are optional so both ``('', 8000)`` and
             ``('10.0.0.1', )`` are valid values
 
-            Default: ``('0.0.0.0', RANDOM_PORT)``
+            Default: ``('127.0.0.1', RANDOM_PORT)``
 
             .. versionchanged:: 0.0.8
                 Added the ability to use a UNIX domain socket as local bind
@@ -1127,7 +1127,7 @@ class SSHTunnelForwarder(object):
         if count < 0:
             raise ValueError('Too many local bind addresses '
                              '(local_bind_addresses > remote_bind_addresses)')
-        local_binds.extend([('0.0.0.0', 0) for x in range(count)])
+        local_binds.extend([('127.0.0.1', 0) for x in range(count)])
         return local_binds
 
     @staticmethod
