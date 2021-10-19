@@ -313,14 +313,15 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                         '>>> OUT {0} recv empty data >>>'.format(self.info)
                     )
                     break
-                self.logger.log(
-                    TRACE_LEVEL,
-                    '>>> OUT {0} send to {1}: {2} >>>'.format(
-                        self.info,
-                        self.remote_address,
-                        hexlify(data)
+                if self.logger.isEnabledFor(TRACE_LEVEL):
+                    self.logger.log(
+                        TRACE_LEVEL,
+                        '>>> OUT {0} send to {1}: {2} >>>'.format(
+                            self.info,
+                            self.remote_address,
+                            hexlify(data)
+                        )
                     )
-                )
                 chan.sendall(data)
             if chan in rqst:  # else
                 if not chan.recv_ready():
@@ -330,10 +331,11 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                     )
                     break
                 data = chan.recv(16384)
-                self.logger.log(
-                    TRACE_LEVEL,
-                    '<<< IN {0} recv: {1} <<<'.format(self.info, hexlify(data))
-                )
+                if self.logger.isEnabledFor(TRACE_LEVEL):
+                    self.logger.log(
+                        TRACE_LEVEL,
+                        '<<< IN {0} recv: {1} <<<'.format(self.info, hexlify(data))
+                    )
                 self.request.sendall(data)
 
     def handle(self):
