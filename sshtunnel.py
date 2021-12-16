@@ -1004,7 +1004,8 @@ class SSHTunnelForwarder(object):
         # Try to read SSH_CONFIG_FILE
         try:
             # open the ssh config file
-            with open(os.path.expanduser(ssh_config_file), 'r') as f:
+            config_path = os.path.expanduser(ssh_config_file)
+            with open(config_path, 'r') as f:
                 ssh_config.parse(f)
             # looks for information for the destination system
             hostname_info = ssh_config.lookup(ssh_host)
@@ -1021,7 +1022,18 @@ class SSHTunnelForwarder(object):
             ssh_host = hostname_info.get('hostname')
             ssh_port = ssh_port or hostname_info.get('port')
 
-            proxycommand = hostname_info.get('proxycommand')
+            proxycommand = hostname_info.get("proxycommand")
+            if not proxycommand and "proxyjump" in hostname_info:
+                hops = list(reversed(hostname_info["proxyjump"].split(",")))
+                if len(hops) > 1:
+                    raise ValueError(
+                        "ProxyJump with more than one proxy server is not supported."
+                    )
+                # -F forces the continued use of the same SSH config file
+                proxycommand = "ssh {} -F {} -W {}:{}".format(
+                    hops[0], os.path.abspath(config_path), ssh_host, ssh_port
+                )
+
             ssh_proxy = ssh_proxy or (paramiko.ProxyCommand(proxycommand) if
                                       proxycommand else None)
             if compression is None:
