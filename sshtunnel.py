@@ -383,7 +383,8 @@ class _ForwardServer(socketserver.TCPServer):  # Not Threading
     allow_reuse_address = True  # faster rebinding
 
     def __init__(self, *args, **kwargs):
-        self.logger = create_logger(kwargs.pop('logger', None))
+        logger = kwargs.pop('logger', None)
+        self.logger = logger or create_logger()
         self.tunnel_ok = queue.Queue(1)
         socketserver.TCPServer.__init__(self, *args, **kwargs)
 
