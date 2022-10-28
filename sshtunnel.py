@@ -306,21 +306,22 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
         while chan.active:
             rqst, _, _ = select([self.request, chan], [], [], 5)
             if self.request in rqst:
-                data = self.request.recv(1024)
+                data = self.request.recv(16384)
                 if not data:
                     self.logger.log(
                         TRACE_LEVEL,
                         '>>> OUT {0} recv empty data >>>'.format(self.info)
                     )
                     break
-                self.logger.log(
-                    TRACE_LEVEL,
-                    '>>> OUT {0} send to {1}: {2} >>>'.format(
-                        self.info,
-                        self.remote_address,
-                        hexlify(data)
+                if self.logger.isEnabledFor(TRACE_LEVEL):
+                    self.logger.log(
+                        TRACE_LEVEL,
+                        '>>> OUT {0} send to {1}: {2} >>>'.format(
+                            self.info,
+                            self.remote_address,
+                            hexlify(data)
+                        )
                     )
-                )
                 chan.sendall(data)
             if chan in rqst:  # else
                 if not chan.recv_ready():
@@ -329,11 +330,12 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                         '<<< IN {0} recv is not ready <<<'.format(self.info)
                     )
                     break
-                data = chan.recv(1024)
-                self.logger.log(
-                    TRACE_LEVEL,
-                    '<<< IN {0} recv: {1} <<<'.format(self.info, hexlify(data))
-                )
+                data = chan.recv(16384)
+                if self.logger.isEnabledFor(TRACE_LEVEL):
+                    self.logger.log(
+                        TRACE_LEVEL,
+                        '<<< IN {0} recv: {1} <<<'.format(self.info, hexlify(data))
+                    )
                 self.request.sendall(data)
 
     def handle(self):
