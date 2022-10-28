@@ -24,7 +24,7 @@ jobs:
           uname -a
           lsb_release -a
           ${{ matrix.python }} -V
-          curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          curl https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py
           ${{ matrix.python }} get-pip.py
           ${{ matrix.python }} -m pip install --upgrade pip
           ${{ matrix.python }} -m pip install .
