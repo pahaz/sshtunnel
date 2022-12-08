@@ -107,7 +107,7 @@ port.
     from sshtunnel import SSHTunnelForwarder
 
     server = SSHTunnelForwarder(
-        'alfa.8iq.dev',
+        'pahaz.urfuclub.ru',
         ssh_username="pahaz",
         ssh_password="secret",
         remote_bind_address=('127.0.0.1', 8080)
