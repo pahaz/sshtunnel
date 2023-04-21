@@ -9,11 +9,11 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python: [python2, python3]
+        python: [python3]
 
     steps:
       - uses: actions/checkout@v2
