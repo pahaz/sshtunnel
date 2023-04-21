@@ -1,10 +1,10 @@
 name: Test tunnel for databases connection
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
-    branches: [ master ]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
 
 jobs:
   build:
@@ -18,7 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Docker compose up databases and ssh-server
-        run: cd e2e_tests && docker-compose up -d
+        run: |
+          chmod -R 777 ./e2e_tests/ssh-server-config
+          cd e2e_tests && docker-compose up -d
+      - name: Test SSH Server
+        run: |
+         docker exec openssh-server ls -lsa /config/ssh_host_keys
+         docker exec openssh-server cat  /config/logs/openssh/current
+         docker exec openssh-server ps aux
       - name: Install dependencies
         run: |
           uname -a
