@@ -238,4 +238,7 @@ if __name__ == '__main__':
     show_threading_state_if_required()
     logging.warning('EOF')
 
-    assert res == (PG_EXPECT, MYSQL_EXPECT, MONGO_EXPECT)
+    assert res[0] == PG_EXPECT, f"{res[0]=} {PG_EXPECT}"
+    assert res[1] == MYSQL_EXPECT, f"{res[1]=} {MYSQL_EXPECT}"
+    assert res[2] == MONGO_EXPECT, f"{res[2]=} {MONGO_EXPECT}"
+    logging.info("Tests pass!")
