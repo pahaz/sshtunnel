@@ -4,5 +4,6 @@ pytest
 pytest-cov
 pytest-xdist
 twine
+importlib-metadata
 # readme-renderer (required by twine) 25.0 has removed support for Python 3.4
 readme-renderer
