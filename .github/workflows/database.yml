@@ -35,8 +35,6 @@ jobs:
           uname -a
           lsb_release -a
           python -V
-          curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-          python get-pip.py
           python -m pip install --upgrade pip
           python -m pip install .
           python -m pip install psycopg2 pymysql pymongo
