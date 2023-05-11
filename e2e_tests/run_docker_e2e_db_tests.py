@@ -237,5 +237,11 @@ if __name__ == '__main__':
     wait_and_check_or_restart_if_required(tunnel)
     show_threading_state_if_required()
     logging.warning('EOF')
-
+    
     assert res == (PG_EXPECT, MYSQL_EXPECT, MONGO_EXPECT)
+    
+    # If Python 2.7 is dropped below makes debugging easier!
+    # assert res[0] == PG_EXPECT, f"{res[0]=} {PG_EXPECT}"
+    # assert res[1] == MYSQL_EXPECT, f"{res[1]=} {MYSQL_EXPECT}"
+    # assert res[2] == MONGO_EXPECT, f"{res[2]=} {MONGO_EXPECT}"
+    logging.info("Tests pass!")

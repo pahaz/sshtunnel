@@ -1,39 +1,43 @@
 name: Test tunnel for databases connection
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
-    branches: [ master ]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [master]
 
 jobs:
   build:
 
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python: [python2, python3]
+        python-version: ['2.7', '3.8', '3.9', '3.10', '3.11']
 
     steps:
       - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Docker compose up databases and ssh-server
-        run: cd e2e_tests && docker-compose up -d
+        run: |
+          chmod -R 777 ./e2e_tests/ssh-server-config
+          cd e2e_tests && docker-compose up -d
       - name: Install dependencies
         run: |
           uname -a
           lsb_release -a
-          ${{ matrix.python }} -V
-          curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-          ${{ matrix.python }} get-pip.py
-          ${{ matrix.python }} -m pip install --upgrade pip
-          ${{ matrix.python }} -m pip install .
-          ${{ matrix.python }} -m pip install psycopg2 pymysql pymongo
+          python -V
+          python -m pip install --upgrade pip
+          python -m pip install .
+          python -m pip install psycopg2 pymysql pymongo
           # cd e2e_tests && docker-compose logs ssh; cd ..
           # cd e2e_tests && docker-compose exec ssh cat /config/logs/openssh/current; cd ..
           chmod 600 ./e2e_tests/ssh-server-config/ssh_host_rsa_key
           # ssh -o "StrictHostKeyChecking=no" linuxserver@127.0.0.1 -p 2223 -i ./e2e_tests/ssh-server-config/ssh_host_rsa_key -v "uname -a"
-      - name: Run db tests ${{ matrix.python }}
-        run: ${{ matrix.python }} e2e_tests/run_docker_e2e_db_tests.py
-      - name: Run hungs tests ${{ matrix.python }}
-        run: timeout 10s ${{ matrix.python }} e2e_tests/run_docker_e2e_hangs_tests.py
+      - name: Run db tests ${{ matrix.python-version }}
+        run: python e2e_tests/run_docker_e2e_db_tests.py
+      - name: Run hungs tests ${{ matrix.python-version }}
+        run: timeout 10s python e2e_tests/run_docker_e2e_hangs_tests.py
