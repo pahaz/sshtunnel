@@ -332,9 +332,10 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                     break
                 data = chan.recv(16384)
                 if self.logger.isEnabledFor(TRACE_LEVEL):
+                    hex_data = hexlify(data)
                     self.logger.log(
                         TRACE_LEVEL,
-                        '<<< IN {0} recv: {1} <<<'.format(self.info, hexlify(data))
+                        '<<< IN {0} recv: {1} <<<'.format(self.info, hex_data)
                     )
                 self.request.sendall(data)
 
