@@ -25,6 +25,9 @@ jobs:
     <<: *job_defaults
     steps:
       - checkout
+      - restore_cache: &restore_cache
+          keys:
+            - sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}-0
       - run: &install
           name: Install sshtunnel and build&test dependencies
           command: |
@@ -36,6 +39,10 @@ jobs:
             cat Pipfile.lock
           environment:
             - PIPENV_VENV_IN_PROJECT: 1
+      - save_cache: &save_cache
+          key: sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}-0
+          paths:
+            - .venv/
       - run:
           name: Run test suite
           command: >-
