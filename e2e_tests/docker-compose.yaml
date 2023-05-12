@@ -2,7 +2,7 @@
 version: "2.1"
 services:
   ssh:
-    image: ghcr.io/linuxserver/openssh-server
+    image: linuxserver/openssh-server:version-9.1_p1-r2
     container_name: openssh-server
     hostname: openssh-server
     environment:
