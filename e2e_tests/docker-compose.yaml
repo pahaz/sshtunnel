@@ -13,6 +13,7 @@ services:
       - SUDO_ACCESS=false
       - PASSWORD_ACCESS=false
       - USER_NAME=linuxserver
+      - LISTEN_PORT=2222
     volumes:
       - ./ssh-server-config:/config/ssh_host_keys
     ports:
