@@ -9,31 +9,65 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     strategy:
       matrix:
-        python: [python2, python3]
+        python: [ python3, python2 ]
 
     steps:
       - uses: actions/checkout@v2
+
       - name: Docker compose up databases and ssh-server
-        run: cd e2e_tests && docker-compose up -d
+        run: |
+          # openssh-server trying to change file permissions to 0600 and we want to do it in /tmp directory
+          cp -r ./e2e_tests/ssh-server-config /tmp/ssh
+          sed -i "s#./ssh-server-config#/tmp/ssh#g" ./e2e_tests/docker-compose.yaml
+          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_rsa_key
+          cd e2e_tests && docker-compose up -d
+
       - name: Install dependencies
         run: |
+          id
           uname -a
           lsb_release -a
           ${{ matrix.python }} -V
-          curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          curl https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py
           ${{ matrix.python }} get-pip.py
           ${{ matrix.python }} -m pip install --upgrade pip
           ${{ matrix.python }} -m pip install .
-          ${{ matrix.python }} -m pip install psycopg2 pymysql pymongo
+          ${{ matrix.python }} -m pip install psycopg2-binary>=2.9.6 pymysql>=1.0.3 pymongo>=4.3.3
+          ${{ matrix.python }} -m pip install --upgrade pyopenssl
+
+          ssh -o "StrictHostKeyChecking=no" linuxserver@127.0.0.1 -p 2223 -i ./e2e_tests/ssh-server-config/ssh_host_rsa_key -vvvvv "uname -a"
+
           # cd e2e_tests && docker-compose logs ssh; cd ..
           # cd e2e_tests && docker-compose exec ssh cat /config/logs/openssh/current; cd ..
-          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_rsa_key
-          # ssh -o "StrictHostKeyChecking=no" linuxserver@127.0.0.1 -p 2223 -i ./e2e_tests/ssh-server-config/ssh_host_rsa_key -v "uname -a"
+          # docker exec openssh-server tail -f /config/logs/openssh/current
+
       - name: Run db tests ${{ matrix.python }}
         run: ${{ matrix.python }} e2e_tests/run_docker_e2e_db_tests.py
+
       - name: Run hungs tests ${{ matrix.python }}
         run: timeout 10s ${{ matrix.python }} e2e_tests/run_docker_e2e_hangs_tests.py
+
+      - name: Collect openssh-server logs from docker container
+        if: failure()
+        run: docker exec openssh-server cat /config/logs/openssh/current > openssh-server.log
+
+      - name: Collect docker stdout logs
+        if: failure()
+        uses: jwalton/gh-docker-logs@v1
+        with:
+          dest: './docker-logs'
+
+      - name: Upload log artifact on failure
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: logs
+          path: |
+            e2e_tests/*.log
+            ./docker-logs
+            *.log
+          retention-days: 30

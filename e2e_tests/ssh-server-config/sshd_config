@@ -10,7 +10,7 @@
 # possible, but leave them commented.  Uncommented options override the
 # default value.
 
-#Port 22
+Port 2222
 #AddressFamily any
 #ListenAddress 0.0.0.0
 #ListenAddress ::
@@ -24,7 +24,7 @@
 
 # Logging
 #SyslogFacility AUTH
-#LogLevel INFO
+LogLevel DEBUG
 
 # Authentication:
 
@@ -89,7 +89,7 @@ X11Forwarding no
 #X11DisplayOffset 10
 #X11UseLocalhost yes
 #PermitTTY yes
-#PrintMotd yes
+PrintMotd no
 #PrintLastLog yes
 #TCPKeepAlive yes
 #PermitUserEnvironment no
@@ -104,7 +104,7 @@ PidFile /config/sshd.pid
 #VersionAddendum none
 
 # no default banner path
-#Banner none
+Banner none
 
 # override default of no subsystems
 Subsystem	sftp	/usr/lib/ssh/sftp-server -u 022
@@ -115,3 +115,5 @@ Subsystem	sftp	/usr/lib/ssh/sftp-server -u 022
 #	AllowTcpForwarding no
 #	PermitTTY no
 #	ForceCommand cvs server
+
+# !!

@@ -332,9 +332,10 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                     break
                 data = chan.recv(16384)
                 if self.logger.isEnabledFor(TRACE_LEVEL):
+                    hex_data = hexlify(data)
                     self.logger.log(
                         TRACE_LEVEL,
-                        '<<< IN {0} recv: {1} <<<'.format(self.info, hexlify(data))
+                        '<<< IN {0} recv: {1} <<<'.format(self.info, hex_data)
                     )
                 self.request.sendall(data)
 
@@ -385,7 +386,8 @@ class _ForwardServer(socketserver.TCPServer):  # Not Threading
     allow_reuse_address = True  # faster rebinding
 
     def __init__(self, *args, **kwargs):
-        self.logger = create_logger(kwargs.pop('logger', None))
+        logger = kwargs.pop('logger', None)
+        self.logger = logger or create_logger()
         self.tunnel_ok = queue.Queue(1)
         socketserver.TCPServer.__init__(self, *args, **kwargs)
 
@@ -444,7 +446,8 @@ class _StreamForwardServer(_StreamServer):
     """
 
     def __init__(self, *args, **kwargs):
-        self.logger = create_logger(kwargs.pop('logger', None))
+        logger = kwargs.pop('logger', None)
+        self.logger = logger or create_logger()
         self.tunnel_ok = queue.Queue(1)
         _StreamServer.__init__(self, *args, **kwargs)
 
@@ -904,9 +907,6 @@ class SSHTunnelForwarder(object):
             **kwargs  # for backwards compatibility
     ):
         self.logger = logger or create_logger()
-
-        # Ensure paramiko.transport has a console handler
-        _check_paramiko_handlers(logger=logger)
 
         self.ssh_host_key = ssh_host_key
         self.set_keepalive = set_keepalive
@@ -1668,8 +1668,9 @@ def open_tunnel(*args, **kwargs):
             do_something(server.local_bind_port)
     """
     # Attach a console handler to the logger or create one if not passed
-    kwargs['logger'] = create_logger(logger=kwargs.get('logger', None),
-                                     loglevel=kwargs.pop('debug_level', None))
+    loglevel = kwargs.pop('debug_level', None)
+    logger = kwargs.get('logger', None) or create_logger(loglevel=loglevel)
+    kwargs['logger'] = logger
 
     ssh_address_or_host = kwargs.pop('ssh_address_or_host', None)
     # Check if deprecated arguments ssh_address or ssh_host were used

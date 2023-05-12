@@ -2,7 +2,7 @@ params: &params
   parameters:
     version:
       description: Python docker image version
-      default: 3.8.6
+      default: 3.9.16
       type: string
 
 job_defaults: &job_defaults
@@ -17,7 +17,7 @@ executors:
   python:
     <<: *params
     docker:
-      - image: circleci/python:<< parameters.version >>
+      - image: cimg/python:<< parameters.version >>
 
 jobs:
   tests:
@@ -27,7 +27,7 @@ jobs:
       - checkout
       - restore_cache: &restore_cache
           keys:
-            - sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}
+            - sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}-0
       - run: &install
           name: Install sshtunnel and build&test dependencies
           command: |
@@ -40,7 +40,7 @@ jobs:
           environment:
             - PIPENV_VENV_IN_PROJECT: 1
       - save_cache: &save_cache
-          key: sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}
+          key: sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}-0
           paths:
             - .venv/
       - run:
