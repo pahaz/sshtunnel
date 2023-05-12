@@ -33,7 +33,7 @@ services:
         ipv4_address: 10.5.0.5
 
   mysqldb:
-    image: mysql:8
+    image: mysql:8.0.33
     environment:
       MYSQL_DATABASE: main
       MYSQL_USER: mysql
@@ -44,7 +44,7 @@ services:
         ipv4_address: 10.5.0.6
 
   mongodb:
-    image: mongo:3.6
+    image: mongo:3.6.23
     environment:
       MONGO_INITDB_ROOT_USERNAME: mongo
       MONGO_INITDB_ROOT_PASSWORD: mongo
