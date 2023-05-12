@@ -40,7 +40,7 @@ jobs:
           environment:
             - PIPENV_VENV_IN_PROJECT: 1
       - save_cache: &save_cache
-          key: sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}
+          key: sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}-0
           paths:
             - .venv/
       - run:
