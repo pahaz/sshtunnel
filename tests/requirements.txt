@@ -4,6 +4,8 @@ pytest
 pytest-cov
 pytest-xdist
 twine
+# required by twine!
+bleach<5.0.0
 # readme-renderer (required by twine) 25.0 has removed support for Python 3.4
 readme-renderer<25.0; python_version == '3.4'
 # try to solve CI problem
