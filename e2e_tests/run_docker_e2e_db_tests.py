@@ -238,6 +238,9 @@ if __name__ == '__main__':
     stop(tunnel)
     wait_and_check_or_restart_if_required(tunnel)
     show_threading_state_if_required()
-    logging.warning('EOF')
+
+    logging.info('RESULT POSTGRES: %r', res[0])
+    logging.info('RESULT MYSQL: %r', res[1])
+    logging.info('RESULT MONGO: %r', res[2])
 
     assert res == (PG_EXPECT, MYSQL_EXPECT, MONGO_EXPECT)
