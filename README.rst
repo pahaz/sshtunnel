@@ -220,10 +220,9 @@ CLI usage
 
     $ sshtunnel --help
     usage: sshtunnel [-h] [-U SSH_USERNAME] [-p SSH_PORT] [-P SSH_PASSWORD] -R
-                     IP:PORT [IP:PORT ...] [-L [IP:PORT [IP:PORT ...]]]
-                     [-k SSH_HOST_KEY] [-K KEY_FILE] [-S KEY_PASSWORD] [-t] [-v]
-                     [-V] [-x IP:PORT] [-c SSH_CONFIG_FILE] [-z] [-n]
-                     [-d [FOLDER [FOLDER ...]]]
+                     IP:PORT [IP:PORT ...] [-L [IP:PORT ...]] [-k SSH_HOST_KEY]
+                     [-K KEY_FILE] [-S KEY_PASSWORD] [-t] [-v] [-V] [-x IP:PORT]
+                     [-c SSH_CONFIG_FILE] [-z] [-n] [-d [FOLDER ...]]
                      ssh_address
 
     Pure python ssh tunnel utils
@@ -233,7 +232,7 @@ CLI usage
       ssh_address           SSH server IP address (GW for SSH tunnels)
                             set with "-- ssh_address" if immediately after -R or -L
 
-    optional arguments:
+    options:
       -h, --help            show this help message and exit
       -U SSH_USERNAME, --username SSH_USERNAME
                             SSH server account username
@@ -246,7 +245,7 @@ CLI usage
                             Equivalent to ssh -Lxxxx:IP_ADDRESS:PORT
                             If port is omitted, defaults to 22.
                             Example: -R 10.10.10.10: 10.10.10.10:5900
-      -L [IP:PORT [IP:PORT ...]], --local_bind_address [IP:PORT [IP:PORT ...]]
+      -L [IP:PORT ...], --local_bind_address [IP:PORT ...]
                             Local bind address sequence: ip_1:port_1 ip_2:port_2 ... ip_n:port_n
                             Elements may also be valid UNIX socket domains:
                             /tmp/foo.sock /tmp/bar.sock ... /tmp/baz.sock
@@ -268,7 +267,7 @@ CLI usage
                             SSH configuration file, defaults to ~/.ssh/config
       -z, --compress        Request server for compression over SSH transport
       -n, --noagent         Disable looking for keys from an SSH agent
-      -d [FOLDER [FOLDER ...]], --host_pkey_directories [FOLDER [FOLDER ...]]
+      -d [FOLDER ...], --host_pkey_directories [FOLDER ...]
                             List of directories where SSH pkeys (in the format `id_*`) may be found
 
 .. _Pahaz: https://github.com/pahaz
