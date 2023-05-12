@@ -2,7 +2,7 @@ params: &params
   parameters:
     version:
       description: Python docker image version
-      default: 3.10-buster-browsers
+      default: 3.9.4
       type: string
 
 job_defaults: &job_defaults
