@@ -2,7 +2,7 @@ params: &params
   parameters:
     version:
       description: Python docker image version
-      default: 3.9.4
+      default: 3.11.2
       type: string
 
 job_defaults: &job_defaults
@@ -17,7 +17,7 @@ executors:
   python:
     <<: *params
     docker:
-      - image: circleci/python:<< parameters.version >>
+      - image: cimg/python:<< parameters.version >>
 
 jobs:
   tests:
