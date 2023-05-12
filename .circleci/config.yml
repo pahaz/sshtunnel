@@ -1,23 +1,15 @@
-params: &params
-  parameters:
-    version:
-      description: Python docker image version
-      default: 3.11.3
-      type: string
-
 job_defaults: &job_defaults
-  <<: *params
-  executor:
-    name: python
-    version: << parameters.version >>
+  docker:
+    - image: cimg/python:3.11.3
 
 version: 2.1
 
-executors:
-  python:
-    <<: *params
-    docker:
-      - image: cimg/python:<< parameters.version >>
+orbs:
+  # The python orb contains a set of prepackaged circleci configuration you can use repeatedly in your configurations files
+  # Orb commands and jobs help you with common scripting around a language/tool
+  # so you dont have to copy and paste it everywhere.
+  # See the orb documentation here: https://circleci.com/developer/orbs/orb/circleci/python
+  python: circleci/python@2.1.1
 
 jobs:
   tests:
