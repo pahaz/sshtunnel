@@ -20,6 +20,9 @@ jobs:
 
       - name: Docker compose up databases and ssh-server
         run: |
+          # openssh-server trying to change file permissions to 0600 and we want to do it in /tmp directory
+          cp -r ./e2e_tests/ssh-server-config /tmp/ssh
+          sed -i "s#:/config/ssh_host_keys#:/tmp/ssh#g" ./e2e_tests/docker-compose.yaml
           cd e2e_tests && docker-compose up -d
 
       - name: Install dependencies
@@ -35,6 +38,7 @@ jobs:
           ${{ matrix.python }} -m pip install psycopg2-binary>=2.9.6 pymysql>=1.0.3 pymongo>=4.3.3
 
           ssh -o "StrictHostKeyChecking=no" linuxserver@127.0.0.1 -p 2223 -i ./e2e_tests/ssh-server-config/ssh_host_rsa_key -v "uname -a"
+
           # cd e2e_tests && docker-compose logs ssh; cd ..
           # cd e2e_tests && docker-compose exec ssh cat /config/logs/openssh/current; cd ..
           # docker exec openssh-server tail -f /config/logs/openssh/current
