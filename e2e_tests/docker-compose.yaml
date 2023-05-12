@@ -23,6 +23,7 @@ services:
 
   postgresdb:
     image: postgres:13.0
+    command: ["postgres", "-c", "log_statement=all"]
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
