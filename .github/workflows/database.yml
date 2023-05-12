@@ -21,12 +21,12 @@ jobs:
       - name: Docker compose up databases and ssh-server
         run: |
           echo $USER
+          ls -lah ./e2e_tests/ssh-server-config/
           chown "$USER" -R ./e2e_tests/ssh-server-config
           chmod 600 ./e2e_tests/ssh-server-config/ssh_host_ecdsa_key
           chmod 600 ./e2e_tests/ssh-server-config/ssh_host_ed25519_key
           chmod 600 ./e2e_tests/ssh-server-config/ssh_host_rsa_key
           chmod 600 ./e2e_tests/ssh-server-config/ssh_host_dsa_key
-          ls -lah ./e2e_tests/ssh-server-config/
           cd e2e_tests && docker-compose up -d
 
       - name: Install dependencies
