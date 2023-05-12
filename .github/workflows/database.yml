@@ -17,6 +17,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+
       - name: Docker compose up databases and ssh-server
         run: |
           echo $USER
@@ -32,6 +33,7 @@ jobs:
           id
           uname -a
           lsb_release -a
+          ls -lah ./e2e_tests/ssh-server-config/
           ${{ matrix.python }} -V
           curl https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py
           ${{ matrix.python }} get-pip.py
