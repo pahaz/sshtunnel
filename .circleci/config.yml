@@ -2,7 +2,7 @@ params: &params
   parameters:
     version:
       description: Python docker image version
-      default: 3.11.0
+      default: 3.11-rc-browsers
       type: string
 
 job_defaults: &job_defaults
