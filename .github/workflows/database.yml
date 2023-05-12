@@ -49,7 +49,7 @@ jobs:
 
       - name: Collect openssh-server logs from docker container
         if: failure()
-        run: docker exec -it openssh-server cat /config/logs/openssh/current > openssh-server.log
+        run: docker exec openssh-server cat /config/logs/openssh/current > openssh-server.log
 
       - name: Collect docker stdout logs
         if: failure()
