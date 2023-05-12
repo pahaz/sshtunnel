@@ -13,13 +13,6 @@ job_defaults: &job_defaults
 
 version: 2.1
 
-orbs:
-  # The python orb contains a set of prepackaged circleci configuration you can use repeatedly in your configurations files
-  # Orb commands and jobs help you with common scripting around a language/tool
-  # so you dont have to copy and paste it everywhere.
-  # See the orb documentation here: https://circleci.com/developer/orbs/orb/circleci/python
-  python: circleci/python@2.1.1
-
 executors:
   python:
     <<: *params
