@@ -20,13 +20,6 @@ jobs:
 
       - name: Docker compose up databases and ssh-server
         run: |
-          echo $USER
-          ls -lah ./e2e_tests/ssh-server-config/
-          chown "$USER" -R ./e2e_tests/ssh-server-config
-          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_ecdsa_key
-          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_ed25519_key
-          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_rsa_key
-          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_dsa_key
           cd e2e_tests && docker-compose up -d
 
       - name: Install dependencies
@@ -34,13 +27,18 @@ jobs:
           id
           uname -a
           lsb_release -a
-          ls -lah ./e2e_tests/ssh-server-config/
           ${{ matrix.python }} -V
           curl https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py
           ${{ matrix.python }} get-pip.py
           ${{ matrix.python }} -m pip install --upgrade pip
           ${{ matrix.python }} -m pip install .
           ${{ matrix.python }} -m pip install psycopg2-binary>=2.9.6 pymysql>=1.0.3 pymongo>=4.3.3
+
+          ls -lah ./e2e_tests/ssh-server-config/
+          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_ecdsa_key
+          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_ed25519_key
+          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_rsa_key
+          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_dsa_key
 
           ssh -o "StrictHostKeyChecking=no" linuxserver@127.0.0.1 -p 2223 -i ./e2e_tests/ssh-server-config/ssh_host_rsa_key -v "uname -a"
           # cd e2e_tests && docker-compose logs ssh; cd ..
