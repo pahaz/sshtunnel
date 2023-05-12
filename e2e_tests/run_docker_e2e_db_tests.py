@@ -12,6 +12,7 @@ import paramiko
 sshtunnel.DEFAULT_LOGLEVEL = 1
 logging.basicConfig(
     format='%(asctime)s| %(levelname)-4.3s|%(threadName)10.9s/%(lineno)04d@%(module)-10.9s| %(message)s', level=1)
+logger = logging.root
 
 SSH_SERVER_ADDRESS = ('127.0.0.1', 2223)
 SSH_SERVER_USERNAME = 'linuxserver'
@@ -142,6 +143,7 @@ def create_tunnel():
             SSH_SERVER_REMOTE_SIDE_ADDRESS_PG, SSH_SERVER_REMOTE_SIDE_ADDRESS_MYSQL,
             SSH_SERVER_REMOTE_SIDE_ADDRESS_MONGO,
         ],
+        logger=logger,
     )
     return tunnel
 
