@@ -1,11 +1,15 @@
-job_defaults: &job_defaults
+params: &params
   parameters:
     version:
       description: Python docker image version
       default: 3.11.3
       type: string
-  docker:
-    - image: cimg/python:<< parameters.version >>
+
+job_defaults: &job_defaults
+  <<: *params
+  executor:
+    name: python
+    version: << parameters.version >>
 
 version: 2.1
 
@@ -15,6 +19,12 @@ orbs:
   # so you dont have to copy and paste it everywhere.
   # See the orb documentation here: https://circleci.com/developer/orbs/orb/circleci/python
   python: circleci/python@2.1.1
+
+executors:
+  python:
+    <<: *params
+    docker:
+      - image: cimg/python:<< parameters.version >>
 
 jobs:
   tests:
