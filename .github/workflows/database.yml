@@ -19,6 +19,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Docker compose up databases and ssh-server
         run: |
+          echo $USER
+          chown $USER -R ./e2e_tests/ssh-server-config
           chmod 600 ./e2e_tests/ssh-server-config/ssh_host_ecdsa_key
           chmod 600 ./e2e_tests/ssh-server-config/ssh_host_ed25519_key
           chmod 600 ./e2e_tests/ssh-server-config/ssh_host_rsa_key
@@ -27,6 +29,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          id
           uname -a
           lsb_release -a
           ${{ matrix.python }} -V
