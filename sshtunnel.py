@@ -448,7 +448,6 @@ class _StreamForwardServer(_StreamServer):
     def __init__(self, *args, **kwargs):
         logger = kwargs.pop('logger', None)
         self.logger = logger or create_logger()
-        #self.logger = create_logger(kwargs.pop('logger', None))
         self.tunnel_ok = queue.Queue(1)
         _StreamServer.__init__(self, *args, **kwargs)
 
