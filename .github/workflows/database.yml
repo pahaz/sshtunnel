@@ -20,11 +20,6 @@ jobs:
       - name: Docker compose up databases and ssh-server
         run: |
           cd e2e_tests && docker-compose up -d
-          sleep 1
-          docker exec openssh-server chmod 600 /etc/ssh/ssh_host_ecdsa_key
-          docker exec openssh-server chmod 600 /etc/ssh/ssh_host_ed25519_key
-          docker exec openssh-server chmod 600 /etc/ssh/ssh_host_rsa_key
-          docker exec openssh-server chmod 600 /etc/ssh/ssh_host_dsa_key
 
       - name: Install dependencies
         run: |
@@ -36,7 +31,16 @@ jobs:
           ${{ matrix.python }} -m pip install --upgrade pip
           ${{ matrix.python }} -m pip install .
           ${{ matrix.python }} -m pip install psycopg2-binary>=2.9.6 pymysql>=1.0.3 pymongo>=4.3.3
+
+          docker exec openssh-server chmod 600 /etc/ssh/ssh_host_ecdsa_key
+          docker exec openssh-server chmod 600 /etc/ssh/ssh_host_ed25519_key
+          docker exec openssh-server chmod 600 /etc/ssh/ssh_host_rsa_key
+          docker exec openssh-server chmod 600 /etc/ssh/ssh_host_dsa_key
+          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_ecdsa_key
+          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_ed25519_key
           chmod 600 ./e2e_tests/ssh-server-config/ssh_host_rsa_key
+          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_dsa_key
+
           ssh -o "StrictHostKeyChecking=no" linuxserver@127.0.0.1 -p 2223 -i ./e2e_tests/ssh-server-config/ssh_host_rsa_key -v "uname -a"
           # cd e2e_tests && docker-compose logs ssh; cd ..
           # cd e2e_tests && docker-compose exec ssh cat /config/logs/openssh/current; cd ..
