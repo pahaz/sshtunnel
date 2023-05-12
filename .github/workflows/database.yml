@@ -20,6 +20,7 @@ jobs:
       - name: Docker compose up databases and ssh-server
         run: |
           cd e2e_tests && docker-compose up -d
+          sleep 1
           docker exec openssh-server chmod 600 /etc/ssh/ssh_host_ecdsa_key
           docker exec openssh-server chmod 600 /etc/ssh/ssh_host_ed25519_key
           docker exec openssh-server chmod 600 /etc/ssh/ssh_host_rsa_key
