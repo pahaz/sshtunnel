@@ -1,6 +1,11 @@
 job_defaults: &job_defaults
+  parameters:
+    version:
+      description: Python docker image version
+      default: 3.11.3
+      type: string
   docker:
-    - image: cimg/python:3.11.3
+    - image: cimg/python:<< parameters.version >>
 
 version: 2.1
 
