@@ -24,6 +24,10 @@ jobs:
           cp -r ./e2e_tests/ssh-server-config /tmp/ssh
           sed -i "s#:/config/ssh_host_keys#:/tmp/ssh#g" ./e2e_tests/docker-compose.yaml
           cd e2e_tests && docker-compose up -d
+          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_ecdsa_key
+          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_ed25519_key
+          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_rsa_key
+          chmod 600 ./e2e_tests/ssh-server-config/ssh_host_dsa_key
 
       - name: Install dependencies
         run: |
