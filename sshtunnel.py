@@ -37,6 +37,12 @@ else:  # pragma: no cover
     string_types = str
     input_ = input
 
+if sys.version_info >= (3, 4):  # pragma: no cover
+    from pathlib import Path
+    path_types = (string_types, Path)  # Will need adjusting if Python 3 string_types becomes a tuple
+else:
+    path_types = string_types
+
 
 __version__ = '0.4.0'
 __author__ = 'pahaz'
@@ -1151,8 +1157,8 @@ class SSHTunnelForwarder(object):
             allow_agent=allow_agent
         )
 
-        if isinstance(ssh_pkey, string_types):
-            ssh_pkey_expanded = os.path.expanduser(ssh_pkey)
+        if isinstance(ssh_pkey,  path_types):
+            ssh_pkey_expanded = os.path.expanduser(ssh_pkey)  # expanduser returns a String when given a Path
             if os.path.exists(ssh_pkey_expanded):
                 ssh_pkey = SSHTunnelForwarder.read_private_key_file(
                     pkey_file=ssh_pkey_expanded,
