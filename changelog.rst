@@ -15,9 +15,13 @@ CONTRIBUTORS
 - `Georgy Rylov`_
 - `Eddie Chiang`_
 - `kkrasovskii`_
+- `V0idk`_
 
 CHANGELOG
 =========
+
+- v.0.5.0 (`V0idk`_)
+    + Remove the potential deadlock that is associated with threading.Lock (`#231`_)
 
 - v.0.4.0 (`Pahaz`_)
     + Change the daemon mod flag for all tunnel threads (is not fully backward compatible) to prevent unexpected hangs (`#219`_)
@@ -157,6 +161,7 @@ CHANGELOG
 .. _Georgy Rylov: https://github.com/g0djan
 .. _Eddie Chiang: https://github.com/eddie-chiang
 .. _kkrasovskii: https://github.com/kkrasovskii
+.. _V0idk: https://github.com/V0idk
 .. _#13: https://github.com/pahaz/sshtunnel/issues/13
 .. _#16: https://github.com/pahaz/sshtunnel/issues/16
 .. _#19: https://github.com/pahaz/sshtunnel/issues/19
@@ -177,4 +182,5 @@ CHANGELOG
 .. _#201: https://github.com/pahaz/sshtunnel/issues/201
 .. _#211: https://github.com/pahaz/sshtunnel/issues/211
 .. _#219: https://github.com/pahaz/sshtunnel/issues/219
+.. _#231: https://github.com/pahaz/sshtunnel/issues/231
 .. _detail: https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127
