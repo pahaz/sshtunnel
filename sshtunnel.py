@@ -12,6 +12,8 @@ The connection(s) are closed when explicitly calling the
 """
 
 import os
+import random
+import string
 import sys
 import socket
 import getpass
@@ -257,6 +259,11 @@ def _remove_none_values(dictionary):
     return list(map(dictionary.pop,
                     [i for i in dictionary if dictionary[i] is None]))
 
+
+def generate_random_string(length):
+    letters = string.ascii_letters + string.digits
+    return ''.join(random.choice(letters) for _ in range(length))
+
 ########################
 #                      #
 #       Errors         #
@@ -331,6 +338,9 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                 self.request.sendall(data)
 
     def handle(self):
+        uid = generate_random_string(5)
+        self.info = '#{0} <-- {1}'.format(uid, self.client_address or
+                                          self.server.local_address)
         src_address = self.request.getpeername()
         if not isinstance(src_address, tuple):
             src_address = ('dummy', 12345)
