@@ -47,7 +47,6 @@ TUNNEL_TIMEOUT = 10.0
 
 _DAEMON = True  #: Use daemon threads in connections
 _CONNECTION_COUNTER = 1
-_LOCK = threading.Lock()
 _DEPRECATIONS = {
     'ssh_address': 'ssh_address_or_host',
     'ssh_host': 'ssh_address_or_host',
@@ -253,14 +252,6 @@ def address_to_str(address):
     return str(address)
 
 
-def get_connection_id():
-    global _CONNECTION_COUNTER
-    with _LOCK:
-        uid = _CONNECTION_COUNTER
-        _CONNECTION_COUNTER += 1
-    return uid
-
-
 def _remove_none_values(dictionary):
     """ Remove dictionary keys whose value is None """
     return list(map(dictionary.pop,
@@ -340,9 +331,6 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
                 self.request.sendall(data)
 
     def handle(self):
-        uid = get_connection_id()
-        self.info = '#{0} <-- {1}'.format(uid, self.client_address or
-                                          self.server.local_address)
         src_address = self.request.getpeername()
         if not isinstance(src_address, tuple):
             src_address = ('dummy', 12345)
