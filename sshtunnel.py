@@ -1309,11 +1309,6 @@ class SSHTunnelForwarder(object):
                     logger.debug('Private key file ({0}, {1}) successfully '
                                  'loaded'.format(pkey_file, pkey_class))
                 break
-            except paramiko.PasswordRequiredException:
-                if logger:
-                    logger.error('Password is required for key {0}'
-                                 .format(pkey_file))
-                break
             except paramiko.SSHException:
                 if logger:
                     logger.debug('Private key file ({0}) could not be loaded '
