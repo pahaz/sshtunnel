@@ -1061,7 +1061,7 @@ class SSHTunnelForwarder(object):
         return list(agent_keys)
 
     @staticmethod
-    def get_keys(logger=None, host_pkey_directories=None, allow_agent=False):
+    def get_keys(logger=None, host_pkey_directories=None, allow_agent=False, ssh_pkey_password=None):
         """
         Load public keys from any available SSH agent or local
         .ssh directory.
@@ -1104,6 +1104,7 @@ class SSHTunnelForwarder(object):
                     if os.path.isfile(ssh_pkey_expanded):
                         ssh_pkey = SSHTunnelForwarder.read_private_key_file(
                             pkey_file=ssh_pkey_expanded,
+                            pkey_password=ssh_pkey_password,
                             logger=logger,
                             key_type=paramiko_key_types[keytype]
                         )
@@ -1148,7 +1149,8 @@ class SSHTunnelForwarder(object):
         ssh_loaded_pkeys = SSHTunnelForwarder.get_keys(
             logger=logger,
             host_pkey_directories=host_pkey_directories,
-            allow_agent=allow_agent
+            allow_agent=allow_agent,
+            ssh_pkey_password=ssh_pkey_password or ssh_password,
         )
 
         if isinstance(ssh_pkey, string_types):
@@ -1313,6 +1315,7 @@ class SSHTunnelForwarder(object):
                 if logger:
                     logger.error('Password is required for key {0}'
                                  .format(pkey_file))
+                raise
                 break
             except paramiko.SSHException:
                 if logger:
