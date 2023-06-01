@@ -1071,6 +1071,32 @@ class SSHClientTest(unittest.TestCase):
             self.assertIn('Private key file not found: {0}'.format(bad_pkey),
                           self.sshtunnel_log_messages['warning'])
 
+    def test_paramiko_transport_kwargs(self):
+        """ Test that extra kwargs are passed to paramiko.Transport """
+        disabled = {'pubkeys': ['rsa-sha2-256', 'rsa-sha2-512']}
+        with self._test_server(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            paramiko_transport_kwargs={'disabled_algorithms': disabled},
+            logger=self.log,
+        ) as server:
+            self.assertEqual(server._transport.disabled_algorithms, disabled)
+
+    def test_paramiko_transport_kwargs_default(self):
+        """ Test that Transport is created without extra kwargs by default """
+        with mock.patch('paramiko.Transport') as transport:
+            server = open_tunnel(
+                (self.saddr, self.sport),
+                ssh_username=SSH_USERNAME,
+                ssh_password=SSH_PASSWORD,
+                remote_bind_address=(self.eaddr, self.eport),
+                logger=self.log,
+            )
+            server._get_transport()
+        transport.assert_called_once_with((self.saddr, self.sport))
+
     def test_connect_via_proxy(self):
         """ Test connecting using a ProxyCommand """
         proxycmd = paramiko.proxy.ProxyCommand('ssh proxy -W {0}:{1}'
