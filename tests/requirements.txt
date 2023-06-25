@@ -1,5 +1,5 @@
 coveralls
-mock
+mock; python_version < '3.3'
 pytest
 pytest-cov
 pytest-xdist
