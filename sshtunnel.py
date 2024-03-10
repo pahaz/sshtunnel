@@ -1312,7 +1312,7 @@ class SSHTunnelForwarder(object):
             except paramiko.PasswordRequiredException:
                 if logger:
                     logger.warning('Password is required for key {0}'
-                                 .format(pkey_file))
+                                   .format(pkey_file))
                 break
             except paramiko.SSHException:
                 if logger:
