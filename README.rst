@@ -255,9 +255,9 @@ CLI usage
       -k SSH_HOST_KEY, --ssh_host_key SSH_HOST_KEY
                             Gateway's host key
       -K KEY_FILE, --private_key_file KEY_FILE
-                            RSA/DSS/ECDSA private key file
+                            RSA/ECDSA private key file
       -S KEY_PASSWORD, --private_key_password KEY_PASSWORD
-                            RSA/DSS/ECDSA private key password
+                            RSA/ECDSA private key password
       -t, --threaded        Allow concurrent connections to each tunnel
       -v, --verbose         Increase output verbosity (default: ERROR)
       -V, --version         Show version number and quit

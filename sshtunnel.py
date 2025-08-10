@@ -1090,7 +1090,6 @@ class SSHTunnelForwarder(object):
             host_pkey_directories = [DEFAULT_SSH_DIRECTORY]
 
         paramiko_key_types = {'rsa': paramiko.RSAKey,
-                              'dsa': paramiko.DSSKey,
                               'ecdsa': paramiko.ECDSAKey}
         if hasattr(paramiko, 'Ed25519Key'):
             # NOQA: new in paramiko>=2.2: http://docs.paramiko.org/en/stable/api/keys.html#module-paramiko.ed25519key
@@ -1286,7 +1285,7 @@ class SSHTunnelForwarder(object):
 
         Arguments:
             pkey_file (str):
-                File containing a private key (RSA, DSS or ECDSA)
+                File containing a private key (RSA or ECDSA)
         Keyword Arguments:
             pkey_password (Optional[str]):
                 Password to decrypt the private key
@@ -1295,7 +1294,7 @@ class SSHTunnelForwarder(object):
             paramiko.Pkey
         """
         ssh_pkey = None
-        key_types = (paramiko.RSAKey, paramiko.DSSKey, paramiko.ECDSAKey)
+        key_types = (paramiko.RSAKey, paramiko.ECDSAKey)
         if hasattr(paramiko, 'Ed25519Key'):
             # NOQA: new in paramiko>=2.2: http://docs.paramiko.org/en/stable/api/keys.html#module-paramiko.ed25519key
             key_types += (paramiko.Ed25519Key, )
@@ -1805,7 +1804,7 @@ def _parse_arguments(args=None):
         dest='ssh_private_key',
         metavar='KEY_FILE',
         type=str,
-        help='RSA/DSS/ECDSA private key file'
+        help='RSA/ECDSA private key file'
     )
 
     parser.add_argument(
@@ -1813,7 +1812,7 @@ def _parse_arguments(args=None):
         dest='ssh_private_key_password',
         metavar='KEY_PASSWORD',
         type=str,
-        help='RSA/DSS/ECDSA private key password'
+        help='RSA/ECDSA private key password'
     )
 
     parser.add_argument(
