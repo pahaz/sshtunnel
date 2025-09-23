@@ -1,3 +1,67 @@
 [build-system]
 requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta:__legacy__"
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sshtunnel"
+dynamic = ["version", "readme"]
+description = "Pure python SSH tunnels"
+license = {text = "MIT"}
+authors = [
+    {name = "Pahaz White", email = "pahaz.white@gmail.com"}
+]
+keywords = ["ssh", "tunnel", "paramiko", "proxy", "tcp-forward"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 2",
+    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.4",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+]
+requires-python = ">=2.7"
+dependencies = [
+    "paramiko>=2.7.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/pahaz/sshtunnel"
+Download = "https://pypi.python.org/packages/source/s/sshtunnel/"
+
+[project.optional-dependencies]
+dev = ["check-manifest"]
+test = ["tox>=1.8.1"]
+build_sphinx = ["sphinx", "sphinxcontrib-napoleon"]
+
+[project.scripts]
+sshtunnel = "sshtunnel:_cli_main"
+
+[tool.setuptools]
+py-modules = ["sshtunnel"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sshtunnel.__version__"}
+readme = {file = ["README.rst", "docs.rst", "changelog.rst"], content-type = "text/x-rst"}
+
+[tool.setuptools.package-data]
+tests = ["testrsa.key"]
+
+[tool.bdist_wheel]
+universal = true
+
+[tool.check-manifest]
+ignore = [
+    ".travis.yml",
+    "circle.yml",
+    "tox.ini"
+]
+
+[tool.build_sphinx]
+source-dir = "docs/"
+build-dir = "docs/_build"
