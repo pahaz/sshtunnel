@@ -38,7 +38,7 @@ else:  # pragma: no cover
     input_ = input
 
 
-__version__ = '0.4.0'
+__version__ = '0.4.1'
 __author__ = 'pahaz'
 
 
@@ -684,6 +684,16 @@ class SSHTunnelForwarder(object):
 
             .. versionadded:: 0.0.3
 
+        paramiko_transport_kwargs (dict or None):
+            Dictionary of kwargs that are passed directly into the
+            :class:`paramiko.Transport` constructor. This can be used
+            to override the Transport configuration, such as if you
+            need to use the disabled_algorithms parameter.
+
+            Default: ``None``
+
+            .. versionadded:: 0.4.1
+
         ssh_address (str):
             Superseded by ``ssh_address_or_host``, tuple of type (str, int)
             representing the IP and port of ``REMOTE SERVER``
@@ -901,6 +911,7 @@ class SSHTunnelForwarder(object):
             compression=None,
             allow_agent=True,  # look for keys from an SSH agent
             host_pkey_directories=None,  # look for keys in ~/.ssh
+            paramiko_transport_kwargs=None, # allow passthrough arguments to the underlying Paramiko.Transport when created
             *args,
             **kwargs  # for backwards compatibility
     ):
@@ -974,6 +985,10 @@ class SSHTunnelForwarder(object):
 
         check_host(self.ssh_host)
         check_port(self.ssh_port)
+
+        self._paramiko_transport_kwargs = {}
+        if paramiko_transport_kwargs is not None:
+            self._paramiko_transport_kwargs = paramiko_transport_kwargs
 
         self.logger.info("Connecting to gateway: {0}:{1} as user '{2}'"
                          .format(self.ssh_host,
@@ -1189,7 +1204,7 @@ class SSHTunnelForwarder(object):
         if isinstance(_socket, socket.socket):
             _socket.settimeout(SSH_TIMEOUT)
             _socket.connect((self.ssh_host, self.ssh_port))
-        transport = paramiko.Transport(_socket)
+        transport = paramiko.Transport(_socket, **self._paramiko_transport_kwargs)
         sock = transport.sock
         if isinstance(sock, socket.socket):
             sock.settimeout(SSH_TIMEOUT)
