@@ -1090,7 +1090,6 @@ class SSHTunnelForwarder(object):
             host_pkey_directories = [DEFAULT_SSH_DIRECTORY]
 
         paramiko_key_types = {'rsa': paramiko.RSAKey,
-                              'dsa': paramiko.DSSKey,
                               'ecdsa': paramiko.ECDSAKey}
         if hasattr(paramiko, 'Ed25519Key'):
             # NOQA: new in paramiko>=2.2: http://docs.paramiko.org/en/stable/api/keys.html#module-paramiko.ed25519key
