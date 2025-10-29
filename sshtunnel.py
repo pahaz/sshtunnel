@@ -25,20 +25,14 @@ from select import select
 from binascii import hexlify
 
 import paramiko
+import queue
+import socketserver
 
-if sys.version_info[0] < 3:  # pragma: no cover
-    import Queue as queue
-    import SocketServer as socketserver
-    string_types = basestring,  # noqa
-    input_ = raw_input  # noqa
-else:  # pragma: no cover
-    import queue
-    import socketserver
-    string_types = str
-    input_ = input
+string_types = str
+input_ = input
 
 
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 __author__ = 'pahaz'
 
 
@@ -208,7 +202,7 @@ def create_logger(logger=None,
     if add_paramiko_handler:
         _check_paramiko_handlers(logger=logger)
 
-    if capture_warnings and sys.version_info >= (2, 7):
+    if capture_warnings:
         logging.captureWarnings(True)
         pywarnings = logging.getLogger('py.warnings')
         pywarnings.handlers.extend(logger.handlers)
@@ -1090,7 +1084,6 @@ class SSHTunnelForwarder(object):
             host_pkey_directories = [DEFAULT_SSH_DIRECTORY]
 
         paramiko_key_types = {'rsa': paramiko.RSAKey,
-                              'dsa': paramiko.DSSKey,
                               'ecdsa': paramiko.ECDSAKey}
         if hasattr(paramiko, 'Ed25519Key'):
             # NOQA: new in paramiko>=2.2: http://docs.paramiko.org/en/stable/api/keys.html#module-paramiko.ed25519key
@@ -1286,7 +1279,7 @@ class SSHTunnelForwarder(object):
 
         Arguments:
             pkey_file (str):
-                File containing a private key (RSA, DSS or ECDSA)
+                File containing a private key (RSA or ECDSA)
         Keyword Arguments:
             pkey_password (Optional[str]):
                 Password to decrypt the private key
@@ -1295,7 +1288,7 @@ class SSHTunnelForwarder(object):
             paramiko.Pkey
         """
         ssh_pkey = None
-        key_types = (paramiko.RSAKey, paramiko.DSSKey, paramiko.ECDSAKey)
+        key_types = (paramiko.RSAKey, paramiko.ECDSAKey)
         if hasattr(paramiko, 'Ed25519Key'):
             # NOQA: new in paramiko>=2.2: http://docs.paramiko.org/en/stable/api/keys.html#module-paramiko.ed25519key
             key_types += (paramiko.Ed25519Key, )
@@ -1806,7 +1799,7 @@ def _parse_arguments(args=None):
         dest='ssh_private_key',
         metavar='KEY_FILE',
         type=str,
-        help='RSA/DSS/ECDSA private key file'
+        help='RSA/ECDSA private key file'
     )
 
     parser.add_argument(
@@ -1814,7 +1807,7 @@ def _parse_arguments(args=None):
         dest='ssh_private_key_password',
         metavar='KEY_PASSWORD',
         type=str,
-        help='RSA/DSS/ECDSA private key password'
+        help='RSA/ECDSA private key password'
     )
 
     parser.add_argument(

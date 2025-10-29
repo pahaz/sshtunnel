@@ -14,7 +14,18 @@ See also: https://github.com/paramiko/paramiko/blob/master/demos/forward.py
 Requirements
 -------------
 
-* `paramiko`_
+* Python 3.9 or later
+* `paramiko`_ 4.0 or later
+
+**Note**: Version 0.5.0+ requires Python 3.9+ and paramiko 4.0+. If you need Python 2.x or Python 3.4-3.8 support, please use version 0.4.0.
+
+**Breaking Changes in 0.5.0**:
+
+- **DSA keys are no longer supported**. DSA was deprecated in OpenSSH 7.0 (2016) and removed from paramiko 4.0 due to security concerns. If you're using DSA keys, you'll need to:
+
+  - Generate new RSA, ECDSA, or Ed25519 keys
+  - Update your SSH server configuration to use the new keys
+  - Example: ``ssh-keygen -t rsa -b 4096`` or ``ssh-keygen -t ed25519``
 
 Installation
 ============
@@ -226,7 +237,7 @@ CLI usage
                      ssh_address
 
     Pure python ssh tunnel utils
-    Version 0.4.0
+    Version 0.5.0
 
     positional arguments:
       ssh_address           SSH server IP address (GW for SSH tunnels)
@@ -247,7 +258,7 @@ CLI usage
                             Example: -R 10.10.10.10: 10.10.10.10:5900
       -L [IP:PORT ...], --local_bind_address [IP:PORT ...]
                             Local bind address sequence: ip_1:port_1 ip_2:port_2 ... ip_n:port_n
-                            Elements may also be valid UNIX socket domains:
+                            Elements may also be valid UNIX socket domains: 
                             /tmp/foo.sock /tmp/bar.sock ... /tmp/baz.sock
                             Equivalent to ssh -LPORT:xxxxxxxxx:xxxx, being the local IP address optional.
                             By default it will listen in all interfaces (0.0.0.0) and choose a random port.
@@ -255,9 +266,9 @@ CLI usage
       -k SSH_HOST_KEY, --ssh_host_key SSH_HOST_KEY
                             Gateway's host key
       -K KEY_FILE, --private_key_file KEY_FILE
-                            RSA/DSS/ECDSA private key file
+                            RSA/ECDSA private key file
       -S KEY_PASSWORD, --private_key_password KEY_PASSWORD
-                            RSA/DSS/ECDSA private key password
+                            RSA/ECDSA private key password
       -t, --threaded        Allow concurrent connections to each tunnel
       -v, --verbose         Increase output verbosity (default: ERROR)
       -V, --version         Show version number and quit

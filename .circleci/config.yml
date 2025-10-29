@@ -2,7 +2,7 @@ params: &params
   parameters:
     version:
       description: Python docker image version
-      default: 3.9.16
+      default: "3.12"
       type: string
 
 job_defaults: &job_defaults
@@ -116,7 +116,7 @@ jobs:
       - run:
           name: Build artifact
           command: |
-            pipenv run python setup.py bdist_egg bdist_wheel sdist
+            pipenv run python -m build
       - run:
           name: Check artifacts
           command: pipenv run twine check dist/*
@@ -141,7 +141,7 @@ jobs:
       - run:
           name: Build artifact
           command: |
-            pipenv run python setup.py bdist_egg bdist_wheel sdist
+            pipenv run python -m build
       - run:
           name: Upload to PyPI
           command: >-
@@ -163,12 +163,10 @@ workflows:
           matrix:
             parameters:
               version:
-                - "2.7"
-                - "3.4"
-                - "3.5"
-                - "3.6"
-                - "3.7"
-                - "3.8"
+                - "3.9"
+                - "3.10"
+                - "3.11"
+                - "3.12"
       - testdeploy:
           requires:
             - tests

@@ -81,11 +81,9 @@ open_tunnel = partial(
 
 SSH_USERNAME = get_random_string()
 SSH_PASSWORD = get_random_string()
-SSH_DSS = b'\x44\x78\xf0\xb9\xa2\x3c\xc5\x18\x20\x09\xff\x75\x5b\xc1\xd2\x6c'
 SSH_RSA = b'\x60\x73\x38\x44\xcb\x51\x86\x65\x7f\xde\xda\xa2\x2b\x5a\x57\xd5'
 ECDSA = b'\x25\x19\xeb\x55\xe6\xa1\x47\xff\x4f\x38\xd2\x75\x6f\xa5\xd5\x60'
 FINGERPRINTS = {
-    'ssh-dss': SSH_DSS,
     'ssh-rsa': SSH_RSA,
     'ecdsa-sha2-nistp256': ECDSA,
 }
@@ -1202,7 +1200,7 @@ class AuxiliaryTest(unittest.TestCase):
                 '-P={0}'.format(SSH_PASSWORD),  # GW password
                 '-R', '10.0.0.1:8080', '10.0.0.2:8080',  # remote bind list
                 '-L', ':8081', ':8082',  # local bind list
-                '-k={0}'.format(SSH_DSS),  # hostkey
+                '-k={0}'.format(SSH_RSA),  # hostkey
                 '-K={0}'.format(__file__),  # pkey file
                 '-S={0}'.format(SSH_PASSWORD),  # pkey password
                 '-t',  # concurrent connections (threaded)
@@ -1232,7 +1230,7 @@ class AuxiliaryTest(unittest.TestCase):
              '--password={0}'.format(SSH_PASSWORD),  # GW password
              '--remote_bind_address', '10.0.0.1:8080', '10.0.0.2:8080',
              '--local_bind_address', ':8081', ':8082',  # local bind list
-             '--ssh_host_key={0}'.format(SSH_DSS),  # hostkey
+             '--ssh_host_key={0}'.format(SSH_RSA),  # hostkey
              '--private_key_file={0}'.format(__file__),  # pkey file
              '--private_key_password={0}'.format(SSH_PASSWORD),
              '--threaded',  # concurrent connections (threaded)
@@ -1254,7 +1252,7 @@ class AuxiliaryTest(unittest.TestCase):
                              [('10.0.0.1', 8080), ('10.0.0.2', 8080)])
         self.assertListEqual(parser['local_bind_addresses'],
                              [('', 8081), ('', 8082)])
-        self.assertEqual(parser['ssh_host_key'], str(SSH_DSS))
+        self.assertEqual(parser['ssh_host_key'], str(SSH_RSA))
         self.assertEqual(parser['ssh_private_key'], __file__)
         self.assertEqual(parser['ssh_private_key_password'], SSH_PASSWORD)
         self.assertTrue(parser['threaded'])

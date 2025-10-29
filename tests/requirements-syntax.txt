@@ -1,4 +1,5 @@
 bashtest
+build
 check-manifest
 docutils
 flake8

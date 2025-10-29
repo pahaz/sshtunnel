@@ -22,6 +22,15 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
+- v.0.5.0 (BREAKING CHANGES)
+    + **Drop Python 2.x and Python 3.4-3.8 support** - Now requires Python 3.9+
+    + **Drop DSA key support** - Removed support for DSA/DSS keys (deprecated in OpenSSH 7.0, removed in paramiko 4.0)
+    + **Update to paramiko>=4.0** - Now requires paramiko 4.0 or later
+    + **Remove Python 2 compatibility code** - Simplified imports and removed legacy code paths
+    + **Modernize build system** - Use PEP 517 build (`python -m build`) instead of deprecated `setup.py` commands
+    + **Update documentation build** - Use built-in `sphinx.ext.napoleon` instead of deprecated `sphinxcontrib-napoleon`
+    + **Update CI/CD** - Test on Python 3.9, 3.10, 3.11, 3.12
+
 - v.0.X.Y (`V0idk`_, `Bruno Inec`_, `alex3d`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)
     + Remove the hidden modification of the logger in cases where a custom logger is used. (`#250`_)
