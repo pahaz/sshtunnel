@@ -1036,13 +1036,13 @@ class SSHTunnelForwarder(object):
         except (AttributeError, TypeError):  # ssh_config_file is None
             if logger:
                 logger.info('Skipping loading of ssh configuration file')
-        finally:
-            return (ssh_host,
-                    ssh_username or getpass.getuser(),
-                    ssh_pkey,
-                    int(ssh_port) if ssh_port else 22,  # fallback value
-                    ssh_proxy,
-                    compression)
+
+        return (ssh_host,
+                ssh_username or getpass.getuser(),
+                ssh_pkey,
+                int(ssh_port) if ssh_port else 22,  # fallback value
+                ssh_proxy,
+                compression)
 
     @staticmethod
     def get_agent_keys(logger=None):
