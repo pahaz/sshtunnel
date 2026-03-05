@@ -17,6 +17,9 @@ commands:
       include_syntax:
         type: boolean
         default: false
+      include_test:
+        type: boolean
+        default: false
       include_docs:
         type: boolean
         default: false
@@ -35,15 +38,6 @@ commands:
             --skip-lock
             -e
             .
-      - run:
-          name: Install dev dependencies
-          command: >-
-            pipenv
-            --python $(which python)
-            install
-            --skip-lock
-            --dev
-            -r tests/requirements.txt
       - when:
           condition: << parameters.include_syntax >>
           steps:
@@ -56,6 +50,18 @@ commands:
                   --skip-lock
                   --dev
                   -r tests/requirements-syntax.txt
+      - when:
+          condition: << parameters.include_test >>
+          steps:
+            - run:
+                name: Install dev dependencies
+                command: >-
+                  pipenv
+                  --python $(which python)
+                  install
+                  --skip-lock
+                  --dev
+                  -r tests/requirements.txt
       - when:
           condition: << parameters.include_docs >>
           steps:
@@ -84,7 +90,7 @@ jobs:
 
     steps:
       - checkout
-      - install_deps
+      - install_deps: { include_test: true }
       - run:
           name: Run test suite
           command: >-
@@ -115,7 +121,7 @@ jobs:
     steps:
       - checkout
       - attach_workspace: { at: . }
-      - install_deps
+      - install_deps: { include_test: true }
       - run:
           name: Upload to Coveralls
           command: |
@@ -129,7 +135,7 @@ jobs:
 
     steps:
       - checkout
-      - install_deps
+      - install_deps: { include_test: true }
       - run:
           name: Build artifact
           command: pipenv run python setup.py bdist_wheel sdist
@@ -151,7 +157,7 @@ jobs:
 
     steps:
       - checkout
-      - install_deps
+      - install_deps: { include_test: true }
       - attach_workspace: { at: . }
       - run:
           name: Upload to TestPyPI
