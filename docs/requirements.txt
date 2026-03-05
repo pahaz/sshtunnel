@@ -1,3 +1,2 @@
 docutils
-sphinx
-sphinxcontrib-napoleon
+sphinx>=1.3
