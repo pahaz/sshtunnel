@@ -112,8 +112,10 @@ def check_address(address):
     elif isinstance(address, string_types):
         if os.name != 'posix':
             raise ValueError('Platform does not support UNIX domain sockets')
-        if not (os.path.exists(address) or
-                os.access(os.path.dirname(address), os.W_OK)):
+        if not (
+            os.path.exists(address)
+            or os.access(os.path.dirname(address), os.W_OK)
+        ):
             raise ValueError('ADDRESS not a valid socket domain socket ({0})'
                              .format(address))
     else:
@@ -339,8 +341,10 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
 
     def handle(self):
         uid = generate_random_string(5)
-        self.info = '#{0} <-- {1}'.format(uid, self.client_address or
-                                          self.server.local_address)
+        self.info = '#{0} <-- {1}'.format(
+            uid, self.client_address
+            or self.server.local_address
+        )
         src_address = self.request.getpeername()
         if not isinstance(src_address, tuple):
             src_address = ('dummy', 12345)
@@ -1011,12 +1015,12 @@ class SSHTunnelForwarder(object):
             # gather settings for user, port and identity file
             # last resort: use the 'login name' of the user
             ssh_username = (
-                ssh_username or
-                hostname_info.get('user')
+                ssh_username
+                or hostname_info.get('user')
             )
             ssh_pkey = (
-                ssh_pkey or
-                hostname_info.get('identityfile', [None])[0]
+                ssh_pkey
+                or hostname_info.get('identityfile', [None])[0]
             )
             ssh_host = hostname_info.get('hostname')
             ssh_port = ssh_port or hostname_info.get('port')
@@ -1545,8 +1549,8 @@ class SSHTunnelForwarder(object):
     def is_active(self):
         """ Return True if the underlying SSH transport is up """
         if (
-            '_transport' in self.__dict__ and
-            self._transport.is_active()
+            '_transport' in self.__dict__
+            and self._transport.is_active()
         ):
             return True
         return False
