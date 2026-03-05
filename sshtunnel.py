@@ -1065,7 +1065,9 @@ class SSHTunnelForwarder(object):
         return list(agent_keys)
 
     @staticmethod
-    def get_keys(logger=None, host_pkey_directories=None, allow_agent=False):
+    def get_keys(  # noqa: C901 too complex
+        logger=None, host_pkey_directories=None, allow_agent=False
+    ):
         """
         Load public keys from any available SSH agent or local
         .ssh directory.
