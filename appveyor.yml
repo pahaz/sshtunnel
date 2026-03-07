@@ -90,6 +90,9 @@ environment:
       PYTHON_VERSION: '3.14.x'
       PYTHON_ARCH: '64'
 
+cache:
+  - '%LocalAppData%\Pip\Cache -> setup.py'
+
 init:
   - 'ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%'
 
