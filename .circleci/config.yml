@@ -94,7 +94,8 @@ jobs:
       - run:
           name: Run test suite
           command: >-
-            pipenv run pytest tests
+            pipenv
+            run pytest tests
             --showlocals
             --durations=10
             -n auto
@@ -123,10 +124,15 @@ jobs:
       - attach_workspace: { at: . }
       - install_deps: { include_test: true }
       - run:
+          name: Combine coverage files
+          command: >-
+            pipenv
+            run coverage combine .coverage.*
+      - run:
           name: Upload to Coveralls
-          command: |
-            pipenv run coverage combine .coverage.*
-            pipenv run coveralls
+          command: >-
+            pipenv
+            run coveralls
 
   package:
     description: Build artifacts
@@ -138,10 +144,14 @@ jobs:
       - install_deps: { include_test: true }
       - run:
           name: Build artifact
-          command: pipenv run python setup.py bdist_wheel sdist
+          command: >-
+            pipenv
+            run python setup.py bdist_wheel sdist
       - run:
           name: Check artifacts
-          command: pipenv run twine check dist/*
+          command: >-
+            pipenv
+            run twine check dist/*
       - persist_to_workspace:
           root: .
           paths: [dist/*]
@@ -162,7 +172,9 @@ jobs:
       - run:
           name: Upload to TestPyPI
           command: >-
-            pipenv run twine upload
+            pipenv
+            run
+            twine upload
             --repository << parameters.repository >>
             --username __token__
             --password ${<< parameters.token_env >>}
@@ -182,12 +194,9 @@ jobs:
           command: >-
               pipenv
               --python $(which python)
-              run
-              sphinx-build
+              run sphinx-build
               -WavE
-              -b html
-              docs
-              _build/html
+              -b html docs _build/html
       - store_artifacts:
           path: _build/html
           destination: sshtunnel-docs
@@ -202,18 +211,33 @@ jobs:
       - install_deps: { include_syntax: true }
       - run:
           name: checking MANIFEST.in
-          command: pipenv run check-manifest --ignore tox.ini,tests*,*.yml
+          command: >-
+            pipenv
+            run check-manifest
+            --ignore tox.ini,tests*,*.yml
       - run:
-          name: checking RST syntax
-          command: |
-            pipenv run python setup.py sdist
-            pipenv run twine check dist/*
+          name: creating source distribution
+          command: >-
+            pipenv
+            run python setup.py sdist
       - run:
-          name: checking PEP8 compliancy
-          command: pipenv run flake8 --exclude .venv,build,docs,e2e_tests --max-complexity 10 --ignore=W503
+          name: checking distribution description
+          command: >-
+            pipenv
+            run twine check dist/*
+      - run:
+          name: linting and checking python code formatting
+          command: >-
+            pipenv
+            run flake8
+            --exclude .venv,build,docs,e2e_tests
+            --max-complexity 10
+            --ignore=W503
       - run:
           name: checking CLI help
-          command: pipenv run bashtest README.rst
+          command: >-
+            pipenv
+            run bashtest README.rst
 
 workflows:
   version: 2
