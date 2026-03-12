@@ -6,5 +6,5 @@ build-backend = "setuptools.build_meta:__legacy__"
 
 [tool.pytest.ini_options]
 filterwarnings = [
-    'ignore::CryptographyDeprecationWarning',
+    "ignore::cryptography.utils.CryptographyDeprecationWarning",
 ]
