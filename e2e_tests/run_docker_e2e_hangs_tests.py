@@ -1,7 +1,7 @@
 import logging
-import sshtunnel
 import os
 
+import sshtunnel
 
 if __name__ == '__main__':
     path = os.path.join(os.path.dirname(__file__), 'run_docker_e2e_db_tests.py')

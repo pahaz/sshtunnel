@@ -1,6 +1,7 @@
 coveralls
-mock
-pytest
+mock; python_version < '3.3'
+paramiko>=2.7.2
+pytest>=4
 pytest-cov
 pytest-xdist
 twine
