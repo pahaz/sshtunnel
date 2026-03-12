@@ -234,9 +234,6 @@ jobs:
           command: >-
             pipenv
             run flake8
-            --exclude .venv,build,docs,e2e_tests
-            --max-complexity 10
-            --ignore=W503
       - run:
           name: checking CLI help
           command: >-
