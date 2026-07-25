@@ -41,7 +41,7 @@ setup(
     long_description_content_type='text/x-rst',
     # The project's main homepage.
     url=url,
-    download_url=ppa + version + '.zip',  # noqa
+    download_url=ppa + version + '.zip',
     # Author details
     author='Pahaz White',
     author_email='pahaz.white@gmail.com',
