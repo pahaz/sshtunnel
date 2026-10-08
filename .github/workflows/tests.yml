@@ -52,7 +52,7 @@ jobs:
           python setup.py sdist
           twine check dist/*
       - name: Check PEP8 compliancy
-        run: flake8 --ignore=W504
+        run: flake8
       - name: Check CLI help
         run: bashtest README.rst
 
