@@ -18,14 +18,17 @@ CONTRIBUTORS
 - `V0idk`_
 - `Bruno Inec`_
 - `alex3d`_
+- `visch`_
+- `bmos`_
 
 CHANGELOG
 =========
 
-- v.0.X.Y (`V0idk`_, `Bruno Inec`_, `alex3d`_)
+- v.0.X.Y (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)
     + Remove the hidden modification of the logger in cases where a custom logger is used. (`#250`_)
     + Speed up the bulk transfer (`#247`_)
+    + Fix CI: move checks from CircleCI to GitHub Actions, fix end-to-end database tests, pin ``paramiko<4`` and test Python 3.9-3.14
 
 - v.0.4.0 (`Pahaz`_)
     + Change the daemon mod flag for all tunnel threads (is not fully backward compatible) to prevent unexpected hangs (`#219`_)
@@ -168,6 +171,8 @@ CHANGELOG
 .. _V0idk: https://github.com/V0idk
 .. _Bruno Inec: https://github.com/sweenu
 .. _alex3d: https://github.com/alex3d
+.. _visch: https://github.com/visch
+.. _bmos: https://github.com/bmos
 .. _#13: https://github.com/pahaz/sshtunnel/issues/13
 .. _#16: https://github.com/pahaz/sshtunnel/issues/16
 .. _#19: https://github.com/pahaz/sshtunnel/issues/19

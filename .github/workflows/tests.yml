@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,7 +28,7 @@ jobs:
           python -m pytest tests
           --showlocals
           --durations=10
-          -n4
+          -n auto
           -W ignore::DeprecationWarning
           --cov sshtunnel
           --cov-report=term
@@ -52,7 +52,7 @@ jobs:
           python setup.py sdist
           twine check dist/*
       - name: Check PEP8 compliancy
-        run: flake8 --ignore=W504
+        run: flake8
       - name: Check CLI help
         run: bashtest README.rst
 

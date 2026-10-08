@@ -161,8 +161,10 @@ class NullServer(paramiko.ServerInterface):
     def check_auth_publickey(self, username, key):
         try:
             expected = FINGERPRINTS[key.get_name()]
-            _ok = (key.get_name() in self.__allowed_keys and
-                   key.get_fingerprint() == expected)
+            _ok = (
+                key.get_name() in self.__allowed_keys
+                and key.get_fingerprint() == expected
+            )
         except KeyError:
             _ok = False
         self.log.debug('NullServer >> pkey authentication for {0} {1}OK'
