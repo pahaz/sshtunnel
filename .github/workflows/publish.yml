@@ -2,12 +2,21 @@ name: Publish
 
 # Release flow: bump __version__ in sshtunnel.py, update changelog.rst, merge to
 # master, then push a tag `vX.Y.Z` that matches __version__.
+#
+# Same stages as the old CircleCI pipeline:
+#   tests -> testdeploy (TestPyPI) -> manual approval -> deploy (PyPI)
+# The approval step is the "pypi" environment: add Required reviewers to it in
+# the repository settings.
 on:
   push:
     tags: [ 'v*' ]
 
 jobs:
+  tests:
+    uses: ./.github/workflows/tests.yml
+
   build:
+    needs: tests
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -21,33 +30,59 @@ jobs:
             echo "Tag ${GITHUB_REF_NAME} does not match __version__ v${VERSION}" >&2
             exit 1
           fi
-      - name: Build sdist and wheel
+      - name: Build artifacts
         run: |
-          python -m pip install --upgrade pip build twine
-          python -m build
+          python -m pip install --upgrade pip setuptools wheel twine
+          python setup.py bdist_wheel sdist
           twine check dist/*
       - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
 
-  pypi:
+  testdeploy:
     needs: build
     runs-on: ubuntu-22.04
-    environment:
-      name: pypi
-      url: https://pypi.org/project/sshtunnel/
-    permissions:
-      id-token: write  # PyPI Trusted Publishing (OIDC)
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Upload to TestPyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+        run: |
+          python -m pip install twine
+          twine upload --repository testpypi --skip-existing dist/*
+
+  deploy:
+    needs: testdeploy
+    runs-on: ubuntu-22.04
+    environment:
+      name: pypi  # configure Required reviewers here (the old "hold" step)
+      url: https://pypi.org/project/sshtunnel/
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Upload to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          python -m pip install twine
+          twine upload --skip-existing dist/*
 
   github-release:
-    needs: pypi
+    needs: deploy
     runs-on: ubuntu-22.04
     permissions:
       contents: write
