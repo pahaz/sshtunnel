@@ -99,7 +99,7 @@ init:
 install:
   - set 'PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\Tools\\Scripts;%PATH%'
   - python -m pip install --upgrade pip
-  - pip install paramiko mock pytest pytest-cov pytest-xdist
+  - pip install "paramiko<4" mock pytest pytest-cov pytest-xdist
 
 build: off
 
