@@ -29,8 +29,8 @@ import paramiko
 if sys.version_info[0] < 3:  # pragma: no cover
     import Queue as queue
     import SocketServer as socketserver
-    string_types = basestring,  # noqa F821
-    input_ = raw_input  # noqa F821
+    string_types = basestring,  # noqa
+    input_ = raw_input  # noqa
 else:  # pragma: no cover
     import queue
     import socketserver
@@ -112,10 +112,8 @@ def check_address(address):
     elif isinstance(address, string_types):
         if os.name != 'posix':
             raise ValueError('Platform does not support UNIX domain sockets')
-        if not (
-            os.path.exists(address)
-            or os.access(os.path.dirname(address), os.W_OK)
-        ):
+        if not (os.path.exists(address) or
+                os.access(os.path.dirname(address), os.W_OK)):
             raise ValueError('ADDRESS not a valid socket domain socket ({0})'
                              .format(address))
     else:
@@ -341,10 +339,8 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
 
     def handle(self):
         uid = generate_random_string(5)
-        self.info = '#{0} <-- {1}'.format(
-            uid, self.client_address
-            or self.server.local_address
-        )
+        self.info = '#{0} <-- {1}'.format(uid, self.client_address or
+                                          self.server.local_address)
         src_address = self.request.getpeername()
         if not isinstance(src_address, tuple):
             src_address = ('dummy', 12345)
@@ -1015,12 +1011,12 @@ class SSHTunnelForwarder(object):
             # gather settings for user, port and identity file
             # last resort: use the 'login name' of the user
             ssh_username = (
-                ssh_username
-                or hostname_info.get('user')
+                ssh_username or
+                hostname_info.get('user')
             )
             ssh_pkey = (
-                ssh_pkey
-                or hostname_info.get('identityfile', [None])[0]
+                ssh_pkey or
+                hostname_info.get('identityfile', [None])[0]
             )
             ssh_host = hostname_info.get('hostname')
             ssh_port = ssh_port or hostname_info.get('port')
@@ -1065,9 +1061,7 @@ class SSHTunnelForwarder(object):
         return list(agent_keys)
 
     @staticmethod
-    def get_keys(  # noqa C901 too complex
-        logger=None, host_pkey_directories=None, allow_agent=False
-    ):
+    def get_keys(logger=None, host_pkey_directories=None, allow_agent=False):
         """
         Load public keys from any available SSH agent or local
         .ssh directory.
@@ -1099,8 +1093,7 @@ class SSHTunnelForwarder(object):
                               'dsa': paramiko.DSSKey,
                               'ecdsa': paramiko.ECDSAKey}
         if hasattr(paramiko, 'Ed25519Key'):
-            # new in paramiko>=2.2
-            # http://docs.paramiko.org/en/stable/api/keys.html#module-paramiko.ed25519key
+            # NOQA: new in paramiko>=2.2: http://docs.paramiko.org/en/stable/api/keys.html#module-paramiko.ed25519key
             paramiko_key_types['ed25519'] = paramiko.Ed25519Key
         for directory in host_pkey_directories:
             for keytype in paramiko_key_types.keys():
@@ -1304,8 +1297,7 @@ class SSHTunnelForwarder(object):
         ssh_pkey = None
         key_types = (paramiko.RSAKey, paramiko.DSSKey, paramiko.ECDSAKey)
         if hasattr(paramiko, 'Ed25519Key'):
-            # new in paramiko>=2.2
-            # http://docs.paramiko.org/en/stable/api/keys.html#module-paramiko.ed25519key
+            # NOQA: new in paramiko>=2.2: http://docs.paramiko.org/en/stable/api/keys.html#module-paramiko.ed25519key
             key_types += (paramiko.Ed25519Key, )
         for pkey_class in (key_type,) if key_type else key_types:
             try:
@@ -1553,8 +1545,8 @@ class SSHTunnelForwarder(object):
     def is_active(self):
         """ Return True if the underlying SSH transport is up """
         if (
-            '_transport' in self.__dict__
-            and self._transport.is_active()
+            '_transport' in self.__dict__ and
+            self._transport.is_active()
         ):
             return True
         return False
