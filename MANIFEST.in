@@ -10,7 +10,6 @@ include tests/*
 include e2e_tests/*
 include e2e_tests/ssh-server-config/*
 exclude .github/*
-exclude .circleci/*
 exclude *.pyc
 exclude __pycache__
 exclude Pipfile*
