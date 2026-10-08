@@ -15,8 +15,11 @@ jobs:
   tests:
     uses: ./.github/workflows/tests.yml
 
+  e2e:
+    uses: ./.github/workflows/database.yml
+
   build:
-    needs: tests
+    needs: [tests, e2e]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4

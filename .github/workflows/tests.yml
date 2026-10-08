@@ -33,6 +33,29 @@ jobs:
           -W ignore::DeprecationWarning
           --cov sshtunnel
           --cov-report=term
+          --cov-report=html:test_results/coverage.html
+          --cov-report=lcov:test_results/coverage.lcov
+          --junit-xml=test_results/report.xml
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          file: test_results/coverage.lcov
+          flag-name: py${{ matrix.python-version }}
+          parallel: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-py${{ matrix.python-version }}
+          path: test_results/
+
+  coveralls-finish:
+    needs: tests
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Coveralls finish
+        uses: coverallsapp/github-action@v2
+        with:
+          parallel-finished: true
 
   syntax:
     runs-on: ubuntu-22.04
@@ -71,3 +94,7 @@ jobs:
           python -m pip install -r docs/requirements.txt
       - name: Build documentation
         run: sphinx-build -WavE -b html docs _build/html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sshtunnel-docs
+          path: _build/html
