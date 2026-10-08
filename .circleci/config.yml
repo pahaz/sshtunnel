@@ -18,9 +18,6 @@ executors:
     <<: *params
     docker:
       - image: cimg/python:<< parameters.version >>
-    environment:
-      # the image exports VIRTUAL_ENV, which makes pipenv imply --system
-      PIPENV_IGNORE_VIRTUALENVS: "1"
 
 jobs:
   tests:
