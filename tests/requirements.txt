@@ -1,6 +1,6 @@
 coveralls
 mock
-paramiko>=2.7.2,<4
+paramiko>=2.7.2
 pytest>=4
 pytest-cov
 pytest-xdist
