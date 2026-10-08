@@ -28,6 +28,11 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: main
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d main"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
     networks:
       inner:
         ipv4_address: 10.5.0.5
@@ -39,6 +44,11 @@ services:
       MYSQL_USER: mysql
       MYSQL_PASSWORD: mysql
       MYSQL_ROOT_PASSWORD: mysqlroot
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -umysql -pmysql --silent"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
     networks:
       inner:
         ipv4_address: 10.5.0.6
@@ -49,6 +59,11 @@ services:
       MONGO_INITDB_ROOT_USERNAME: mongo
       MONGO_INITDB_ROOT_PASSWORD: mongo
       MONGO_INITDB_DATABASE: main
+    healthcheck:
+      test: ["CMD-SHELL", "mongo --quiet --eval 'db.adminCommand(\"ping\")'"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
     networks:
       inner:
         ipv4_address: 10.5.0.7

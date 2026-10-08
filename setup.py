@@ -97,7 +97,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        'paramiko>=2.7.2',
+        'paramiko>=2.7.2,<4',
     ],
 
     # List additional groups of dependencies here (e.g. development
@@ -114,7 +114,6 @@ setup(
         ],
         'build_sphinx': [
             'sphinx',
-            'sphinxcontrib-napoleon',
         ],
     },
 
