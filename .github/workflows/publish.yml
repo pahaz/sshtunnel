@@ -1,7 +1,7 @@
 name: Publish
 
 # Release flow: bump __version__ in sshtunnel.py, update changelog.rst, merge to
-# master, then push a tag `vX.Y.Z` that matches __version__.
+# master, then push a tag `X.Y.Z` that matches __version__.
 #
 # Same stages as the old CircleCI pipeline:
 #   tests -> testdeploy (TestPyPI) -> manual approval -> deploy (PyPI)
@@ -9,7 +9,7 @@ name: Publish
 # the repository settings.
 on:
   push:
-    tags: [ 'v*' ]
+    tags: [ '[0-9]+.[0-9]+.[0-9]+*' ]
 
 jobs:
   tests:
@@ -29,8 +29,8 @@ jobs:
       - name: Check that the tag matches __version__
         run: |
           VERSION=$(python -c "import re; print(re.search(r\"__version__\s*=\s*'([^']+)'\", open('sshtunnel.py').read()).group(1))")
-          if [ "v${VERSION}" != "${GITHUB_REF_NAME}" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match __version__ v${VERSION}" >&2
+          if [ "${VERSION}" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match __version__ ${VERSION}" >&2
             exit 1
           fi
       - name: Build artifacts
