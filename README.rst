@@ -1,4 +1,4 @@
-|CircleCI| |AppVeyor| |readthedocs| |coveralls| |version|
+|Tests| |AppVeyor| |readthedocs| |coveralls| |version|
 
 |pyversions| |license|
 
@@ -273,8 +273,8 @@ CLI usage
 .. _Pahaz: https://github.com/pahaz
 .. _sshtunnel: https://pypi.python.org/pypi/sshtunnel
 .. _paramiko: http://www.paramiko.org/
-.. |CircleCI| image:: https://circleci.com/gh/pahaz/sshtunnel.svg?style=svg
-   :target: https://circleci.com/gh/pahaz/sshtunnel
+.. |Tests| image:: https://github.com/pahaz/sshtunnel/actions/workflows/tests.yml/badge.svg
+   :target: https://github.com/pahaz/sshtunnel/actions/workflows/tests.yml
 .. |AppVeyor| image:: https://ci.appveyor.com/api/projects/status/oxg1vx2ycmnw3xr9?svg=true&passingText=Windows%20-%20OK&failingText=Windows%20-%20Fail
    :target: https://ci.appveyor.com/project/pahaz/sshtunnel
 .. |readthedocs| image:: https://readthedocs.org/projects/sshtunnel/badge/?version=latest

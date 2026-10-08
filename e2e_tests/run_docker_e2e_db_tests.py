@@ -244,3 +244,4 @@ if __name__ == '__main__':
     logging.info('RESULT MONGO: %r', res[2])
 
     assert res == (PG_EXPECT, MYSQL_EXPECT, MONGO_EXPECT)
+    logging.info("Tests pass!")

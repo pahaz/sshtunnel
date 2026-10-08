@@ -1,0 +1,72 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  tests:
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install -r tests/requirements.txt
+      - name: Run test suite
+        run: >-
+          python -m pytest tests
+          --showlocals
+          --durations=10
+          -n4
+          -W ignore::DeprecationWarning
+          --cov sshtunnel
+          --cov-report=term
+
+  syntax:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install -r tests/requirements-syntax.txt
+      - name: Check MANIFEST.in
+        run: check-manifest --ignore "tox.ini,tests*,*.yml"
+      - name: Check RST syntax
+        run: |
+          python setup.py sdist
+          twine check dist/*
+      - name: Check PEP8 compliancy
+        run: flake8 --ignore=W504
+      - name: Check CLI help
+        run: bashtest README.rst
+
+  docs:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install -r docs/requirements.txt
+      - name: Build documentation
+        run: sphinx-build -WavE -b html docs _build/html
