@@ -114,7 +114,6 @@ setup(
         ],
         'build_sphinx': [
             'sphinx',
-            'sphinxcontrib-napoleon',
         ],
     },
 
