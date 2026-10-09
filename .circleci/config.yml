@@ -15,13 +15,52 @@ job_defaults: &job_defaults
 # manual: press "Trigger Pipeline" for branch master with the pipeline
 # parameter `release` (boolean) = true, then approve the `hold` job.
 # Needs TESTPYPI_TOKEN, PYPI_TOKEN (and COVERALLS_REPO_TOKEN) in the project's
-# environment variables.
+# environment variables. GITHUB_TOKEN (optional) lets tests/docs/syntax post their
+# result as a pull request comment, see .circleci/pr_comment.sh.
 version: 2.1
 
 parameters:
   release:
     type: boolean
     default: false
+
+commands:
+  install:
+    description: Install sshtunnel and build&test dependencies
+    steps:
+      - logged:
+          name: Install sshtunnel and build&test dependencies
+          command: |
+            python --version
+            pip --version
+            pip install --upgrade pip
+            pip install -e .
+            pip install -r tests/requirements.txt
+
+  # A `run` step whose output is also saved to /tmp/ci.log and which records its
+  # name in /tmp/ci-failed on failure, for the pull request comment (`report`).
+  logged:
+    parameters:
+      name:
+        type: string
+      command:
+        type: string
+    steps:
+      - run:
+          name: << parameters.name >>
+          command: |
+            exec > >(tee -a /tmp/ci.log) 2>&1
+            echo "=== << parameters.name >>"
+            trap 'rc=$?; [ $rc -ne 0 ] && echo "<< parameters.name >>" >> /tmp/ci-failed' EXIT
+            << parameters.command >>
+
+  # Posts the job summary as a pull request comment (needs GITHUB_TOKEN).
+  report:
+    steps:
+      - run:
+          name: Comment on the pull request
+          when: always
+          command: .circleci/pr_comment.sh
 
 executors:
   python:
@@ -35,15 +74,8 @@ jobs:
     <<: *job_defaults
     steps:
       - checkout
-      - run: &install
-          name: Install sshtunnel and build&test dependencies
-          command: |
-            python --version
-            pip --version
-            pip install --upgrade pip
-            pip install -e .
-            pip install -r tests/requirements.txt
-      - run:
+      - install
+      - logged:
           name: Run test suite
           command: >-
             py.test tests
@@ -55,53 +87,56 @@ jobs:
             --cov-report=html:test_results/coverage.html
             --cov-report=term
             --junit-xml=test_results/report.xml
-      - run:
+      - logged:
           name: Coveralls
           command: coveralls
       - store_test_results:
           path: test_results
       - store_artifacts:
           path: test_results
+      - report
 
   docs:
     description: Produce documentation from source
     <<: *job_defaults
     steps:
       - checkout
-      - run: *install
-      - run:
+      - install
+      - logged:
           name: Installing documentation dependencies
           command: pip install -r docs/requirements.txt
-      - run:
+      - logged:
           name: Build documentation
           command: sphinx-build -WavE -b html docs _build/html
       - store_artifacts:
           path: _build/html
           destination: sshtunnel-docs
+      - report
 
   syntax:
     description: Run syntax validation tests
     <<: *job_defaults
     steps:
       - checkout
-      - run: *install
-      - run:
+      - install
+      - logged:
           name: Installing syntax checks dependencies
           command: pip install -r tests/requirements-syntax.txt
-      - run:
+      - logged:
           name: checking MANIFEST.in
           command: check-manifest --ignore tox.ini,tests*,*.yml
-      - run:
+      - logged:
           name: checking RST syntax
           command: |
             python setup.py sdist
             twine check dist/*
-      - run:
+      - logged:
           name: checking PEP8 compliancy
           command: flake8
-      - run:
+      - logged:
           name: checking CLI help
           command: bashtest README.rst
+      - report
 
   testdeploy:
     description: Build and upload artifacts to Test PyPI
