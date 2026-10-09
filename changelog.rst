@@ -26,7 +26,7 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
-- v.0.5.0 (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_, `lglines`_, `mweinelt`_)
+- v.0.5.1 (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_, `lglines`_, `mweinelt`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)
     + Remove the hidden modification of the logger in cases where a custom logger is used. (`#250`_)
     + Speed up the bulk transfer (`#247`_)
