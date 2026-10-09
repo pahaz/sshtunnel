@@ -2,10 +2,18 @@
 #
 #   testdeploy (TestPyPI) -> hold (manual approval) -> deploy (PyPI)
 #
-# Runs on master only. Needs TESTPYPI_TOKEN and PYPI_TOKEN project environment
-# variables in CircleCI. To release: bump __version__ in sshtunnel.py, update
-# changelog.rst, merge to master and approve the `hold` job in CircleCI.
+# Manual run only: pushes do not start anything. Needs TESTPYPI_TOKEN and
+# PYPI_TOKEN project environment variables in CircleCI.
+#
+# To release: bump __version__ in sshtunnel.py, update changelog.rst, merge to
+# master, then in CircleCI press "Trigger Pipeline" for branch master with the
+# parameter `release` (boolean) = true, and approve the `hold` job.
 version: 2.1
+
+parameters:
+  release:
+    type: boolean
+    default: false
 
 executors:
   python:
@@ -61,6 +69,7 @@ jobs:
 
 workflows:
   deploy:
+    when: << pipeline.parameters.release >>
     jobs:
       - testdeploy:
           filters:
