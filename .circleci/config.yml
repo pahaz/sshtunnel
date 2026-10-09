@@ -158,14 +158,14 @@ jobs:
           path: dist/
       - run:
           name: Upload to TestPyPI
-          command: >-
-            twine upload
-            --verbose
-            --repository testpypi
-            --username __token__
-            --password $TESTPYPI_TOKEN
-            --skip-existing
-            dist/*
+          command: |
+            # TestPyPI refuses new files for a release older than 14 days (the
+            # version may have been uploaded there before). It is only a smoke
+            # test, so that particular error must not block the release to PyPI.
+            if ! twine upload --verbose --repository testpypi --username __token__ --password "$TESTPYPI_TOKEN" --skip-existing dist/* 2>&1 | tee /tmp/twine.log; then
+              grep -q "older than 14 days" /tmp/twine.log || exit 1
+              echo "WARNING: TestPyPI does not accept new files for this old release, skipping"
+            fi
 
   deploy:
     description: Build and upload artifacts to PyPI
