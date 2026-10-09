@@ -15,10 +15,7 @@ job_defaults: &job_defaults
 # manual: press "Trigger Pipeline" for branch master with the pipeline
 # parameter `release` (boolean) = true, then approve the `hold` job.
 # Needs TESTPYPI_TOKEN, PYPI_TOKEN (and COVERALLS_REPO_TOKEN) in the project's
-# environment variables. GITHUB_TOKEN lets tests/docs/syntax post their result as
-# a pull request comment (.circleci/pr_comment.sh, needs "Pull requests: write")
-# and lets `deploy` create the tag and the GitHub Release after the upload to
-# PyPI (.circleci/github_release.sh, needs "Contents: write").
+# environment variables.
 version: 2.1
 
 parameters:
@@ -30,39 +27,14 @@ commands:
   install:
     description: Install sshtunnel and build&test dependencies
     steps:
-      - logged:
-          step_name: Install sshtunnel and build&test dependencies
+      - run:
+          name: Install sshtunnel and build&test dependencies
           command: |
             python --version
             pip --version
             pip install --upgrade pip
             pip install -e .
             pip install -r tests/requirements.txt
-
-  # A `run` step whose output is also saved to /tmp/ci.log and which records its
-  # name in /tmp/ci-failed on failure, for the pull request comment (`report`).
-  logged:
-    parameters:
-      step_name:
-        type: string
-      command:
-        type: string
-    steps:
-      - run:
-          name: << parameters.step_name >>
-          command: |
-            exec > >(tee -a /tmp/ci.log) 2>&1
-            echo "=== << parameters.step_name >>"
-            trap 'rc=$?; [ $rc -ne 0 ] && echo "<< parameters.step_name >>" >> /tmp/ci-failed' EXIT
-            << parameters.command >>
-
-  # Posts the job summary as a pull request comment (needs GITHUB_TOKEN).
-  report:
-    steps:
-      - run:
-          name: Comment on the pull request
-          when: always
-          command: .circleci/pr_comment.sh
 
 executors:
   python:
@@ -77,8 +49,8 @@ jobs:
     steps:
       - checkout
       - install
-      - logged:
-          step_name: Run test suite
+      - run:
+          name: Run test suite
           command: >-
             py.test tests
             --showlocals
@@ -89,14 +61,13 @@ jobs:
             --cov-report=html:test_results/coverage.html
             --cov-report=term
             --junit-xml=test_results/report.xml
-      - logged:
-          step_name: Coveralls
+      - run:
+          name: Coveralls
           command: coveralls
       - store_test_results:
           path: test_results
       - store_artifacts:
           path: test_results
-      - report
 
   docs:
     description: Produce documentation from source
@@ -104,16 +75,15 @@ jobs:
     steps:
       - checkout
       - install
-      - logged:
-          step_name: Installing documentation dependencies
+      - run:
+          name: Installing documentation dependencies
           command: pip install -r docs/requirements.txt
-      - logged:
-          step_name: Build documentation
+      - run:
+          name: Build documentation
           command: sphinx-build -WavE -b html docs _build/html
       - store_artifacts:
           path: _build/html
           destination: sshtunnel-docs
-      - report
 
   syntax:
     description: Run syntax validation tests
@@ -121,24 +91,23 @@ jobs:
     steps:
       - checkout
       - install
-      - logged:
-          step_name: Installing syntax checks dependencies
+      - run:
+          name: Installing syntax checks dependencies
           command: pip install -r tests/requirements-syntax.txt
-      - logged:
-          step_name: checking MANIFEST.in
+      - run:
+          name: checking MANIFEST.in
           command: check-manifest --ignore tox.ini,tests*,*.yml
-      - logged:
-          step_name: checking RST syntax
+      - run:
+          name: checking RST syntax
           command: |
             python setup.py sdist
             twine check dist/*
-      - logged:
-          step_name: checking PEP8 compliancy
+      - run:
+          name: checking PEP8 compliancy
           command: flake8
-      - logged:
-          step_name: checking CLI help
+      - run:
+          name: checking CLI help
           command: bashtest README.rst
-      - report
 
   testdeploy:
     description: Build and upload artifacts to Test PyPI
@@ -187,9 +156,6 @@ jobs:
             --password $PYPI_TOKEN
             --skip-existing
             dist/*
-      - run:
-          name: Create tag and GitHub Release
-          command: .circleci/github_release.sh
 
 workflows:
   syntax_and_docs:
