@@ -15,8 +15,10 @@ job_defaults: &job_defaults
 # manual: press "Trigger Pipeline" for branch master with the pipeline
 # parameter `release` (boolean) = true, then approve the `hold` job.
 # Needs TESTPYPI_TOKEN, PYPI_TOKEN (and COVERALLS_REPO_TOKEN) in the project's
-# environment variables. GITHUB_TOKEN (optional) lets tests/docs/syntax post their
-# result as a pull request comment, see .circleci/pr_comment.sh.
+# environment variables. GITHUB_TOKEN lets tests/docs/syntax post their result as
+# a pull request comment (.circleci/pr_comment.sh, needs "Pull requests: write")
+# and lets `deploy` create the tag and the GitHub Release after the upload to
+# PyPI (.circleci/github_release.sh, needs "Contents: write").
 version: 2.1
 
 parameters:
@@ -183,6 +185,9 @@ jobs:
             --password $PYPI_TOKEN
             --skip-existing
             dist/*
+      - run:
+          name: Create tag and GitHub Release
+          command: .circleci/github_release.sh
 
 workflows:
   syntax_and_docs:
@@ -209,10 +214,19 @@ workflows:
             - tests
             - syntax
             - docs
+          filters:
+            branches:
+              only: master
       - hold:
           type: approval
           requires:
             - testdeploy
+          filters:
+            branches:
+              only: master
       - deploy:
           requires:
             - hold
+          filters:
+            branches:
+              only: master
