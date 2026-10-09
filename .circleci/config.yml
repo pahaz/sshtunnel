@@ -1,0 +1,218 @@
+params: &params
+  parameters:
+    version:
+      description: Python docker image version
+      default: "3.11"
+      type: string
+
+job_defaults: &job_defaults
+  <<: *params
+  executor:
+    name: python
+    version: << parameters.version >>
+
+# Tests/checks run on every push. The release (TestPyPI -> approval -> PyPI) is
+# manual: press "Trigger Pipeline" for branch master with the pipeline
+# parameter `release` (boolean) = true, then approve the `hold` job.
+# Needs TESTPYPI_TOKEN, PYPI_TOKEN (and COVERALLS_REPO_TOKEN) in the project's
+# environment variables. GITHUB_TOKEN (optional) lets tests/docs/syntax post their
+# result as a pull request comment, see .circleci/pr_comment.sh.
+version: 2.1
+
+parameters:
+  release:
+    type: boolean
+    default: false
+
+commands:
+  install:
+    description: Install sshtunnel and build&test dependencies
+    steps:
+      - logged:
+          step_name: Install sshtunnel and build&test dependencies
+          command: |
+            python --version
+            pip --version
+            pip install --upgrade pip
+            pip install -e .
+            pip install -r tests/requirements.txt
+
+  # A `run` step whose output is also saved to /tmp/ci.log and which records its
+  # name in /tmp/ci-failed on failure, for the pull request comment (`report`).
+  logged:
+    parameters:
+      step_name:
+        type: string
+      command:
+        type: string
+    steps:
+      - run:
+          name: << parameters.step_name >>
+          command: |
+            exec > >(tee -a /tmp/ci.log) 2>&1
+            echo "=== << parameters.step_name >>"
+            trap 'rc=$?; [ $rc -ne 0 ] && echo "<< parameters.step_name >>" >> /tmp/ci-failed' EXIT
+            << parameters.command >>
+
+  # Posts the job summary as a pull request comment (needs GITHUB_TOKEN).
+  report:
+    steps:
+      - run:
+          name: Comment on the pull request
+          when: always
+          command: .circleci/pr_comment.sh
+
+executors:
+  python:
+    <<: *params
+    docker:
+      - image: cimg/python:<< parameters.version >>
+
+jobs:
+  tests:
+    description: Run test suite for a specific python version
+    <<: *job_defaults
+    steps:
+      - checkout
+      - install
+      - logged:
+          step_name: Run test suite
+          command: >-
+            py.test tests
+            --showlocals
+            --durations=10
+            -n4
+            -W ignore::DeprecationWarning
+            --cov sshtunnel
+            --cov-report=html:test_results/coverage.html
+            --cov-report=term
+            --junit-xml=test_results/report.xml
+      - logged:
+          step_name: Coveralls
+          command: coveralls
+      - store_test_results:
+          path: test_results
+      - store_artifacts:
+          path: test_results
+      - report
+
+  docs:
+    description: Produce documentation from source
+    <<: *job_defaults
+    steps:
+      - checkout
+      - install
+      - logged:
+          step_name: Installing documentation dependencies
+          command: pip install -r docs/requirements.txt
+      - logged:
+          step_name: Build documentation
+          command: sphinx-build -WavE -b html docs _build/html
+      - store_artifacts:
+          path: _build/html
+          destination: sshtunnel-docs
+      - report
+
+  syntax:
+    description: Run syntax validation tests
+    <<: *job_defaults
+    steps:
+      - checkout
+      - install
+      - logged:
+          step_name: Installing syntax checks dependencies
+          command: pip install -r tests/requirements-syntax.txt
+      - logged:
+          step_name: checking MANIFEST.in
+          command: check-manifest --ignore tox.ini,tests*,*.yml
+      - logged:
+          step_name: checking RST syntax
+          command: |
+            python setup.py sdist
+            twine check dist/*
+      - logged:
+          step_name: checking PEP8 compliancy
+          command: flake8
+      - logged:
+          step_name: checking CLI help
+          command: bashtest README.rst
+      - report
+
+  testdeploy:
+    description: Build and upload artifacts to Test PyPI
+    <<: *job_defaults
+    steps:
+      - checkout
+      - run:
+          name: Install build tools
+          command: pip install --upgrade pip setuptools wheel twine
+      - run:
+          name: Build artifact
+          command: python setup.py bdist_wheel sdist
+      - run:
+          name: Check artifacts
+          command: twine check dist/*
+      - store_artifacts:
+          path: dist/
+      - run:
+          name: Upload to TestPyPI
+          command: >-
+            twine upload
+            --repository testpypi
+            --username __token__
+            --password $TESTPYPI_TOKEN
+            --skip-existing
+            dist/*
+
+  deploy:
+    description: Build and upload artifacts to PyPI
+    <<: *job_defaults
+    steps:
+      - checkout
+      - run:
+          name: Install build tools
+          command: pip install --upgrade pip setuptools wheel twine
+      - run:
+          name: Build artifact
+          command: python setup.py bdist_wheel sdist
+      - run:
+          name: Upload to PyPI
+          command: >-
+            twine upload
+            --username __token__
+            --password $PYPI_TOKEN
+            --skip-existing
+            dist/*
+
+workflows:
+  syntax_and_docs:
+    when:
+      not: << pipeline.parameters.release >>
+    jobs:
+      - syntax
+      - docs
+
+  tests:
+    when:
+      not: << pipeline.parameters.release >>
+    jobs:
+      - tests
+
+  release:
+    when: << pipeline.parameters.release >>
+    jobs:
+      - tests
+      - syntax
+      - docs
+      - testdeploy:
+          requires:
+            - tests
+            - syntax
+            - docs
+      - hold:
+          type: approval
+          requires:
+            - testdeploy
+      - deploy:
+          requires:
+            - hold

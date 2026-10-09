@@ -13,3 +13,4 @@ exclude .github/*
 exclude *.pyc
 exclude __pycache__
 exclude Pipfile*
+exclude .circleci/*
