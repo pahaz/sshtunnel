@@ -29,7 +29,7 @@ commands:
     description: Install sshtunnel and build&test dependencies
     steps:
       - logged:
-          name: Install sshtunnel and build&test dependencies
+          step_name: Install sshtunnel and build&test dependencies
           command: |
             python --version
             pip --version
@@ -41,17 +41,17 @@ commands:
   # name in /tmp/ci-failed on failure, for the pull request comment (`report`).
   logged:
     parameters:
-      name:
+      step_name:
         type: string
       command:
         type: string
     steps:
       - run:
-          name: << parameters.name >>
+          name: << parameters.step_name >>
           command: |
             exec > >(tee -a /tmp/ci.log) 2>&1
-            echo "=== << parameters.name >>"
-            trap 'rc=$?; [ $rc -ne 0 ] && echo "<< parameters.name >>" >> /tmp/ci-failed' EXIT
+            echo "=== << parameters.step_name >>"
+            trap 'rc=$?; [ $rc -ne 0 ] && echo "<< parameters.step_name >>" >> /tmp/ci-failed' EXIT
             << parameters.command >>
 
   # Posts the job summary as a pull request comment (needs GITHUB_TOKEN).
@@ -76,7 +76,7 @@ jobs:
       - checkout
       - install
       - logged:
-          name: Run test suite
+          step_name: Run test suite
           command: >-
             py.test tests
             --showlocals
@@ -88,7 +88,7 @@ jobs:
             --cov-report=term
             --junit-xml=test_results/report.xml
       - logged:
-          name: Coveralls
+          step_name: Coveralls
           command: coveralls
       - store_test_results:
           path: test_results
@@ -103,10 +103,10 @@ jobs:
       - checkout
       - install
       - logged:
-          name: Installing documentation dependencies
+          step_name: Installing documentation dependencies
           command: pip install -r docs/requirements.txt
       - logged:
-          name: Build documentation
+          step_name: Build documentation
           command: sphinx-build -WavE -b html docs _build/html
       - store_artifacts:
           path: _build/html
@@ -120,21 +120,21 @@ jobs:
       - checkout
       - install
       - logged:
-          name: Installing syntax checks dependencies
+          step_name: Installing syntax checks dependencies
           command: pip install -r tests/requirements-syntax.txt
       - logged:
-          name: checking MANIFEST.in
+          step_name: checking MANIFEST.in
           command: check-manifest --ignore tox.ini,tests*,*.yml
       - logged:
-          name: checking RST syntax
+          step_name: checking RST syntax
           command: |
             python setup.py sdist
             twine check dist/*
       - logged:
-          name: checking PEP8 compliancy
+          step_name: checking PEP8 compliancy
           command: flake8
       - logged:
-          name: checking CLI help
+          step_name: checking CLI help
           command: bashtest README.rst
       - report
 
