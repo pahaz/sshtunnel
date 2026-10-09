@@ -35,28 +35,18 @@ jobs:
     <<: *job_defaults
     steps:
       - checkout
-      - restore_cache: &restore_cache
-          keys:
-            - sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}-0
       - run: &install
           name: Install sshtunnel and build&test dependencies
           command: |
             python --version
-            pipenv --version
             pip --version
-            pipenv install -e .
-            pipenv install --dev -r tests/requirements.txt
-            cat Pipfile.lock
-          environment:
-            - PIPENV_VENV_IN_PROJECT: 1
-      - save_cache: &save_cache
-          key: sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}-0
-          paths:
-            - .venv/
+            pip install --upgrade pip
+            pip install -e .
+            pip install -r tests/requirements.txt
       - run:
           name: Run test suite
           command: >-
-            pipenv run py.test tests
+            py.test tests
             --showlocals
             --durations=10
             -n4
@@ -67,7 +57,7 @@ jobs:
             --junit-xml=test_results/report.xml
       - run:
           name: Coveralls
-          command: pipenv run coveralls
+          command: coveralls
       - store_test_results:
           path: test_results
       - store_artifacts:
@@ -78,15 +68,13 @@ jobs:
     <<: *job_defaults
     steps:
       - checkout
-      - restore_cache: *restore_cache
       - run: *install
-      - save_cache: *save_cache
       - run:
           name: Installing documentation dependencies
-          command: pipenv install --dev -r docs/requirements.txt
+          command: pip install -r docs/requirements.txt
       - run:
           name: Build documentation
-          command: pipenv run sphinx-build -WavE -b html docs _build/html
+          command: sphinx-build -WavE -b html docs _build/html
       - store_artifacts:
           path: _build/html
           destination: sshtunnel-docs
@@ -96,26 +84,24 @@ jobs:
     <<: *job_defaults
     steps:
       - checkout
-      - restore_cache: *restore_cache
       - run: *install
-      - save_cache: *save_cache
       - run:
           name: Installing syntax checks dependencies
-          command: pipenv install --dev -r tests/requirements-syntax.txt
+          command: pip install -r tests/requirements-syntax.txt
       - run:
           name: checking MANIFEST.in
-          command: pipenv run check-manifest --ignore tox.ini,tests*,*.yml
+          command: check-manifest --ignore tox.ini,tests*,*.yml
       - run:
           name: checking RST syntax
           command: |
-            pipenv run python setup.py sdist
-            pipenv run twine check dist/*
+            python setup.py sdist
+            twine check dist/*
       - run:
           name: checking PEP8 compliancy
-          command: pipenv run flake8 --exclude .venv,build,docs,e2e_tests --max-complexity 10 --ignore=W504
+          command: flake8
       - run:
           name: checking CLI help
-          command: pipenv run bashtest README.rst
+          command: bashtest README.rst
 
   testdeploy:
     description: Build and upload artifacts to Test PyPI
