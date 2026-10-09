@@ -1,13 +1,21 @@
-# Release pipeline (tests and checks run in GitHub Actions, see .github/workflows).
-#
-#   testdeploy (TestPyPI) -> hold (manual approval) -> deploy (PyPI)
-#
-# Manual run only: pushes do not start anything. Needs TESTPYPI_TOKEN and
-# PYPI_TOKEN project environment variables in CircleCI.
-#
-# To release: bump __version__ in sshtunnel.py, update changelog.rst, merge to
-# master, then in CircleCI press "Trigger Pipeline" for branch master with the
-# parameter `release` (boolean) = true, and approve the `hold` job.
+params: &params
+  parameters:
+    version:
+      description: Python docker image version
+      default: 3.9.16
+      type: string
+
+job_defaults: &job_defaults
+  <<: *params
+  executor:
+    name: python
+    version: << parameters.version >>
+
+# Tests/checks run on every push. The release (TestPyPI -> approval -> PyPI) is
+# manual: press "Trigger Pipeline" for branch master with the pipeline
+# parameter `release` (boolean) = true, then approve the `hold` job.
+# Needs TESTPYPI_TOKEN, PYPI_TOKEN (and COVERALLS_REPO_TOKEN) in the project's
+# environment variables.
 version: 2.1
 
 parameters:
@@ -17,13 +25,101 @@ parameters:
 
 executors:
   python:
+    <<: *params
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:<< parameters.version >>
 
 jobs:
+  tests:
+    description: Run test suite for a specific python version
+    <<: *job_defaults
+    steps:
+      - checkout
+      - restore_cache: &restore_cache
+          keys:
+            - sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}-0
+      - run: &install
+          name: Install sshtunnel and build&test dependencies
+          command: |
+            python --version
+            pipenv --version
+            pip --version
+            pipenv install -e .
+            pipenv install --dev -r tests/requirements.txt
+            cat Pipfile.lock
+          environment:
+            - PIPENV_VENV_IN_PROJECT: 1
+      - save_cache: &save_cache
+          key: sshtunnel-py<< parameters.version >>-{{ checksum "sshtunnel.py" }}-{{ checksum "tests/requirements.txt" }}-0
+          paths:
+            - .venv/
+      - run:
+          name: Run test suite
+          command: >-
+            pipenv run py.test tests
+            --showlocals
+            --durations=10
+            -n4
+            -W ignore::DeprecationWarning
+            --cov sshtunnel
+            --cov-report=html:test_results/coverage.html
+            --cov-report=term
+            --junit-xml=test_results/report.xml
+      - run:
+          name: Coveralls
+          command: pipenv run coveralls
+      - store_test_results:
+          path: test_results
+      - store_artifacts:
+          path: test_results
+
+  docs:
+    description: Produce documentation from source
+    <<: *job_defaults
+    steps:
+      - checkout
+      - restore_cache: *restore_cache
+      - run: *install
+      - save_cache: *save_cache
+      - run:
+          name: Installing documentation dependencies
+          command: pipenv install --dev -r docs/requirements.txt
+      - run:
+          name: Build documentation
+          command: pipenv run sphinx-build -WavE -b html docs _build/html
+      - store_artifacts:
+          path: _build/html
+          destination: sshtunnel-docs
+
+  syntax:
+    description: Run syntax validation tests
+    <<: *job_defaults
+    steps:
+      - checkout
+      - restore_cache: *restore_cache
+      - run: *install
+      - save_cache: *save_cache
+      - run:
+          name: Installing syntax checks dependencies
+          command: pipenv install --dev -r tests/requirements-syntax.txt
+      - run:
+          name: checking MANIFEST.in
+          command: pipenv run check-manifest --ignore tox.ini,tests*,*.yml
+      - run:
+          name: checking RST syntax
+          command: |
+            pipenv run python setup.py sdist
+            pipenv run twine check dist/*
+      - run:
+          name: checking PEP8 compliancy
+          command: pipenv run flake8 --exclude .venv,build,docs,e2e_tests --max-complexity 10 --ignore=W504
+      - run:
+          name: checking CLI help
+          command: pipenv run bashtest README.rst
+
   testdeploy:
     description: Build and upload artifacts to Test PyPI
-    executor: python
+    <<: *job_defaults
     steps:
       - checkout
       - run:
@@ -49,7 +145,7 @@ jobs:
 
   deploy:
     description: Build and upload artifacts to PyPI
-    executor: python
+    <<: *job_defaults
     steps:
       - checkout
       - run:
@@ -68,25 +164,46 @@ jobs:
             dist/*
 
 workflows:
-  deploy:
+  syntax_and_docs:
+    when:
+      not: << pipeline.parameters.release >>
+    jobs:
+      - syntax
+      - docs
+
+  tests:
+    when:
+      not: << pipeline.parameters.release >>
+    jobs:
+      - tests:
+          matrix:
+            parameters:
+              version: &python_versions
+                - "3.9"
+                - "3.10"
+                - "3.11"
+                - "3.12"
+                - "3.13"
+                - "3.14"
+
+  release:
     when: << pipeline.parameters.release >>
     jobs:
+      - tests:
+          matrix:
+            parameters:
+              version: *python_versions
+      - syntax
+      - docs
       - testdeploy:
-          filters:
-            branches:
-              only: master
-
+          requires:
+            - tests
+            - syntax
+            - docs
       - hold:
           type: approval
           requires:
             - testdeploy
-          filters:
-            branches:
-              only: master
-
       - deploy:
           requires:
             - hold
-          filters:
-            branches:
-              only: master
