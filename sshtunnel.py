@@ -303,6 +303,7 @@ class _ForwardHandler(socketserver.BaseRequestHandler):
     info = None
 
     def _redirect(self, chan):
+        self.request.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         while chan.active:
             rqst, _, _ = select([self.request, chan], [], [], 5)
             if self.request in rqst:
