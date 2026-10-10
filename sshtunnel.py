@@ -1040,13 +1040,18 @@ class SSHTunnelForwarder(object):
         except (AttributeError, TypeError):  # ssh_config_file is None
             if logger:
                 logger.info('Skipping loading of ssh configuration file')
-        finally:
-            return (ssh_host,
-                    ssh_username or getpass.getuser(),
-                    ssh_pkey,
-                    int(ssh_port) if ssh_port else 22,  # fallback value
-                    ssh_proxy,
-                    compression)
+        except Exception as exc:  # keep ignoring a broken configuration
+            if logger:
+                logger.warning(
+                    'Could not process SSH configuration file {0}: {1!r}'
+                    .format(ssh_config_file, exc)
+                )
+        return (ssh_host,
+                ssh_username or getpass.getuser(),
+                ssh_pkey,
+                int(ssh_port) if ssh_port else 22,  # fallback value
+                ssh_proxy,
+                compression)
 
     @staticmethod
     def get_agent_keys(logger=None):
