@@ -1350,6 +1350,34 @@ class AuxiliaryTest(unittest.TestCase):
         self.assertEqual(ssh_port, 222)
         self.assertFalse(compression)
 
+    def test_read_ssh_config_ignores_invalid_config(self):
+        """ A broken ssh config must not prevent returning the defaults """
+        with mock.patch('paramiko.SSHConfig.parse',
+                        side_effect=ValueError('bad')):
+            (ssh_hostname,
+             ssh_username,
+             ssh_private_key,
+             ssh_port,
+             ssh_proxy,
+             compression) = sshtunnel.SSHTunnelForwarder._read_ssh_config(
+                 'test',
+                 get_test_data_path(TEST_CONFIG_FILE),
+                 ssh_username='user',
+            )
+        self.assertEqual(ssh_hostname, 'test')
+        self.assertEqual(ssh_username, 'user')
+        self.assertEqual(ssh_port, 22)
+        self.assertIsNone(ssh_proxy)
+
+    def test_no_return_in_finally(self):
+        """ `return` in `finally` is a SyntaxWarning since Python 3.14 """
+        import warnings
+        with open(sshtunnel.__file__.replace('.pyc', '.py')) as f:
+            source = f.read()
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', SyntaxWarning)
+            compile(source, 'sshtunnel.py', 'exec')
+
     def test_str(self):
         server = open_tunnel(
             'test',
