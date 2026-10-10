@@ -1173,7 +1173,7 @@ class SSHTunnelForwarder(object):
         if isinstance(ssh_pkey, paramiko.pkey.PKey):
             ssh_loaded_pkeys.insert(0, ssh_pkey)
 
-        if not ssh_password and not ssh_loaded_pkeys:
+        if ssh_password is None and not ssh_loaded_pkeys:
             raise ValueError('No password or public key available!')
         return (ssh_password, ssh_loaded_pkeys)
 
@@ -1421,7 +1421,7 @@ class SSHTunnelForwarder(object):
                 self.logger.debug('Authentication error')
                 self._stop_transport()
 
-        if self.ssh_password:  # avoid conflict using both pass and pkey
+        if self.ssh_password is not None:  # avoid conflict using both pass and pkey
             self.logger.debug('Trying to log in with password: {0}'
                               .format('*' * len(self.ssh_password)))
             try:
