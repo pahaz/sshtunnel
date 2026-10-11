@@ -27,13 +27,15 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
+- v.0.X.Y (`MCazaly`_)
+    + Accept ``pathlib.Path`` objects for ``ssh_pkey`` (`#233`_, `#234`_)
+
 - v.0.5.1 (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_, `lglines`_, `mweinelt`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)
     + Remove the hidden modification of the logger in cases where a custom logger is used. (`#250`_)
     + Speed up the bulk transfer (`#247`_)
     + Fix CI: move checks from CircleCI to GitHub Actions, fix end-to-end database tests, pin ``paramiko<4`` and test Python 3.9-3.14
     + Support paramiko>=4.0, which has removed ``DSSKey``: DSA keys are still loaded when paramiko provides them (`#300`_, `#301`_)
-    + Accept ``pathlib.Path`` objects for ``ssh_pkey`` (`#233`_, `#234`_)
 
 - v.0.4.0 (`Pahaz`_)
     + Change the daemon mod flag for all tunnel threads (is not fully backward compatible) to prevent unexpected hangs (`#219`_)
