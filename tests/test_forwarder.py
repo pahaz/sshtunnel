@@ -812,6 +812,25 @@ class SSHClientTest(unittest.TestCase):
         self.assertIn('Could not open connection to gateway',
                       self.sshtunnel_log_messages['error'])
 
+    @unittest.skipIf(sys.version_info < (3, 4),
+                     reason="pathlib is not available")
+    def test_pkey_accepts_pathlib_path(self):
+        """
+        Test that ``ssh_pkey`` can be a ``pathlib.Path``
+        """
+        import pathlib
+        with self._test_server(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_pkey=pathlib.Path(get_test_data_path(PKEY_FILE)),
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+        ) as server:
+            self.assertTrue(any(
+                isinstance(k, paramiko.pkey.PKey) for k in server.ssh_pkeys))
+            self.assertNotIn('Private key file not found',
+                             ' '.join(self.sshtunnel_log_messages['warning']))
+
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
     def test_missing_pkey_file_logs_warning(self):

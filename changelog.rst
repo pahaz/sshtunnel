@@ -22,6 +22,7 @@ CONTRIBUTORS
 - `bmos`_
 - `lglines`_
 - `mweinelt`_
+- `MCazaly`_
 
 CHANGELOG
 =========
@@ -32,6 +33,7 @@ CHANGELOG
     + Speed up the bulk transfer (`#247`_)
     + Fix CI: move checks from CircleCI to GitHub Actions, fix end-to-end database tests, pin ``paramiko<4`` and test Python 3.9-3.14
     + Support paramiko>=4.0, which has removed ``DSSKey``: DSA keys are still loaded when paramiko provides them (`#300`_, `#301`_)
+    + Accept ``pathlib.Path`` objects for ``ssh_pkey`` (`#233`_, `#234`_)
 
 - v.0.4.0 (`Pahaz`_)
     + Change the daemon mod flag for all tunnel threads (is not fully backward compatible) to prevent unexpected hangs (`#219`_)
@@ -178,6 +180,7 @@ CHANGELOG
 .. _bmos: https://github.com/bmos
 .. _lglines: https://github.com/lglines
 .. _mweinelt: https://github.com/mweinelt
+.. _MCazaly: https://github.com/MCazaly
 .. _#13: https://github.com/pahaz/sshtunnel/issues/13
 .. _#16: https://github.com/pahaz/sshtunnel/issues/16
 .. _#19: https://github.com/pahaz/sshtunnel/issues/19
@@ -198,6 +201,8 @@ CHANGELOG
 .. _#201: https://github.com/pahaz/sshtunnel/issues/201
 .. _#211: https://github.com/pahaz/sshtunnel/issues/211
 .. _#219: https://github.com/pahaz/sshtunnel/issues/219
+.. _#233: https://github.com/pahaz/sshtunnel/issues/233
+.. _#234: https://github.com/pahaz/sshtunnel/pull/234
 .. _#231: https://github.com/pahaz/sshtunnel/issues/231
 .. _#247: https://github.com/pahaz/sshtunnel/issues/247
 .. _#250: https://github.com/pahaz/sshtunnel/issues/250
