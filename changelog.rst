@@ -28,7 +28,7 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
-- v.0.X.Y (`MCazaly`_, `SheevaPlug`_)
+- v.0.X.Y (`MCazaly`_, `SheevaPlug`_, `bmos`_)
     + Accept ``pathlib.Path`` objects for ``ssh_pkey`` (`#233`_, `#234`_)
     + Remove ``return`` from a ``finally`` block, which is a ``SyntaxWarning`` on Python 3.14 (`#308`_)
 
