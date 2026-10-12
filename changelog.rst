@@ -22,9 +22,13 @@ CONTRIBUTORS
 - `bmos`_
 - `lglines`_
 - `mweinelt`_
+- `MCazaly`_
 
 CHANGELOG
 =========
+
+- v.0.X.Y (`MCazaly`_)
+    + Accept ``pathlib.Path`` objects for ``ssh_pkey`` (`#233`_, `#234`_)
 
 - v.0.5.1 (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_, `lglines`_, `mweinelt`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)
@@ -178,6 +182,7 @@ CHANGELOG
 .. _bmos: https://github.com/bmos
 .. _lglines: https://github.com/lglines
 .. _mweinelt: https://github.com/mweinelt
+.. _MCazaly: https://github.com/MCazaly
 .. _#13: https://github.com/pahaz/sshtunnel/issues/13
 .. _#16: https://github.com/pahaz/sshtunnel/issues/16
 .. _#19: https://github.com/pahaz/sshtunnel/issues/19
@@ -198,6 +203,8 @@ CHANGELOG
 .. _#201: https://github.com/pahaz/sshtunnel/issues/201
 .. _#211: https://github.com/pahaz/sshtunnel/issues/211
 .. _#219: https://github.com/pahaz/sshtunnel/issues/219
+.. _#233: https://github.com/pahaz/sshtunnel/issues/233
+.. _#234: https://github.com/pahaz/sshtunnel/pull/234
 .. _#231: https://github.com/pahaz/sshtunnel/issues/231
 .. _#247: https://github.com/pahaz/sshtunnel/issues/247
 .. _#250: https://github.com/pahaz/sshtunnel/issues/250
