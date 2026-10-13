@@ -536,9 +536,10 @@ class SSHTunnelForwarder(object):
 
             .. versionadded:: 0.0.4
 
-        ssh_host_key (str):
+        ssh_host_key (str or :class:`paramiko.pkey.PKey`):
             Representation of a line in an OpenSSH-style "known hosts"
-            file.
+            file (``[hostname] keytype base64-key``), or an already loaded
+            :class:`paramiko.pkey.PKey`.
 
             ``REMOTE GATEWAY``'s key fingerprint will be compared to this
             host key in order to prevent against SSH server spoofing.
@@ -917,7 +918,7 @@ class SSHTunnelForwarder(object):
     ):
         self.logger = logger or create_logger()
 
-        self.ssh_host_key = ssh_host_key
+        self.ssh_host_key = self._parse_host_key(ssh_host_key)
         self.set_keepalive = set_keepalive
         self._server_list = []  # reset server list
         self.tunnel_is_up = {}  # handle tunnel status
@@ -1411,6 +1412,36 @@ class SSHTunnelForwarder(object):
         """ Restart connection to the gateway and tunnels """
         self.stop()
         self.start()
+
+    @staticmethod
+    def _parse_host_key(host_key):
+        """
+        Convert a "known hosts" line into a :class:`paramiko.pkey.PKey`
+
+        Anything that is not a string (``None`` or a ``PKey``) is returned
+        unchanged.
+
+        Raises:
+            ValueError: if the string is not a valid "known hosts" line
+        """
+        if not isinstance(host_key, string_types):
+            return host_key
+        line = host_key.strip()
+        entry = None
+        try:
+            entry = paramiko.hostkeys.HostKeyEntry.from_line(line)
+            if entry is None and len(line.split()) == 2:
+                # ``keytype base64-key`` without the leading host name
+                entry = paramiko.hostkeys.HostKeyEntry.from_line(
+                    '* ' + line)
+        except Exception:  # bad base64, unknown key type...
+            entry = None
+        if entry is None or entry.key is None:
+            raise ValueError(
+                'ssh_host_key must be a paramiko PKey or a valid line of '
+                'an OpenSSH "known hosts" file'
+            )
+        return entry.key
 
     def _connect_to_gateway(self):
         """
