@@ -207,6 +207,7 @@ CHANGELOG
 .. _#201: https://github.com/pahaz/sshtunnel/issues/201
 .. _#211: https://github.com/pahaz/sshtunnel/issues/211
 .. _#219: https://github.com/pahaz/sshtunnel/issues/219
+.. _#229: https://github.com/pahaz/sshtunnel/issues/229
 .. _#233: https://github.com/pahaz/sshtunnel/issues/233
 .. _#234: https://github.com/pahaz/sshtunnel/pull/234
 .. _#231: https://github.com/pahaz/sshtunnel/issues/231
