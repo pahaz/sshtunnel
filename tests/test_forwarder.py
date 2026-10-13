@@ -831,6 +831,46 @@ class SSHClientTest(unittest.TestCase):
             self.assertNotIn('Private key file not found',
                              ' '.join(self.sshtunnel_log_messages['warning']))
 
+    def test_host_key_accepts_known_hosts_line(self):
+        """
+        Test that ``ssh_host_key`` can be a "known hosts" line, with or
+        without the host name, or an already loaded ``PKey``
+        """
+        key = paramiko.RSAKey.generate(1024)
+        b64 = key.get_base64()
+        for line in ('example.com ssh-rsa ' + b64,
+                     '[example.com]:2222 ssh-rsa ' + b64 + ' comment',
+                     'ssh-rsa ' + b64):
+            parsed = sshtunnel.SSHTunnelForwarder._parse_host_key(line)
+            self.assertIsInstance(parsed, paramiko.RSAKey)
+            self.assertEqual(parsed.get_base64(), b64)
+        self.assertIs(sshtunnel.SSHTunnelForwarder._parse_host_key(key), key)
+        self.assertIsNone(sshtunnel.SSHTunnelForwarder._parse_host_key(None))
+
+    def test_host_key_invalid_line_raises(self):
+        """
+        Test that an invalid ``ssh_host_key`` string raises ``ValueError``
+        """
+        for bad in ('', 'garbage', 'example.com ssh-rsa not-base64!!'):
+            with self.assertRaises(ValueError):
+                sshtunnel.SSHTunnelForwarder._parse_host_key(bad)
+
+    def test_host_key_string_is_passed_as_pkey(self):
+        """
+        Test that a string ``ssh_host_key`` is stored as a PKey
+        """
+        key = paramiko.RSAKey.generate(1024)
+        server = sshtunnel.SSHTunnelForwarder(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            ssh_host_key='example.com ssh-rsa ' + key.get_base64(),
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+        )
+        self.assertIsInstance(server.ssh_host_key, paramiko.RSAKey)
+        self.assertEqual(server.ssh_host_key.get_base64(), key.get_base64())
+
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
     def test_missing_pkey_file_logs_warning(self):

@@ -31,6 +31,7 @@ CHANGELOG
 - v.0.X.Y (`MCazaly`_, `SheevaPlug`_, `bmos`_)
     + Accept ``pathlib.Path`` objects for ``ssh_pkey`` (`#233`_, `#234`_)
     + Remove ``return`` from a ``finally`` block, which is a ``SyntaxWarning`` on Python 3.14 (`#308`_)
+    + Accept ``ssh_host_key`` as a "known hosts" line, as documented, in addition to a ``PKey`` (`#229`_)
 
 - v.0.5.1 (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_, `lglines`_, `mweinelt`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)
