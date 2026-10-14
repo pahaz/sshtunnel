@@ -26,6 +26,9 @@ CONTRIBUTORS
 CHANGELOG
 =========
 
+- v.0.X.Y (`Pahaz`_)
+    + Include the reason (authentication failure, unresolvable host, connection error) in the "Could not establish session to SSH gateway" error (`#305`_)
+
 - v.0.5.1 (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_, `lglines`_, `mweinelt`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)
     + Remove the hidden modification of the logger in cases where a custom logger is used. (`#250`_)
@@ -204,3 +207,4 @@ CHANGELOG
 .. _#300: https://github.com/pahaz/sshtunnel/pull/300
 .. _#301: https://github.com/pahaz/sshtunnel/pull/301
 .. _detail: https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127
+.. _#305: https://github.com/pahaz/sshtunnel/issues/305

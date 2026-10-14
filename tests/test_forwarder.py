@@ -757,6 +757,41 @@ class SSHClientTest(unittest.TestCase):
             self.sshtunnel_log_messages['error']
         )
 
+    def test_wrong_auth_error_includes_reason(self):
+        """
+        The exception raised when the gateway rejects the credentials says
+        why the session could not be established
+        """
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError) as cm:
+            with self._test_server(
+                (self.saddr, self.sport),
+                ssh_username=SSH_USERNAME,
+                ssh_password=SSH_PASSWORD[::-1],
+                remote_bind_address=(self.eaddr, self.randomize_eport()),
+                logger=self.log,
+            ):
+                pass
+        message = str(cm.exception)
+        self.assertIn('Could not establish session to SSH gateway', message)
+        self.assertIn('Authentication failed', message)
+
+    def test_unresolvable_gateway_error_includes_reason(self):
+        """
+        The exception raised when the gateway host cannot be resolved says so
+        """
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError) as cm:
+            with open_tunnel(
+                (SSH_USERNAME, self.sport),
+                ssh_username=SSH_USERNAME,
+                ssh_password=SSH_PASSWORD,
+                remote_bind_address=(self.eaddr, self.eport),
+                ssh_config_file=None,
+            ):
+                pass
+        message = str(cm.exception)
+        self.assertIn('Could not establish session to SSH gateway', message)
+        self.assertIn('Could not resolve IP address', message)
+
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
     def test_running_start_twice_logs_warning(self):
