@@ -812,6 +812,28 @@ class SSHClientTest(unittest.TestCase):
         self.assertIn('Could not open connection to gateway',
                       self.sshtunnel_log_messages['error'])
 
+    def test_failed_start_releases_local_bind_ports(self):
+        """
+        When the session to the gateway cannot be established, the local
+        bind ports must not be left listening (#288)
+        """
+        local_port = self.randomize_eport()
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+            with self._test_server(
+                (self.saddr, self.sport),
+                ssh_username=SSH_USERNAME,
+                ssh_password=SSH_PASSWORD[::-1],
+                local_bind_address=('127.0.0.1', local_port),
+                remote_bind_address=(self.eaddr, self.randomize_eport()),
+                logger=self.log,
+            ):
+                pass
+        probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            probe.bind(('127.0.0.1', local_port))
+        finally:
+            probe.close()
+
     @unittest.skipIf(sys.version_info < (3, 4),
                      reason="pathlib is not available")
     def test_pkey_accepts_pathlib_path(self):

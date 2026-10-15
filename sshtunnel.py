@@ -1351,6 +1351,16 @@ class SSHTunnelForwarder(object):
             return
         self._create_tunnels()
         if not self.is_active:
+            # the servers were never started, so only release their sockets
+            for _srv in self._server_list:
+                _srv.server_close()
+                if isinstance(_srv, _StreamForwardServer):
+                    try:
+                        os.unlink(_srv.local_address)
+                    except OSError:
+                        pass
+            self._server_list = []
+            self.tunnel_is_up = {}
             self._raise(BaseSSHTunnelForwarderError,
                         reason='Could not establish session to SSH gateway')
         for _srv in self._server_list:
