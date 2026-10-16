@@ -834,6 +834,125 @@ class SSHClientTest(unittest.TestCase):
         finally:
             probe.close()
 
+    def _failing_forwarder(self, **kwargs):
+        """ Forwarder that cannot log in to the gateway (wrong password) """
+        self.start_echo_and_ssh_server()
+        if 'remote_bind_addresses' not in kwargs:
+            kwargs['remote_bind_address'] = (self.eaddr,
+                                             self.randomize_eport())
+        return open_tunnel(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD[::-1],
+            logger=self.log,
+            **kwargs
+        )
+
+    def _assert_port_is_free(self, port):
+        probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            probe.bind(('127.0.0.1', port))
+        finally:
+            probe.close()
+
+    def test_failed_start_releases_all_local_bind_ports(self):
+        """ Every local bind is released, not only the first one (#288) """
+        ports = [self.randomize_eport(), self.randomize_eport()]
+        while ports[0] == ports[1]:
+            ports[1] = self.randomize_eport()
+        forwarder = self._failing_forwarder(
+            local_bind_addresses=[('127.0.0.1', p) for p in ports],
+            remote_bind_addresses=[(self.eaddr, self.randomize_eport()),
+                                   (self.eaddr, self.randomize_eport())],
+        )
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+            forwarder.start()
+        for port in ports:
+            self._assert_port_is_free(port)
+
+    def test_failed_start_resets_forwarder_state(self):
+        """ No servers or tunnel status are kept after a failed start """
+        forwarder = self._failing_forwarder(
+            local_bind_address=('127.0.0.1', self.randomize_eport()),
+        )
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+            forwarder.start()
+        self.assertEqual(forwarder._server_list, [])
+        self.assertEqual(forwarder.tunnel_is_up, {})
+        self.assertFalse(forwarder.is_active)
+        self.assertFalse(forwarder.is_alive)
+
+    def test_stop_after_failed_start_does_not_hang(self):
+        """ stop() used to block in shutdown() of a never started server """
+        forwarder = self._failing_forwarder(
+            local_bind_address=('127.0.0.1', self.randomize_eport()),
+        )
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+            forwarder.start()
+        stopper = threading.Thread(target=forwarder.stop,
+                                   kwargs={'force': True})
+        stopper.daemon = True
+        stopper.start()
+        stopper.join(5)
+        self.assertFalse(stopper.is_alive(), 'stop() is blocked')
+
+    def test_failed_start_can_be_retried_on_the_same_port(self):
+        """ The scenario from #288: retry on the same port after a failure """
+        local_port = self.randomize_eport()
+        forwarder = self._failing_forwarder(
+            local_bind_address=('127.0.0.1', local_port),
+        )
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+            forwarder.start()
+        with self._test_server(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            local_bind_address=('127.0.0.1', local_port),
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+        ) as server:
+            self.assertEqual(server.local_bind_port, local_port)
+
+    def test_failed_start_twice_on_the_same_forwarder(self):
+        """ A second start() of a failed forwarder fails the same way """
+        forwarder = self._failing_forwarder(
+            local_bind_address=('127.0.0.1', self.randomize_eport()),
+        )
+        for _ in range(2):
+            with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+                forwarder.start()
+            self.assertEqual(forwarder._server_list, [])
+
+    def test_failed_start_removes_unix_socket_file(self):
+        """ The UNIX socket file is removed after a failed start """
+        socket_path = os.path.join(tempfile.mkdtemp(), 'sshtunnel.sock')
+        try:
+            forwarder = self._failing_forwarder(
+                local_bind_address=socket_path,
+            )
+            with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+                forwarder.start()
+            self.assertFalse(os.path.exists(socket_path))
+        finally:
+            shutil.rmtree(os.path.dirname(socket_path), ignore_errors=True)
+
+    def test_failed_start_with_context_manager_releases_port(self):
+        """ ``with open_tunnel(...)`` leaves nothing listening on failure """
+        local_port = self.randomize_eport()
+        self.start_echo_and_ssh_server()
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+            with open_tunnel(
+                (self.saddr, self.sport),
+                ssh_username=SSH_USERNAME,
+                ssh_password=SSH_PASSWORD[::-1],
+                local_bind_address=('127.0.0.1', local_port),
+                remote_bind_address=(self.eaddr, self.randomize_eport()),
+                logger=self.log,
+            ):
+                pass  # pragma: no cover
+        self._assert_port_is_free(local_port)
+
     @unittest.skipIf(sys.version_info < (3, 4),
                      reason="pathlib is not available")
     def test_pkey_accepts_pathlib_path(self):
