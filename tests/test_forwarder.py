@@ -834,6 +834,49 @@ class SSHClientTest(unittest.TestCase):
         finally:
             probe.close()
 
+    def test_failed_start_keeps_parallel_tunnel_alive(self):
+        """
+        A failed start() must release only its own local bind ports: another
+        tunnel running in parallel stays up and keeps its listening socket
+        """
+        failing_port = self.randomize_eport()
+        with self._test_server(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            local_bind_address=('127.0.0.1', 0),
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+        ) as running:
+            running_port = running.local_bind_port
+            # nothing listens on the gateway port, so this start() fails
+            gateway_port = self.randomize_eport()
+            failing = open_tunnel(
+                ('127.0.0.1', gateway_port),
+                ssh_username=SSH_USERNAME,
+                ssh_password=SSH_PASSWORD,
+                local_bind_address=('127.0.0.1', failing_port),
+                remote_bind_address=(self.eaddr, self.eport),
+                logger=self.log,
+            )
+            with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+                failing.start()
+
+            # the failed tunnel released its port ...
+            probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                probe.bind(('127.0.0.1', failing_port))
+            finally:
+                probe.close()
+            # ... while the parallel tunnel is untouched
+            self.assertTrue(running.is_active)
+            self.assertTrue(all(running.tunnel_is_up.values()))
+            self.assertEqual(len(running._server_list), 1)
+            client = socket.create_connection(('127.0.0.1', running_port),
+                                              timeout=sshtunnel.SSH_TIMEOUT)
+            client.close()
+            self.assertTrue(running.is_active)
+
     @unittest.skipIf(sys.version_info < (3, 4),
                      reason="pathlib is not available")
     def test_pkey_accepts_pathlib_path(self):
