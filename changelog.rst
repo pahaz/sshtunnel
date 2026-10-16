@@ -29,6 +29,7 @@ CHANGELOG
 =========
 
 - v.0.X.Y (`MCazaly`_, `SheevaPlug`_, `bmos`_)
+    + Fix the ``set_keepalive`` documentation: keepalive packets are sent every 5 seconds by default (`#248`_)
     + Accept ``pathlib.Path`` objects for ``ssh_pkey`` (`#233`_, `#234`_)
     + Remove ``return`` from a ``finally`` block, which is a ``SyntaxWarning`` on Python 3.14 (`#308`_)
 
@@ -211,6 +212,7 @@ CHANGELOG
 .. _#231: https://github.com/pahaz/sshtunnel/issues/231
 .. _#247: https://github.com/pahaz/sshtunnel/issues/247
 .. _#250: https://github.com/pahaz/sshtunnel/issues/250
+.. _#248: https://github.com/pahaz/sshtunnel/issues/248
 .. _#308: https://github.com/pahaz/sshtunnel/issues/308
 .. _#300: https://github.com/pahaz/sshtunnel/pull/300
 .. _#301: https://github.com/pahaz/sshtunnel/pull/301

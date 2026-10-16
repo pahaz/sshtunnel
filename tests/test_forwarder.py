@@ -812,6 +812,25 @@ class SSHClientTest(unittest.TestCase):
         self.assertIn('Could not open connection to gateway',
                       self.sshtunnel_log_messages['error'])
 
+    def test_set_keepalive_default(self):
+        """
+        Test that keepalive is enabled every 5 seconds by default and can be
+        disabled with ``set_keepalive=0.0``
+        """
+        for kwargs, expected in (({}, 5.0), ({'set_keepalive': 0.0}, 0.0)):
+            with mock.patch.object(paramiko.Transport,
+                                   'set_keepalive') as set_keepalive:
+                with self._test_server(
+                    (self.saddr, self.sport),
+                    ssh_username=SSH_USERNAME,
+                    ssh_password=SSH_PASSWORD,
+                    remote_bind_address=(self.eaddr, self.eport),
+                    logger=self.log,
+                    **kwargs
+                ):
+                    pass
+            set_keepalive.assert_called_with(expected)
+
     @unittest.skipIf(sys.version_info < (3, 4),
                      reason="pathlib is not available")
     def test_pkey_accepts_pathlib_path(self):

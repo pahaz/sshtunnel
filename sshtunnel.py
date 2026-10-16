@@ -684,7 +684,8 @@ class SSHTunnelForwarder(object):
             keep connections alive over a NAT. You can set to 0.0 for
             disable keepalive.
 
-            Default: 5.0 (no keepalive packets are sent)
+            Default: 5.0 (a keepalive packet is sent every 5 seconds
+            when the connection is idle)
 
             .. versionadded:: 0.0.7
 
