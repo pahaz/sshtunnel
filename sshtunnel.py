@@ -37,6 +37,12 @@ else:  # pragma: no cover
     string_types = str
     input_ = input
 
+if sys.version_info >= (3, 4):  # pragma: no cover
+    from pathlib import PurePath
+    path_types = (string_types, PurePath)
+else:  # pragma: no cover
+    path_types = string_types
+
 
 __version__ = '0.5.1'
 __author__ = 'pahaz'
@@ -559,9 +565,10 @@ class SSHTunnelForwarder(object):
 
             Default: 22
 
-        ssh_pkey (str or paramiko.PKey):
-            **Private** key file name (``str``) to obtain the public key
-            from or a **public** key (:class:`paramiko.pkey.PKey`)
+        ssh_pkey (str, pathlib.Path or paramiko.PKey):
+            **Private** key file name (``str`` or ``pathlib.Path``) to
+            obtain the public key from or a **public** key
+            (:class:`paramiko.pkey.PKey`)
 
         ssh_private_key_password (str):
             Password for an encrypted ``ssh_pkey``
@@ -1041,13 +1048,18 @@ class SSHTunnelForwarder(object):
         except (AttributeError, TypeError):  # ssh_config_file is None
             if logger:
                 logger.info('Skipping loading of ssh configuration file')
-        finally:
-            return (ssh_host,
-                    ssh_username or getpass.getuser(),
-                    ssh_pkey,
-                    int(ssh_port) if ssh_port else 22,  # fallback value
-                    ssh_proxy,
-                    compression)
+        except Exception as exc:  # keep ignoring a broken configuration
+            if logger:
+                logger.warning(
+                    'Could not process SSH configuration file {0}: {1!r}'
+                    .format(ssh_config_file, exc)
+                )
+        return (ssh_host,
+                ssh_username or getpass.getuser(),
+                ssh_pkey,
+                int(ssh_port) if ssh_port else 22,  # fallback value
+                ssh_proxy,
+                compression)
 
     @staticmethod
     def get_agent_keys(logger=None):
@@ -1160,8 +1172,8 @@ class SSHTunnelForwarder(object):
             allow_agent=allow_agent
         )
 
-        if isinstance(ssh_pkey, string_types):
-            ssh_pkey_expanded = os.path.expanduser(ssh_pkey)
+        if isinstance(ssh_pkey, path_types):
+            ssh_pkey_expanded = os.path.expanduser(str(ssh_pkey))
             if os.path.exists(ssh_pkey_expanded):
                 ssh_pkey = SSHTunnelForwarder.read_private_key_file(
                     pkey_file=ssh_pkey_expanded,
@@ -1343,6 +1355,16 @@ class SSHTunnelForwarder(object):
             return
         self._create_tunnels()
         if not self.is_active:
+            # the servers were never started, so only release their sockets
+            for _srv in self._server_list:
+                _srv.server_close()
+                if isinstance(_srv, _StreamForwardServer):
+                    try:
+                        os.unlink(_srv.local_address)
+                    except OSError:
+                        pass
+            self._server_list = []
+            self.tunnel_is_up = {}
             reason = 'Could not establish session to SSH gateway'
             if self._gateway_error:
                 reason = '{0}: {1}'.format(reason, self._gateway_error)
