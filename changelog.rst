@@ -31,6 +31,7 @@ CHANGELOG
 - v.0.X.Y (`MCazaly`_, `SheevaPlug`_, `bmos`_)
     + Accept ``pathlib.Path`` objects for ``ssh_pkey`` (`#233`_, `#234`_)
     + Remove ``return`` from a ``finally`` block, which is a ``SyntaxWarning`` on Python 3.14 (`#308`_)
+    + Close the local bind sockets when ``start()`` fails to establish the session to the gateway, so the ports can be reused (`#288`_)
 
 - v.0.5.1 (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_, `lglines`_, `mweinelt`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)
@@ -212,6 +213,7 @@ CHANGELOG
 .. _#247: https://github.com/pahaz/sshtunnel/issues/247
 .. _#250: https://github.com/pahaz/sshtunnel/issues/250
 .. _#308: https://github.com/pahaz/sshtunnel/issues/308
+.. _#288: https://github.com/pahaz/sshtunnel/issues/288
 .. _#300: https://github.com/pahaz/sshtunnel/pull/300
 .. _#301: https://github.com/pahaz/sshtunnel/pull/301
 .. _detail: https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127
