@@ -792,6 +792,93 @@ class SSHClientTest(unittest.TestCase):
         self.assertIn('Could not establish session to SSH gateway', message)
         self.assertIn('Could not resolve IP address', message)
 
+    def test_wrong_pkey_error_includes_reason(self):
+        """
+        The exception raised when the gateway rejects the private key says
+        which user could not log in and where
+        """
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError) as cm:
+            with self._test_server(
+                (self.saddr, self.sport),
+                ssh_username=SSH_USERNAME,
+                ssh_pkey=paramiko.RSAKey.generate(1024),
+                remote_bind_address=(self.eaddr, self.randomize_eport()),
+                logger=self.log,
+            ):
+                pass
+        self.assertIn(
+            'Could not establish session to SSH gateway: '
+            'Authentication failed for user {0!r} on {1}:{2}'
+            .format(SSH_USERNAME, self.saddr, self.sport),
+            str(cm.exception)
+        )
+
+    def test_unreachable_gateway_error_includes_reason(self):
+        """
+        The exception raised when nothing listens on the gateway port says
+        which address could not be reached
+        """
+        port = self.randomize_eport()
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError) as cm:
+            with open_tunnel(
+                (self.saddr, port),
+                ssh_username=SSH_USERNAME,
+                ssh_password=SSH_PASSWORD,
+                remote_bind_address=(self.eaddr, self.eport),
+            ):
+                pass
+        self.assertIn(
+            'Could not establish session to SSH gateway: '
+            'Could not connect to gateway {0}:{1}'.format(self.saddr, port),
+            str(cm.exception)
+        )
+
+    @unittest.skipIf(sys.version_info < (2, 7),
+                     reason="Cannot intercept logging messages in py26")
+    def test_gateway_error_reason_is_logged_with_muted_exceptions(self):
+        """
+        With ``mute_exceptions=True`` the logged error includes the reason
+        """
+        self.start_echo_and_ssh_server()
+        server = open_tunnel(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD[::-1],
+            remote_bind_address=(self.eaddr, self.randomize_eport()),
+            mute_exceptions=True,
+            logger=self.log,
+        )
+        server.start()
+        server.stop()
+        expected = ('Could not establish session to SSH gateway: '
+                    'Authentication failed for user {0!r}'
+                    .format(SSH_USERNAME))
+        self.assertTrue(any(expected in m
+                            for m in self.sshtunnel_log_messages['error']))
+
+    def test_gateway_error_reason_is_reset_on_restart(self):
+        """
+        A failed ``start()`` reports its own reason, not the one left over
+        from a previous attempt
+        """
+        self.start_echo_and_ssh_server()
+        server = open_tunnel(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD[::-1],
+            remote_bind_address=(self.eaddr, self.randomize_eport()),
+            logger=self.log,
+        )
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError) as cm:
+            server.start()
+        self.assertIn('Authentication failed', str(cm.exception))
+
+        server.ssh_port = self.randomize_eport()  # nothing listens there
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError) as cm:
+            server.start()
+        self.assertIn('Could not connect to gateway', str(cm.exception))
+        self.assertNotIn('Authentication failed', str(cm.exception))
+
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
     def test_running_start_twice_logs_warning(self):
