@@ -923,6 +923,7 @@ class SSHTunnelForwarder(object):
         self.tunnel_is_up = {}  # handle tunnel status
         self._threaded = threaded
         self.is_alive = False
+        self._gateway_error = None  # last reason the gateway connection failed
         # Check if deprecated arguments ssh_address or ssh_host were used
         for deprecated_argument in ['ssh_address', 'ssh_host']:
             ssh_address_or_host = self._process_deprecated(ssh_address_or_host,
@@ -1230,17 +1231,20 @@ class SSHTunnelForwarder(object):
         Create SSH tunnels on top of a transport to the remote gateway
         """
         if not self.is_active:
+            self._gateway_error = None
             try:
                 self._connect_to_gateway()
             except socket.gaierror:  # raised by paramiko.Transport
                 msg = 'Could not resolve IP address for {0}, aborting!' \
                     .format(self.ssh_host)
                 self.logger.error(msg)
+                self._gateway_error = msg
                 return
             except (paramiko.SSHException, socket.error) as e:
                 template = 'Could not connect to gateway {0}:{1} : {2}'
                 msg = template.format(self.ssh_host, self.ssh_port, e.args[0])
                 self.logger.error(msg)
+                self._gateway_error = msg
                 return
         for (rem, loc) in zip(self._remote_binds, self._local_binds):
             try:
@@ -1361,8 +1365,10 @@ class SSHTunnelForwarder(object):
                         pass
             self._server_list = []
             self.tunnel_is_up = {}
-            self._raise(BaseSSHTunnelForwarderError,
-                        reason='Could not establish session to SSH gateway')
+            reason = 'Could not establish session to SSH gateway'
+            if self._gateway_error:
+                reason = '{0}: {1}'.format(reason, self._gateway_error)
+            self._raise(BaseSSHTunnelForwarderError, reason=reason)
         for _srv in self._server_list:
             thread = threading.Thread(
                 target=self._serve_forever_wrapper,
@@ -1439,8 +1445,12 @@ class SSHTunnelForwarder(object):
                                         pkey=key)
                 if self._transport.is_alive:
                     return
-            except paramiko.AuthenticationException:
+            except paramiko.AuthenticationException as e:
                 self.logger.debug('Authentication error')
+                self._gateway_error = (
+                    'Authentication failed for user {0!r} on {1}:{2} ({3})'
+                    .format(self.ssh_username, self.ssh_host, self.ssh_port,
+                            e))
                 self._stop_transport()
 
         if self.ssh_password:  # avoid conflict using both pass and pkey
@@ -1453,8 +1463,12 @@ class SSHTunnelForwarder(object):
                                         password=self.ssh_password)
                 if self._transport.is_alive:
                     return
-            except paramiko.AuthenticationException:
+            except paramiko.AuthenticationException as e:
                 self.logger.debug('Authentication error')
+                self._gateway_error = (
+                    'Authentication failed for user {0!r} on {1}:{2} ({3})'
+                    .format(self.ssh_username, self.ssh_host, self.ssh_port,
+                            e))
                 self._stop_transport()
 
         self.logger.error('Could not open connection to gateway')
