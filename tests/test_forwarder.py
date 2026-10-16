@@ -724,7 +724,7 @@ class SSHClientTest(unittest.TestCase):
         BaseSSHTunnelForwarderError is raised when not able to reach the
         ssh gateway
         """
-        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError) as cm:
             with open_tunnel(
                 (self.saddr, self.randomize_eport()),
                 ssh_username=SSH_USERNAME,
@@ -733,6 +733,9 @@ class SSHClientTest(unittest.TestCase):
                 ssh_config_file=None,
             ):
                 pass
+        self.assertIn('Could not connect to gateway', str(cm.exception))
+        self.assertIsInstance(cm.exception.__cause__,
+                              (paramiko.SSHException, socket.error))
 
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
@@ -741,7 +744,7 @@ class SSHClientTest(unittest.TestCase):
         BaseSSHTunnelForwarderError is raised when not able to resolve the
         ssh gateway IP address
         """
-        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError) as cm:
             with open_tunnel(
                 (SSH_USERNAME, self.sport),
                 ssh_username=SSH_USERNAME,
@@ -750,12 +753,11 @@ class SSHClientTest(unittest.TestCase):
                 ssh_config_file=None,
             ):
                 pass
-        self.assertIn(
-            'Could not resolve IP address for {0}, aborting!'.format(
-                SSH_USERNAME
-            ),
-            self.sshtunnel_log_messages['error']
-        )
+        msg = 'Could not resolve IP address for {0}'.format(SSH_USERNAME)
+        self.assertIn(msg, str(cm.exception))
+        self.assertIsInstance(cm.exception.__cause__, socket.gaierror)
+        self.assertTrue(any(m.startswith(msg)
+                            for m in self.sshtunnel_log_messages['error']))
 
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
@@ -800,7 +802,7 @@ class SSHClientTest(unittest.TestCase):
         Test that when connecting to the ssh gateway with wrong credentials,
         an error is logged
         """
-        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError) as cm:
             with self._test_server(
                 (self.saddr, self.sport),
                 ssh_username=SSH_USERNAME,
@@ -811,6 +813,30 @@ class SSHClientTest(unittest.TestCase):
                 pass
         self.assertIn('Could not open connection to gateway',
                       self.sshtunnel_log_messages['error'])
+        self.assertIn("Could not authenticate as user '{0}'"
+                      .format(SSH_USERNAME), str(cm.exception))
+        self.assertIsInstance(cm.exception.__cause__,
+                              paramiko.AuthenticationException)
+
+    def test_wrong_host_key_raises_exception(self):
+        """
+        Test that when the ssh gateway host key does not match, the reason is
+        part of the raised exception and the transport is closed
+        """
+        server = open_tunnel(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            ssh_host_key=paramiko.RSAKey.generate(1024),
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+        )
+        self.start_echo_and_ssh_server()
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError) as cm:
+            server.start()
+        self.assertIn('Bad host key', str(cm.exception))
+        self.assertIsInstance(cm.exception.__cause__, paramiko.SSHException)
+        self.assertFalse(server.is_active)
 
     def test_failed_start_releases_local_bind_ports(self):
         """
