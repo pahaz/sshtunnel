@@ -29,11 +29,13 @@ import paramiko
 if sys.version_info[0] < 3:  # pragma: no cover
     import Queue as queue
     import SocketServer as socketserver
+    from pipes import quote as _shell_quote
     string_types = basestring,  # noqa
     input_ = raw_input  # noqa
 else:  # pragma: no cover
     import queue
     import socketserver
+    from shlex import quote as _shell_quote
     string_types = str
     input_ = input
 
@@ -260,6 +262,24 @@ def address_to_str(address):
     if isinstance(address, tuple):
         return '{0[0]}:{0[1]}'.format(address)
     return str(address)
+
+
+def _proxyjump_command(proxyjump, ssh_config_file, ssh_host, ssh_port):
+    """
+    Build the ``ssh`` command line equivalent to a ``ProxyJump`` directive,
+    or return ``None`` if there is nothing to jump through
+
+    The last jump host connects to the target, the previous ones are chained
+    with ``-J``. ``-F`` keeps using the same ssh configuration file.
+    """
+    if not proxyjump or proxyjump.lower() == 'none':
+        return None
+    hops = [hop.strip() for hop in proxyjump.split(',')]
+    cmd = ['ssh', '-F', os.path.abspath(ssh_config_file)]
+    if len(hops) > 1:
+        cmd += ['-J', ','.join(hops[:-1])]
+    cmd += ['-W', '{0}:{1}'.format(ssh_host, ssh_port or 22), hops[-1]]
+    return ' '.join(_shell_quote(arg) for arg in cmd)
 
 
 def _remove_none_values(dictionary):
@@ -1033,18 +1053,9 @@ class SSHTunnelForwarder(object):
             ssh_host = hostname_info.get('hostname')
             ssh_port = ssh_port or hostname_info.get('port')
 
-            proxycommand = hostname_info.get("proxycommand")
-            if not proxycommand and "proxyjump" in hostname_info:
-                hops = list(reversed(hostname_info["proxyjump"].split(",")))
-                if len(hops) > 1:
-                    raise ValueError(
-                        "ProxyJump with more than one proxy server is not supported."
-                    )
-                # -F forces the continued use of the same SSH config file
-                proxycommand = "ssh {} -F {} -W {}:{}".format(
-                    hops[0], os.path.abspath(config_path), ssh_host, ssh_port
-                )
-
+            proxycommand = hostname_info.get('proxycommand') \
+                or _proxyjump_command(hostname_info.get('proxyjump'),
+                                      config_path, ssh_host, ssh_port)
             ssh_proxy = ssh_proxy or (paramiko.ProxyCommand(proxycommand) if
                                       proxycommand else None)
             if compression is None:
