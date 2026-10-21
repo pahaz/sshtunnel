@@ -1,0 +1,12 @@
+Host single
+  Hostname 10.0.0.2
+  ProxyJump bastion
+Host multi
+  Hostname 10.0.0.3
+  Port 2200
+  ProxyJump u@bastion1:2222, bastion2,bastion3
+Host disabled
+  ProxyJump none
+Host both
+  ProxyCommand nc -X 5 %h %p
+  ProxyJump bastion

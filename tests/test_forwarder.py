@@ -4,6 +4,7 @@ import os
 import sys
 import random
 import select
+import shlex
 import socket
 import getpass
 import logging
@@ -1590,6 +1591,62 @@ class AuxiliaryTest(unittest.TestCase):
         self.assertEqual(ssh_hostname, '10.0.0.1')
         self.assertEqual(ssh_port, 222)
         self.assertFalse(compression)
+
+    def test_read_ssh_config_proxyjump(self):
+        """ ProxyJump from the ssh config is turned into a proxy command """
+        config = get_test_data_path('testconfig_proxyjump')
+        config_abs = os.path.abspath(config)
+
+        def read(host):
+            return sshtunnel.SSHTunnelForwarder._read_ssh_config(
+                host, config)[4]
+
+        with mock.patch("sshtunnel.paramiko.ProxyCommand") as proxy:
+            self.assertIs(read('single'), proxy.return_value)
+            proxy.assert_called_with(
+                'ssh -F {0} -W 10.0.0.2:22 -- bastion'.format(config_abs))
+
+            read('multi')
+            proxy.assert_called_with(
+                "ssh -F {0} -J u@bastion1:2222,bastion2 "
+                "-W 10.0.0.3:2200 -- bastion3".format(config_abs))
+
+            proxy.reset_mock()
+            self.assertIsNone(read('disabled'))
+            self.assertFalse(proxy.called)
+
+            # ProxyCommand has priority over ProxyJump
+            read('both')
+            proxy.assert_called_with('nc -X 5 both 22')
+
+    def test_proxyjump_command_rejects_option_like_hosts(self):
+        """ A jump host must not be able to inject ssh options """
+        for value in ('-oProxyCommand=touch /tmp/x', 'a,-oProxyCommand=x',
+                      'a,', ',a', ' '):
+            with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+                sshtunnel._proxyjump_command(value, 'config', 'host', 22)
+        # shell metacharacters stay inside one argument
+        cmd = sshtunnel._proxyjump_command('a;b $(c)', 'config', 'h', 22)
+        self.assertEqual(shlex.split(cmd)[-3:], ['h:22', '--', 'a;b $(c)'])
+
+    def test_read_ssh_config_proxyjump_requires_ssh_client(self):
+        """ ProxyJump can not work without the ssh client: fail loudly """
+        config = get_test_data_path('testconfig_proxyjump')
+        with mock.patch('sshtunnel._which', return_value=None):
+            with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError) \
+                    as ctx:
+                sshtunnel.SSHTunnelForwarder._read_ssh_config(
+                    'single', config)
+            self.assertIn("requires the OpenSSH client", str(ctx.exception))
+
+            # nothing to jump through, or an explicit proxy: ssh is not needed
+            proxy = object()
+            result = sshtunnel.SSHTunnelForwarder._read_ssh_config(
+                'single', config, ssh_proxy=proxy)
+            self.assertIs(result[4], proxy)
+            result = sshtunnel.SSHTunnelForwarder._read_ssh_config(
+                'disabled', config)
+            self.assertIsNone(result[4])
 
     def test_read_ssh_config_ignores_invalid_config(self):
         """ A broken ssh config must not prevent returning the defaults """
