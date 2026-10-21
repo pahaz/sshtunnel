@@ -30,12 +30,14 @@ if sys.version_info[0] < 3:  # pragma: no cover
     import Queue as queue
     import SocketServer as socketserver
     from pipes import quote as _shell_quote
+    from distutils.spawn import find_executable as _which
     string_types = basestring,  # noqa
     input_ = raw_input  # noqa
 else:  # pragma: no cover
     import queue
     import socketserver
     from shlex import quote as _shell_quote
+    from shutil import which as _which
     string_types = str
     input_ = input
 
@@ -271,9 +273,16 @@ def _proxyjump_command(proxyjump, ssh_config_file, ssh_host, ssh_port):
 
     The last jump host connects to the target, the previous ones are chained
     with ``-J``. ``-F`` keeps using the same ssh configuration file.
+
+    Raise :class:`BaseSSHTunnelForwarderError` if the OpenSSH client is not
+    installed, since it is the one which connects to the jump hosts.
     """
     if not proxyjump or proxyjump.lower() == 'none':
         return None
+    if not _which('ssh'):
+        raise BaseSSHTunnelForwarderError(
+            "ProxyJump '{0}' requires the OpenSSH client ('ssh' command), "
+            "which was not found in PATH".format(proxyjump))
     hops = [hop.strip() for hop in proxyjump.split(',')]
     cmd = ['ssh', '-F', os.path.abspath(ssh_config_file)]
     if len(hops) > 1:
@@ -1015,14 +1024,15 @@ class SSHTunnelForwarder(object):
                           .format(self._threaded))
 
     @staticmethod
-    def _read_ssh_config(ssh_host,
-                         ssh_config_file,
-                         ssh_username=None,
-                         ssh_pkey=None,
-                         ssh_port=None,
-                         ssh_proxy=None,
-                         compression=None,
-                         logger=None):
+    def _read_ssh_config(  # noqa: C901
+            ssh_host,
+            ssh_config_file,
+            ssh_username=None,
+            ssh_pkey=None,
+            ssh_port=None,
+            ssh_proxy=None,
+            compression=None,
+            logger=None):
         """
         Read ssh_config_file and tries to look for user (ssh_username),
         identityfile (ssh_pkey), port (ssh_port) and proxycommand
@@ -1053,14 +1063,18 @@ class SSHTunnelForwarder(object):
             ssh_host = hostname_info.get('hostname')
             ssh_port = ssh_port or hostname_info.get('port')
 
-            proxycommand = hostname_info.get('proxycommand') \
+            # an explicit ssh_proxy has priority, no need for the ssh client
+            proxycommand = not ssh_proxy and (
+                hostname_info.get('proxycommand')
                 or _proxyjump_command(hostname_info.get('proxyjump'),
-                                      config_path, ssh_host, ssh_port)
+                                      config_path, ssh_host, ssh_port))
             ssh_proxy = ssh_proxy or (paramiko.ProxyCommand(proxycommand) if
                                       proxycommand else None)
             if compression is None:
                 compression = hostname_info.get('compression', '')
                 compression = True if compression.upper() == 'YES' else False
+        except BaseSSHTunnelForwarderError:  # e.g. ProxyJump without ssh
+            raise
         except IOError:
             if logger:
                 logger.warning(

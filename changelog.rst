@@ -32,7 +32,7 @@ CHANGELOG
     + Accept ``pathlib.Path`` objects for ``ssh_pkey`` (`#233`_, `#234`_)
     + Remove ``return`` from a ``finally`` block, which is a ``SyntaxWarning`` on Python 3.14 (`#308`_)
     + Close the local bind sockets when ``start()`` fails to establish the session to the gateway, so the ports can be reused (`#288`_)
-    + Support ``ProxyJump`` (including several jump hosts) from the ssh config file (`#244`_, `#249`_)
+    + Support ``ProxyJump`` (including several jump hosts) from the ssh config file (`#244`_, `#249`_); it needs the OpenSSH client and raises an error if it is missing
 
 - v.0.5.1 (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_, `lglines`_, `mweinelt`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)

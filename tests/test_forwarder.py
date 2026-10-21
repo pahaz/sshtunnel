@@ -1618,6 +1618,25 @@ class AuxiliaryTest(unittest.TestCase):
             read('both')
             proxy.assert_called_with('nc -X 5 both 22')
 
+    def test_read_ssh_config_proxyjump_requires_ssh_client(self):
+        """ ProxyJump can not work without the ssh client: fail loudly """
+        config = get_test_data_path('testconfig_proxyjump')
+        with mock.patch('sshtunnel._which', return_value=None):
+            with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError) \
+                    as ctx:
+                sshtunnel.SSHTunnelForwarder._read_ssh_config(
+                    'single', config)
+            self.assertIn("requires the OpenSSH client", str(ctx.exception))
+
+            # nothing to jump through, or an explicit proxy: ssh is not needed
+            proxy = object()
+            result = sshtunnel.SSHTunnelForwarder._read_ssh_config(
+                'single', config, ssh_proxy=proxy)
+            self.assertIs(result[4], proxy)
+            result = sshtunnel.SSHTunnelForwarder._read_ssh_config(
+                'disabled', config)
+            self.assertIsNone(result[4])
+
     def test_read_ssh_config_ignores_invalid_config(self):
         """ A broken ssh config must not prevent returning the defaults """
         with mock.patch('paramiko.SSHConfig.parse',
