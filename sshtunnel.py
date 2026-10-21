@@ -284,10 +284,14 @@ def _proxyjump_command(proxyjump, ssh_config_file, ssh_host, ssh_port):
             "ProxyJump '{0}' requires the OpenSSH client ('ssh' command), "
             "which was not found in PATH".format(proxyjump))
     hops = [hop.strip() for hop in proxyjump.split(',')]
+    if not all(hops) or any(hop.startswith('-') for hop in hops):
+        # a jump host must never be parsed by ssh as an option
+        raise BaseSSHTunnelForwarderError(
+            "Invalid ProxyJump value '{0}'".format(proxyjump))
     cmd = ['ssh', '-F', os.path.abspath(ssh_config_file)]
     if len(hops) > 1:
         cmd += ['-J', ','.join(hops[:-1])]
-    cmd += ['-W', '{0}:{1}'.format(ssh_host, ssh_port or 22), hops[-1]]
+    cmd += ['-W', '{0}:{1}'.format(ssh_host, ssh_port or 22), '--', hops[-1]]
     return ' '.join(_shell_quote(arg) for arg in cmd)
 
 

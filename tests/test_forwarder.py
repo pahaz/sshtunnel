@@ -4,6 +4,7 @@ import os
 import sys
 import random
 import select
+import shlex
 import socket
 import getpass
 import logging
@@ -1603,12 +1604,12 @@ class AuxiliaryTest(unittest.TestCase):
         with mock.patch("sshtunnel.paramiko.ProxyCommand") as proxy:
             self.assertIs(read('single'), proxy.return_value)
             proxy.assert_called_with(
-                'ssh -F {0} -W 10.0.0.2:22 bastion'.format(config_abs))
+                'ssh -F {0} -W 10.0.0.2:22 -- bastion'.format(config_abs))
 
             read('multi')
             proxy.assert_called_with(
                 "ssh -F {0} -J u@bastion1:2222,bastion2 "
-                "-W 10.0.0.3:2200 bastion3".format(config_abs))
+                "-W 10.0.0.3:2200 -- bastion3".format(config_abs))
 
             proxy.reset_mock()
             self.assertIsNone(read('disabled'))
@@ -1617,6 +1618,16 @@ class AuxiliaryTest(unittest.TestCase):
             # ProxyCommand has priority over ProxyJump
             read('both')
             proxy.assert_called_with('nc -X 5 both 22')
+
+    def test_proxyjump_command_rejects_option_like_hosts(self):
+        """ A jump host must not be able to inject ssh options """
+        for value in ('-oProxyCommand=touch /tmp/x', 'a,-oProxyCommand=x',
+                      'a,', ',a', ' '):
+            with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+                sshtunnel._proxyjump_command(value, 'config', 'host', 22)
+        # shell metacharacters stay inside one argument
+        cmd = sshtunnel._proxyjump_command('a;b $(c)', 'config', 'h', 22)
+        self.assertEqual(shlex.split(cmd)[-3:], ['h:22', '--', 'a;b $(c)'])
 
     def test_read_ssh_config_proxyjump_requires_ssh_client(self):
         """ ProxyJump can not work without the ssh client: fail loudly """
