@@ -1610,6 +1610,42 @@ class AuxiliaryTest(unittest.TestCase):
         self.assertEqual(ssh_port, 22)
         self.assertIsNone(ssh_proxy)
 
+    def test_read_ssh_config_include(self):
+        """ ``Include`` directives are followed like OpenSSH does """
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp)
+
+        def write(name, content):
+            with open(path.join(tmp, name), 'w') as f:
+                f.write(content)
+
+        write('main', 'Include {0}\nInclude {1}\nInclude missing_*\n'
+              'Host *\n    Port 2222\n'
+              .format(path.join(tmp, 'local'), path.join(tmp, 'conf.d_*')))
+        write('local', 'Host included\n    User incuser\n'
+              '    HostName 10.1.1.1\n')
+        write('conf.d_1', 'Host second\n    User secuser\n')
+        write('loop', 'Include {0}\nHost loop\n    User loopuser\n'
+              .format(path.join(tmp, 'loop')))
+
+        (ssh_hostname, ssh_username, _, ssh_port, _, _) = \
+            sshtunnel.SSHTunnelForwarder._read_ssh_config(
+                'included', path.join(tmp, 'main'))
+        self.assertEqual(ssh_hostname, '10.1.1.1')
+        self.assertEqual(ssh_username, 'incuser')
+        self.assertEqual(ssh_port, 2222)
+
+        (_, ssh_username, _, _, _, _) = \
+            sshtunnel.SSHTunnelForwarder._read_ssh_config(
+                'second', path.join(tmp, 'main'))
+        self.assertEqual(ssh_username, 'secuser')
+
+        # self-including files do not recurse forever
+        (_, ssh_username, _, _, _, _) = \
+            sshtunnel.SSHTunnelForwarder._read_ssh_config(
+                'loop', path.join(tmp, 'loop'))
+        self.assertEqual(ssh_username, 'loopuser')
+
     def test_no_return_in_finally(self):
         """ `return` in `finally` is a SyntaxWarning since Python 3.14 """
         import warnings

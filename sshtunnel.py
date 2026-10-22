@@ -12,6 +12,8 @@ The connection(s) are closed when explicitly calling the
 """
 
 import os
+import re
+import glob
 import random
 import string
 import sys
@@ -29,11 +31,13 @@ import paramiko
 if sys.version_info[0] < 3:  # pragma: no cover
     import Queue as queue
     import SocketServer as socketserver
+    from StringIO import StringIO
     string_types = basestring,  # noqa
     input_ = raw_input  # noqa
 else:  # pragma: no cover
     import queue
     import socketserver
+    from io import StringIO
     string_types = str
     input_ = input
 
@@ -74,6 +78,47 @@ _StreamServer = socketserver.UnixStreamServer if os.name == 'posix' \
 #: Path of optional ssh configuration file
 DEFAULT_SSH_DIRECTORY = '~/.ssh'
 SSH_CONFIG_FILE = os.path.join(DEFAULT_SSH_DIRECTORY, 'config')
+
+
+_SSH_CONFIG_INCLUDE_RE = re.compile(r'^\s*include(?:\s*=\s*|\s+)(.+?)\s*$',
+                                    re.IGNORECASE)
+_SSH_CONFIG_MAX_INCLUDE_DEPTH = 16
+
+
+def _read_ssh_config_lines(path, depth=0):
+    """
+    Return the lines of the ssh config file ``path`` with ``Include``
+    directives replaced by the content of the included files, as
+    OpenSSH does (paramiko does not support ``Include``).
+
+    Relative include paths are resolved against ``~/.ssh``; missing files
+    and patterns without matches are ignored. Only an unreadable ``path``
+    itself raises ``IOError``.
+    """
+    with open(os.path.expanduser(path), 'r') as f:
+        lines = f.read().splitlines()
+    if depth >= _SSH_CONFIG_MAX_INCLUDE_DEPTH:
+        return lines
+    result = []
+    for line in lines:
+        match = _SSH_CONFIG_INCLUDE_RE.match(line)
+        if not match:
+            result.append(line)
+            continue
+        for pattern in match.group(1).split():
+            pattern = os.path.expanduser(pattern.strip('"\''))
+            if not os.path.isabs(pattern):
+                pattern = os.path.join(
+                    os.path.expanduser(DEFAULT_SSH_DIRECTORY), pattern
+                )
+            for included in sorted(glob.glob(pattern)):
+                if not os.path.isfile(included):
+                    continue
+                try:
+                    result.extend(_read_ssh_config_lines(included, depth + 1))
+                except IOError:
+                    pass
+    return result
 
 ########################
 #                      #
@@ -530,7 +575,8 @@ class SSHTunnelForwarder(object):
 
         ssh_config_file (str):
             SSH configuration file that will be read. If explicitly set to
-            ``None``, parsing of this configuration is omitted
+            ``None``, parsing of this configuration is omitted.
+            ``Include`` directives are followed
 
             Default: :const:`SSH_CONFIG_FILE`
 
@@ -1015,8 +1061,9 @@ class SSHTunnelForwarder(object):
         # Try to read SSH_CONFIG_FILE
         try:
             # open the ssh config file
-            with open(os.path.expanduser(ssh_config_file), 'r') as f:
-                ssh_config.parse(f)
+            ssh_config.parse(StringIO(
+                '\n'.join(_read_ssh_config_lines(ssh_config_file))
+            ))
             # looks for information for the destination system
             hostname_info = ssh_config.lookup(ssh_host)
             # gather settings for user, port and identity file
