@@ -1086,6 +1086,43 @@ class SSHClientTest(unittest.TestCase):
         )
         self.assertEqual(server.ssh_proxy.cmd[1], 'proxy')
 
+    @unittest.skipUnless(sys.platform.startswith('linux'),
+                         reason="Needs /proc to find zombie processes")
+    def test_stop_reaps_proxy_command_process(self):
+        """ Test that stop() does not leave a defunct ProxyCommand process """
+        bridge = (
+            'import socket, sys, threading\n'
+            's = socket.create_connection(({0!r}, {1}))\n'
+            'def pump():\n'
+            '    while True:\n'
+            '        data = s.recv(4096)\n'
+            '        if not data:\n'
+            '            break\n'
+            '        sys.stdout.buffer.write(data)\n'
+            '        sys.stdout.buffer.flush()\n'
+            'threading.Thread(target=pump, daemon=True).start()\n'
+            'while True:\n'
+            '    data = sys.stdin.buffer.read1(4096)\n'
+            '    if not data:\n'
+            '        break\n'
+            '    s.sendall(data)\n'
+        ).format(self.saddr, self.sport)
+        proxycmd = paramiko.proxy.ProxyCommand(
+            '{0} -c "{1}"'.format(sys.executable, bridge)
+        )
+        pid = proxycmd.process.pid
+        with self._test_server(
+            self.saddr,
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            ssh_proxy=proxycmd,
+            logger=self.log,
+        ) as server:
+            server.stop()
+        # a process that was killed but not waited for stays as a zombie
+        self.assertFalse(path.exists('/proc/{0}'.format(pid)))
+
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
     def test_can_skip_loading_sshconfig(self):

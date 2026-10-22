@@ -1,4 +1,5 @@
 import select
+import errno
 import traceback
 import sys
 import os
@@ -210,6 +211,23 @@ def stop(tunnel, force=True):
         raise
 
 
+def check_no_zombie_children():
+    """ Fail if the stopped tunnel left a defunct child process behind """
+    if not hasattr(os, 'WNOHANG'):
+        logging.info('Zombie check is skipped: no os.WNOHANG on this platform')
+        return
+    try:
+        pid, status = os.waitpid(-1, os.WNOHANG)
+    except OSError as e:
+        if e.errno != errno.ECHILD:
+            raise
+        logging.info('No child processes left after stop')
+        return
+    # pid == 0 means that there are children, but none of them has exited
+    assert pid == 0, 'Defunct child process left after stop: pid=%s' % pid
+    logging.info('No zombie child processes after stop')
+
+
 def show_threading_state_if_required():
     current_threads = list(threading.enumerate())
     if len(current_threads) > 1:
@@ -236,6 +254,7 @@ if __name__ == '__main__':
     start(tunnel)
     res = run_db_queries(tunnel)
     stop(tunnel)
+    check_no_zombie_children()
     wait_and_check_or_restart_if_required(tunnel)
     show_threading_state_if_required()
 
