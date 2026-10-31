@@ -33,6 +33,7 @@ CHANGELOG
     + Remove ``return`` from a ``finally`` block, which is a ``SyntaxWarning`` on Python 3.14 (`#308`_)
     + Close the local bind sockets when ``start()`` fails to establish the session to the gateway, so the ports can be reused (`#288`_)
     + Reap the ``ProxyCommand`` process when the tunnel is stopped, so it does not stay as a defunct process (`#294`_)
+    + Close the transport when connecting to the gateway fails for a reason other than authentication (e.g. a host key mismatch with ``ssh_host_key``), so ``start()`` raises ``Could not establish session to SSH gateway`` instead of leaving an unauthenticated transport open
 
 - v.0.5.1 (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_, `lglines`_, `mweinelt`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)

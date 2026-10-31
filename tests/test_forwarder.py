@@ -1034,6 +1034,77 @@ class SSHClientTest(unittest.TestCase):
         finally:
             os.rmdir(tmpdir)
 
+    def _forwarder_with_wrong_host_key(self, **kwargs):
+        """
+        Start the mock gateway and make a forwarder that expects another
+        host key than the one the gateway presents
+        """
+        self.start_echo_and_ssh_server()
+        return open_tunnel(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            ssh_host_key=paramiko.RSAKey.generate(1024),
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+            **kwargs
+        )
+
+    @unittest.skipIf(sys.version_info < (2, 7),
+                     reason="Cannot intercept logging messages in py26")
+    def test_bad_host_key_closes_transport(self):
+        """
+        A host key mismatch on the gateway closes the transport, so start()
+        fails like for any other session that could not be established
+        """
+        local_port = self.randomize_eport()
+        server = self._forwarder_with_wrong_host_key(
+            local_bind_address=('127.0.0.1', local_port))
+        try:
+            with self.assertRaises(
+                    sshtunnel.BaseSSHTunnelForwarderError) as ctx:
+                server.start()
+            self.assertIs(type(ctx.exception),
+                          sshtunnel.BaseSSHTunnelForwarderError)
+            self.assertEqual(str(ctx.exception),
+                             'Could not establish session to SSH gateway')
+            self.assertFalse(server.is_active)
+            self.assertFalse(server.is_alive)
+            # the paramiko thread ends shortly after the transport is closed
+            server._transport.join(THREADS_TIMEOUT)
+            self.assertFalse(server._transport.is_alive())
+            self.assertEqual(server._server_list, [])
+            self.assertEqual(server.tunnel_is_up, {})
+            self._assert_port_is_free(local_port)
+            self.assertIn(
+                'Could not connect to gateway {0}:{1} : Bad host key from '
+                'server'.format(self.saddr, self.sport),
+                self.sshtunnel_log_messages['error']
+            )
+        finally:
+            server.stop(force=True)
+
+    def test_bad_host_key_with_muted_exceptions(self):
+        """
+        With ``mute_exceptions`` a host key mismatch does not raise, but the
+        transport is still closed
+        """
+        server = self._forwarder_with_wrong_host_key(mute_exceptions=True)
+        try:
+            server.start()
+            self.assertFalse(server.is_active)
+            self.assertFalse(server.is_alive)
+            # the paramiko thread ends shortly after the transport is closed
+            server._transport.join(THREADS_TIMEOUT)
+            self.assertFalse(server._transport.is_alive())
+            self.assertIn(
+                repr(sshtunnel.BaseSSHTunnelForwarderError(
+                    'Could not establish session to SSH gateway')),
+                self.sshtunnel_log_messages['error']
+            )
+        finally:
+            server.stop(force=True)
+
     @unittest.skipIf(sys.version_info < (3, 4),
                      reason="pathlib is not available")
     def test_pkey_accepts_pathlib_path(self):

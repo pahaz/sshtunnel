@@ -1433,32 +1433,40 @@ class SSHTunnelForwarder(object):
         for key in self.ssh_pkeys:
             self.logger.debug('Trying to log in with key: {0}'
                               .format(hexlify(key.get_fingerprint())))
-            try:
-                self._transport = self._get_transport()
-                self._transport.connect(hostkey=self.ssh_host_key,
-                                        username=self.ssh_username,
-                                        pkey=key)
-                if self._transport.is_alive:
-                    return
-            except paramiko.AuthenticationException:
-                self.logger.debug('Authentication error')
-                self._stop_transport()
+            if self._connect_transport(pkey=key):
+                return
 
         if self.ssh_password:  # avoid conflict using both pass and pkey
             self.logger.debug('Trying to log in with password: {0}'
                               .format('*' * len(self.ssh_password)))
-            try:
-                self._transport = self._get_transport()
-                self._transport.connect(hostkey=self.ssh_host_key,
-                                        username=self.ssh_username,
-                                        password=self.ssh_password)
-                if self._transport.is_alive:
-                    return
-            except paramiko.AuthenticationException:
-                self.logger.debug('Authentication error')
-                self._stop_transport()
+            if self._connect_transport(password=self.ssh_password):
+                return
 
         self.logger.error('Could not open connection to gateway')
+
+    def _connect_transport(self, **credentials):
+        """
+        Open a new transport to the SSH gateway and log in with the given
+        ``pkey`` or ``password``
+
+        Return False if the authentication was rejected. Any other
+        :class:`paramiko.SSHException` (like a bad host key) is re-raised.
+        In both cases the transport is closed first, as paramiko leaves it
+        open.
+        """
+        self._transport = self._get_transport()
+        try:
+            self._transport.connect(hostkey=self.ssh_host_key,
+                                    username=self.ssh_username,
+                                    **credentials)
+        except paramiko.AuthenticationException:
+            self.logger.debug('Authentication error')
+            self._stop_transport()
+            return False
+        except paramiko.SSHException:
+            self._stop_transport()
+            raise
+        return True
 
     def _serve_forever_wrapper(self, _srv, poll_interval=0.1):
         """
