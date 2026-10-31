@@ -1661,6 +1661,19 @@ class AuxiliaryTest(unittest.TestCase):
         with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
             server._raise(sshtunnel.BaseSSHTunnelForwarderError, 'test')
 
+    def test_forwarder_error_repr_contains_message(self):
+        """
+        ``repr()`` of the forwarder exceptions keeps the message on every
+        Python version, it is what gets logged with ``mute_exceptions=True``
+        """
+        for exc_class in (sshtunnel.BaseSSHTunnelForwarderError,
+                          sshtunnel.HandlerSSHTunnelForwarderError):
+            for exc in (exc_class('the reason'),
+                        exc_class(value='the reason')):
+                self.assertEqual(str(exc), 'the reason')
+                self.assertEqual(exc.args, ('the reason', ))
+                self.assertIn('the reason', repr(exc))
+
     def test_show_running_version(self):
         """ Test that _cli_main() function quits when Enter is pressed """
         with capture_stdout_stderr() as (out, err):

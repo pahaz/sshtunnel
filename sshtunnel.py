@@ -284,6 +284,11 @@ class BaseSSHTunnelForwarderError(Exception):
 
     def __init__(self, *args, **kwargs):
         self.value = kwargs.pop('value', args[0] if args else '')
+        # Python 2 leaves ``args`` empty unless the base ``__init__`` runs,
+        # and then ``repr()`` (logged with ``mute_exceptions=True``) loses
+        # the message
+        super(BaseSSHTunnelForwarderError, self).__init__(
+            *(args or (self.value,)))
 
     def __str__(self):
         return self.value
