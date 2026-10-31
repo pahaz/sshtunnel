@@ -21,6 +21,7 @@ import logging
 import argparse
 import warnings
 import threading
+import time
 from select import select
 from binascii import hexlify
 
@@ -1352,6 +1353,16 @@ class SSHTunnelForwarder(object):
             return
         self._create_tunnels()
         if not self.is_active:
+            # the servers were never started, so only release their sockets
+            for _srv in self._server_list:
+                _srv.server_close()
+                if isinstance(_srv, _StreamForwardServer):
+                    try:
+                        os.unlink(_srv.local_address)
+                    except OSError:
+                        pass
+            self._server_list = []
+            self.tunnel_is_up = {}
             self._raise(BaseSSHTunnelForwarderError,
                         reason='Could not establish session to SSH gateway')
         for _srv in self._server_list:
@@ -1507,6 +1518,7 @@ class SSHTunnelForwarder(object):
             self.logger.info('Closing ssh transport')
             self._transport.close()
             self._transport.stop_thread()
+            self._reap_proxy_process()
         for _srv in self._server_list:
             status = 'up' if self.tunnel_is_up[_srv.local_address] else 'down'
             self.logger.info('Shutting down tunnel: {0} <> {1} ({2})'.format(
@@ -1528,7 +1540,23 @@ class SSHTunnelForwarder(object):
             self.logger.info('Closing ssh transport')
             self._transport.close()
             self._transport.stop_thread()
+            self._reap_proxy_process()
         self.logger.debug('Transport is closed')
+
+    def _reap_proxy_process(self, timeout=1.0):
+        """
+        Wait for the ProxyCommand process to exit after the transport was
+        closed: paramiko only sends it SIGTERM, so it stays as a defunct
+        process until it is reaped
+        """
+        if not isinstance(self.ssh_proxy, paramiko.proxy.ProxyCommand):
+            return
+        deadline = time.time() + timeout
+        while self.ssh_proxy.process.poll() is None:
+            if time.time() > deadline:
+                self.logger.debug('ProxyCommand process is still running')
+                return
+            time.sleep(0.01)
 
     @property
     def local_bind_port(self):

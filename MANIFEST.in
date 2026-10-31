@@ -14,3 +14,4 @@ exclude *.pyc
 exclude __pycache__
 exclude Pipfile*
 exclude .circleci/*
+exclude AGENTS.md
