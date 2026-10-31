@@ -641,7 +641,9 @@ class SSHTunnelForwarder(object):
             .. versionadded:: 0.0.4
 
         allow_agent (boolean):
-            Enable/disable load of keys from an SSH agent
+            Enable/disable load of keys from an SSH agent. This does not
+            control loading keys from local directories; use
+            ``host_pkey_directories=[]`` to disable that separately.
 
             Default: ``True``
 
@@ -650,7 +652,10 @@ class SSHTunnelForwarder(object):
         host_pkey_directories (list):
             Look for pkeys in folders on this list, for example ['~/.ssh'].
 
-            Default: ``None`` (disabled)
+            Default: ``None`` (search ``~/.ssh`` for default identity files).
+            An empty list disables this local key search. It does not disable
+            keys from an SSH agent or an explicitly supplied ``ssh_pkey``.
+            To use only ``ssh_pkey``, also set ``allow_agent=False``.
 
             .. versionadded:: 0.1.4
 
@@ -1092,6 +1097,9 @@ class SSHTunnelForwarder(object):
             host_pkey_directories (Optional[list[str]]):
                 List of local directories where host SSH pkeys in the format
                 "id_*" are searched. For example, ['~/.ssh']
+
+                Default: ``None`` (search ``~/.ssh``). An empty list disables
+                local key lookup without changing ``allow_agent``.
 
                 .. versionadded:: 0.1.0
 
