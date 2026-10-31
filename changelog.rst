@@ -33,6 +33,7 @@ CHANGELOG
     + Remove ``return`` from a ``finally`` block, which is a ``SyntaxWarning`` on Python 3.14 (`#308`_)
     + Close the local bind sockets when ``start()`` fails to establish the session to the gateway, so the ports can be reused (`#288`_)
     + Include the reason (authentication failure, unresolvable host, connection error) in the "Could not establish session to SSH gateway" error (`#305`_)
+    + Keep the error message in the log with ``mute_exceptions=True`` on Python 2, where it was logged as an empty ``BaseSSHTunnelForwarderError()`` (`#305`_)
 
 - v.0.5.1 (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_, `lglines`_, `mweinelt`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)
