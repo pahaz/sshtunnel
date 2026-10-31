@@ -35,6 +35,7 @@ CHANGELOG
     + Close the local bind sockets when ``start()`` fails to establish the session to the gateway, so the ports can be reused (`#288`_)
     + Reap the ``ProxyCommand`` process when the tunnel is stopped, so it does not stay as a defunct process (`#294`_)
     + Fix the documented default of ``host_pkey_directories``: ``None`` searches ``~/.ssh``, an empty list disables the local key lookup (`#238`_, `#263`_, `#336`_)
+    + Accept ``ssh_host_key`` as a "known hosts" line, as documented, in addition to a ``PKey`` (`#229`_)
 
 - v.0.5.1 (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_, `lglines`_, `mweinelt`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)
@@ -211,6 +212,7 @@ CHANGELOG
 .. _#201: https://github.com/pahaz/sshtunnel/issues/201
 .. _#211: https://github.com/pahaz/sshtunnel/issues/211
 .. _#219: https://github.com/pahaz/sshtunnel/issues/219
+.. _#229: https://github.com/pahaz/sshtunnel/issues/229
 .. _#233: https://github.com/pahaz/sshtunnel/issues/233
 .. _#234: https://github.com/pahaz/sshtunnel/pull/234
 .. _#231: https://github.com/pahaz/sshtunnel/issues/231
