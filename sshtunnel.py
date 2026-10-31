@@ -283,6 +283,10 @@ class BaseSSHTunnelForwarderError(Exception):
     """ Exception raised by :class:`SSHTunnelForwarder` errors """
 
     def __init__(self, *args, **kwargs):
+        # The ``value`` keyword argument and the ``value`` attribute are kept
+        # only for backward compatibility. Do not use them in new code: pass
+        # the message as the first positional argument and read it with
+        # ``str(exc)``.
         self.value = kwargs.pop('value', args[0] if args else '')
         # Python 2 leaves ``args`` empty unless the base ``__init__`` runs,
         # and then ``repr()`` (logged with ``mute_exceptions=True``) loses
@@ -1255,7 +1259,7 @@ class SSHTunnelForwarder(object):
             try:
                 self._make_ssh_forward_server(rem, loc)
             except BaseSSHTunnelForwarderError as e:
-                msg = 'Problem setting SSH Forwarder up: {0}'.format(e.value)
+                msg = 'Problem setting SSH Forwarder up: {0}'.format(e)
                 self.logger.error(msg)
 
     @staticmethod
