@@ -1,3 +1,6 @@
+# The default image (Visual Studio 2015) has no recent Python versions
+image: Visual Studio 2022
+
 platform: x64
 
 environment:
@@ -86,16 +89,33 @@ environment:
     - PYTHON: "C:\\Python314"
       PYTHON_VERSION: "3.14.x"
       PYTHON_ARCH: "32"
+      # Installed from nuget.org when the image does not have it
+      PYTHON_NUGET: "3.14.0"
 
     - PYTHON: "C:\\Python314-x64"
       PYTHON_VERSION: "3.14.x"
       PYTHON_ARCH: "64"
+      # Installed from nuget.org when the image does not have it
+      PYTHON_NUGET: "3.14.0"
 
 init:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
 
 install:
+  - ps: |
+      if (-not (Test-Path "$env:PYTHON\python.exe")) {
+        if (-not $env:PYTHON_NUGET) {
+          throw "$env:PYTHON\python.exe is not on this image"
+        }
+        $package = if ($env:PYTHON_ARCH -eq "32") { "pythonx86" } else { "python" }
+        nuget install $package -Version $env:PYTHON_NUGET -ExcludeVersion -OutputDirectory C:\nuget-python
+        if ($LastExitCode -ne 0) { throw "nuget install $package failed" }
+        Copy-Item -Recurse "C:\nuget-python\$package\tools" $env:PYTHON
+      }
   - set "PATH=%PYTHON%;%PYTHON%\\Scripts;%PYTHON%\\Tools\\Scripts;%PATH%"
+  # Fail instead of silently testing another interpreter found on PATH
+  - python -c "import os, struct, sys; want = (os.environ['PYTHON_VERSION'][:-2], os.environ['PYTHON_ARCH']); got = ('{0}.{1}'.format(*sys.version_info), str(struct.calcsize('P') * 8)); print(sys.executable, sys.version); assert got == want, (got, want)"
+  - python -m pip --version || python -m ensurepip
   - python -m pip install --upgrade pip
   - pip install -r tests/requirements.txt
 
