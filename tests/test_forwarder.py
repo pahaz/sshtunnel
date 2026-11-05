@@ -734,6 +734,31 @@ class SSHClientTest(unittest.TestCase):
             ):
                 pass
 
+    def test_set_keepalive_default_is_enabled(self):
+        """Keepalive packets are enabled by default, as documented"""
+        server = sshtunnel.SSHTunnelForwarder(
+            (SSH_USERNAME, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            ssh_config_file=None,
+        )
+        self.assertEqual(server.set_keepalive, 5.0)
+
+    def test_set_keepalive_zero_disables_keepalive(self):
+        """set_keepalive=0.0 is passed on to paramiko to disable keepalive"""
+        with mock.patch('paramiko.Transport') as transport_class:
+            server = sshtunnel.SSHTunnelForwarder(
+                (SSH_USERNAME, self.sport),
+                ssh_username=SSH_USERNAME,
+                ssh_password=SSH_PASSWORD,
+                remote_bind_address=(self.eaddr, self.eport),
+                ssh_config_file=None,
+                set_keepalive=0.0,
+            )
+            server._get_transport()
+        transport_class.return_value.set_keepalive.assert_called_once_with(0.0)
+
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
     def test_gateway_ip_unresolvable_raises_exception(self):
