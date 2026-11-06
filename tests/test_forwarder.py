@@ -1195,6 +1195,31 @@ class SSHClientTest(unittest.TestCase):
             self.assertIsInstance(server.local_bind_port, int)
             self.assertEqual(server.local_bind_port, port)
 
+    def test_transport(self):
+        """ Test transport property """
+        with self._test_server(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+        ) as server:
+            self.assertIsInstance(server.transport, paramiko.Transport)
+            self.assertIs(server.transport, server._transport)
+            self.assertTrue(server.transport.is_active())
+
+    def test_transport_not_started(self):
+        """ transport property requires a started forwarder """
+        server = open_tunnel(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+        )
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+            server.transport
+
     def test_local_bind_host(self):
         """ Test local_bind_host property """
         with self._test_server(
