@@ -25,17 +25,18 @@ CONTRIBUTORS
 - `MCazaly`_
 - `SheevaPlug`_
 - `jelly`_
+- `s-t-e-v-e-n-k`_
 
 CHANGELOG
 =========
 
-- v.0.X.Y (`MCazaly`_, `SheevaPlug`_, `bmos`_, `jelly`_)
+- v.0.X.Y (`MCazaly`_, `SheevaPlug`_, `bmos`_, `jelly`_, `s-t-e-v-e-n-k`_)
     + Accept ``pathlib.Path`` objects for ``ssh_pkey`` (`#233`_, `#234`_)
     + Remove ``return`` from a ``finally`` block, which is a ``SyntaxWarning`` on Python 3.14 (`#308`_)
     + Close the local bind sockets when ``start()`` fails to establish the session to the gateway, so the ports can be reused (`#288`_)
     + Reap the ``ProxyCommand`` process when the tunnel is stopped, so it does not stay as a defunct process (`#294`_)
     + Accept ``ssh_host_key`` as a "known hosts" line, as documented, in addition to a ``PKey`` (`#229`_)
-    + Tests use ``unittest.mock`` on Python 3; the ``mock`` package is only needed on Python 2.7 (`#259`_, `#282`_)
+    + Tests use ``unittest.mock`` on Python 3; the ``mock`` package is only needed on Python 2.7 (`#259`_, `#282`_, `#310`_)
 
 - v.0.5.1 (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_, `lglines`_, `mweinelt`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)
@@ -192,6 +193,7 @@ CHANGELOG
 .. _mweinelt: https://github.com/mweinelt
 .. _MCazaly: https://github.com/MCazaly
 .. _jelly: https://github.com/jelly
+.. _s-t-e-v-e-n-k: https://github.com/s-t-e-v-e-n-k
 .. _#13: https://github.com/pahaz/sshtunnel/issues/13
 .. _#16: https://github.com/pahaz/sshtunnel/issues/16
 .. _#19: https://github.com/pahaz/sshtunnel/issues/19
@@ -225,4 +227,5 @@ CHANGELOG
 .. _#301: https://github.com/pahaz/sshtunnel/pull/301
 .. _#259: https://github.com/pahaz/sshtunnel/issues/259
 .. _#282: https://github.com/pahaz/sshtunnel/pull/282
+.. _#310: https://github.com/pahaz/sshtunnel/pull/310
 .. _detail: https://github.com/pahaz/sshtunnel/commit/64af238b799b0e0057c4f9b386cda247e0006da9#diff-76bc1662a114401c2954deb92b740081R127
