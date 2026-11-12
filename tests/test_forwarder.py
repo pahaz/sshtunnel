@@ -757,6 +757,66 @@ class SSHClientTest(unittest.TestCase):
             self.sshtunnel_log_messages['error']
         )
 
+    def test_gateway_timeout_is_used_to_connect(self):
+        """
+        Test that gateway_timeout is the timeout of the TCP connection to the
+        gateway and that a timeout fails start() instead of hanging
+        """
+        timeout_error = socket.timeout('timed out')
+        with mock.patch('sshtunnel.socket.create_connection',
+                        side_effect=timeout_error) as create_connection:
+            with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+                with open_tunnel(
+                    (self.saddr, self.sport),
+                    ssh_username=SSH_USERNAME,
+                    ssh_password=SSH_PASSWORD,
+                    remote_bind_address=(self.eaddr, self.eport),
+                    gateway_timeout=2.5,
+                    ssh_config_file=None,
+                    logger=self.log,
+                ):
+                    pass
+        create_connection.assert_called_with((self.saddr, self.sport),
+                                             timeout=2.5)
+        self.assertIn(
+            'Could not connect to gateway {0}:{1} : Unable to connect to '
+            '{0}: timed out'.format(self.saddr, self.sport),
+            self.sshtunnel_log_messages['error']
+        )
+
+    def test_connect_with_gateway_timeout(self):
+        """ Test that a tunnel works when gateway_timeout is set """
+        with self._test_server(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password=SSH_PASSWORD,
+            remote_bind_address=(self.eaddr, self.eport),
+            gateway_timeout=5.0,
+            logger=self.log,
+        ) as server:
+            self.assertEqual(server.gateway_timeout, 5.0)
+            self.assertTrue(server.is_active)
+
+    def test_gateway_timeout_is_disabled_by_default(self):
+        """
+        Test that without gateway_timeout the connection is left to paramiko,
+        as before
+        """
+        with mock.patch('sshtunnel.socket.create_connection',
+                        wraps=socket.create_connection) as create_connection:
+            with self._test_server(
+                (self.saddr, self.sport),
+                ssh_username=SSH_USERNAME,
+                ssh_password=SSH_PASSWORD,
+                remote_bind_address=(self.eaddr, self.eport),
+                logger=self.log,
+            ) as server:
+                self.assertIsNone(server.gateway_timeout)
+                self.assertTrue(server.is_active)
+        gateway = (self.saddr, self.sport)
+        self.assertNotIn(gateway,
+                         [c[0][0] for c in create_connection.call_args_list])
+
     @unittest.skipIf(sys.version_info < (2, 7),
                      reason="Cannot intercept logging messages in py26")
     def test_running_start_twice_logs_warning(self):
