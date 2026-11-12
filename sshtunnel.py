@@ -690,6 +690,18 @@ class SSHTunnelForwarder(object):
 
             .. versionadded:: 0.0.7
 
+        gateway_timeout (float):
+            Timeout in seconds for opening the TCP connection to the SSH
+            gateway. If the gateway does not answer in time, :meth:`start`
+            fails with :class:`BaseSSHTunnelForwarderError` instead of
+            waiting for the operating system's connect timeout, which is
+            often about two minutes. Not used with ``ssh_proxy``.
+
+            Default: ``None`` (no timeout, the operating system default
+            applies)
+
+            .. versionadded:: 0.5.2
+
         threaded (boolean):
             Allow concurrent connections over a single tunnel
 
@@ -910,6 +922,7 @@ class SSHTunnelForwarder(object):
             remote_bind_address=None,
             remote_bind_addresses=None,
             set_keepalive=5.0,
+            gateway_timeout=None,
             threaded=True,  # old version False
             compression=None,
             allow_agent=True,  # look for keys from an SSH agent
@@ -921,6 +934,7 @@ class SSHTunnelForwarder(object):
 
         self.ssh_host_key = self._parse_host_key(ssh_host_key)
         self.set_keepalive = set_keepalive
+        self.gateway_timeout = gateway_timeout
         self._server_list = []  # reset server list
         self.tunnel_is_up = {}  # handle tunnel status
         self._threaded = threaded
@@ -1211,6 +1225,19 @@ class SSHTunnelForwarder(object):
         if isinstance(_socket, socket.socket):
             _socket.settimeout(SSH_TIMEOUT)
             _socket.connect((self.ssh_host, self.ssh_port))
+        elif isinstance(_socket, tuple) and self.gateway_timeout is not None:
+            # paramiko.Transport connects a (host, port) tuple without a
+            # timeout, so open the connection here when a timeout is set
+            try:
+                _socket = socket.create_connection(
+                    _socket, timeout=self.gateway_timeout
+                )
+            except socket.gaierror:
+                raise
+            except socket.error as e:  # same message as paramiko.Transport
+                raise paramiko.SSHException(
+                    'Unable to connect to {0}: {1}'.format(self.ssh_host, e)
+                )
         transport = paramiko.Transport(_socket)
         sock = transport.sock
         if isinstance(sock, socket.socket):
