@@ -14,7 +14,10 @@ from os import path, linesep
 from functools import partial
 from contextlib import contextmanager
 
-import mock
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 import paramiko
 import sshtunnel
 import shutil
