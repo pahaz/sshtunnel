@@ -1367,6 +1367,83 @@ class SSHClientTest(unittest.TestCase):
         self.assertIn('Password is required for key {0}'.format(encr_pkey),
                       self.sshtunnel_log_messages['error'])
 
+    def _check_ssh_pkey_in_host_pkey_directory(self, pkey_file, **kwargs):
+        """
+        Use as ``ssh_pkey`` a file that is also found by the key lookup in
+        ``host_pkey_directories`` and return the loaded keys
+        """
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            ssh_pkey = os.path.join(tmp_dir, 'id_rsa')
+            shutil.copy(get_test_data_path(pkey_file), ssh_pkey)
+            # a second key, to check that other keys are still looked up
+            paramiko.ECDSAKey.generate().write_private_key_file(
+                os.path.join(tmp_dir, 'id_ecdsa')
+            )
+            _, keys = sshtunnel.SSHTunnelForwarder._consolidate_auth(
+                ssh_pkey=ssh_pkey,
+                allow_agent=False,
+                host_pkey_directories=[tmp_dir],
+                logger=self.log,
+                **kwargs
+            )
+        finally:
+            shutil.rmtree(tmp_dir)
+        return keys
+
+    def test_encrypted_ssh_pkey_in_host_pkey_directory(self):
+        """
+        Test that an encrypted `ssh_pkey` located in `host_pkey_directories`
+        does not log 'Password is required' when its password is given
+        """
+        keys = self._check_ssh_pkey_in_host_pkey_directory(
+            ENCRYPTED_PKEY_FILE,
+            ssh_pkey_password='sshtunnel',
+        )
+        self.assertFalse(
+            [msg for msg in self.sshtunnel_log_messages['error']
+             if 'Password is required for key' in msg]
+        )
+        _pkey = paramiko.RSAKey.from_private_key_file(
+            get_test_data_path(PKEY_FILE)
+        )
+        self.assertEqual(len(keys), 2)
+        self.assertEqual(keys[0], _pkey)
+        self.assertIsInstance(keys[1], paramiko.ECDSAKey)
+
+    def test_ssh_pkey_in_host_pkey_directory_is_loaded_once(self):
+        """
+        Test that `ssh_pkey` located in `host_pkey_directories` is not
+        loaded twice
+        """
+        keys = self._check_ssh_pkey_in_host_pkey_directory(PKEY_FILE)
+        _pkey = paramiko.RSAKey.from_private_key_file(
+            get_test_data_path(PKEY_FILE)
+        )
+        self.assertEqual(len(keys), 2)
+        self.assertEqual(keys[0], _pkey)
+        self.assertIsInstance(keys[1], paramiko.ECDSAKey)
+
+    def test_get_keys_reads_all_host_pkeys(self):
+        """
+        Test that `get_keys` itself still reads every key in the directories
+        """
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            shutil.copy(get_test_data_path(ENCRYPTED_PKEY_FILE),
+                        os.path.join(tmp_dir, 'id_rsa'))
+            keys = sshtunnel.SSHTunnelForwarder.get_keys(
+                self.log,
+                host_pkey_directories=[tmp_dir],
+            )
+        finally:
+            shutil.rmtree(tmp_dir)
+        self.assertEqual(keys, [])
+        self.assertTrue(
+            [msg for msg in self.sshtunnel_log_messages['error']
+             if 'Password is required for key' in msg]
+        )
+
     @unittest.skipIf(os.name != 'posix',
                      reason="UNIX sockets not supported on this platform")
     def test_unix_domains(self):

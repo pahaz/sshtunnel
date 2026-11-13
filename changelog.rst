@@ -37,6 +37,7 @@ CHANGELOG
     + Reap the ``ProxyCommand`` process when the tunnel is stopped, so it does not stay as a defunct process (`#294`_)
     + Accept ``ssh_host_key`` as a "known hosts" line, as documented, in addition to a ``PKey`` (`#229`_)
     + Tests use ``unittest.mock`` on Python 3; the ``mock`` package is only needed on Python 2.7 (`#259`_, `#282`_, `#310`_)
+    + Do not read the ``ssh_pkey`` file a second time when it is also found in ``host_pkey_directories`` (by default ``~/.ssh``): no more ``Password is required for key`` error for an encrypted key whose password is given, and the key is not tried twice (`#255`_)
 
 - v.0.5.1 (`V0idk`_, `Bruno Inec`_, `alex3d`_, `visch`_, `bmos`_, `lglines`_, `mweinelt`_)
     + Remove the potential deadlock that is associated with threading.Lock (`#231`_)
@@ -220,6 +221,7 @@ CHANGELOG
 .. _#231: https://github.com/pahaz/sshtunnel/issues/231
 .. _#247: https://github.com/pahaz/sshtunnel/issues/247
 .. _#250: https://github.com/pahaz/sshtunnel/issues/250
+.. _#255: https://github.com/pahaz/sshtunnel/issues/255
 .. _#308: https://github.com/pahaz/sshtunnel/issues/308
 .. _#288: https://github.com/pahaz/sshtunnel/issues/288
 .. _#294: https://github.com/pahaz/sshtunnel/issues/294
