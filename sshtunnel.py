@@ -1079,7 +1079,7 @@ class SSHTunnelForwarder(object):
         return list(agent_keys)
 
     @staticmethod
-    def get_keys(  # noqa: C901
+    def get_keys(
         logger=None, host_pkey_directories=None, allow_agent=False
     ):
         """
@@ -1103,6 +1103,35 @@ class SSHTunnelForwarder(object):
         Return:
             list
         """
+        return SSHTunnelForwarder._get_keys(
+            logger=logger,
+            host_pkey_directories=host_pkey_directories,
+            allow_agent=allow_agent
+        )
+
+    @staticmethod
+    def _is_same_file(path1, path2):
+        """
+        Check whether two paths of existing files refer to the same file
+        """
+        try:
+            return os.path.samefile(path1, path2)
+        except (AttributeError, OSError):  # not available or failed
+            return (os.path.normcase(os.path.abspath(path1)) ==
+                    os.path.normcase(os.path.abspath(path2)))
+
+    @staticmethod
+    def _get_keys(  # noqa: C901
+        logger=None, host_pkey_directories=None, allow_agent=False,
+        skip_pkey_file=None
+    ):
+        """
+        Implementation of :meth:`get_keys`.
+
+        ``skip_pkey_file`` is the path of a private key file that the caller
+        loads by itself (the ``ssh_pkey`` argument); it is not read again when
+        it is found in ``host_pkey_directories``
+        """
         keys = SSHTunnelForwarder.get_agent_keys(logger=logger) \
             if allow_agent else []
 
@@ -1124,6 +1153,10 @@ class SSHTunnelForwarder(object):
                 )
                 try:
                     if os.path.isfile(ssh_pkey_expanded):
+                        if skip_pkey_file and SSHTunnelForwarder._is_same_file(
+                            ssh_pkey_expanded, skip_pkey_file
+                        ):
+                            continue
                         ssh_pkey = SSHTunnelForwarder.read_private_key_file(
                             pkey_file=ssh_pkey_expanded,
                             logger=logger,
@@ -1167,14 +1200,20 @@ class SSHTunnelForwarder(object):
             - ``paramiko.Pkey`` - it will be transparently added to loaded keys
 
         """
-        ssh_loaded_pkeys = SSHTunnelForwarder.get_keys(
-            logger=logger,
-            host_pkey_directories=host_pkey_directories,
-            allow_agent=allow_agent
-        )
-
+        ssh_pkey_expanded = None
         if isinstance(ssh_pkey, path_types):
             ssh_pkey_expanded = os.path.expanduser(str(ssh_pkey))
+
+        # the ssh_pkey file is loaded below (with its password), so it is
+        # skipped here to not read the same key twice
+        ssh_loaded_pkeys = SSHTunnelForwarder._get_keys(
+            logger=logger,
+            host_pkey_directories=host_pkey_directories,
+            allow_agent=allow_agent,
+            skip_pkey_file=ssh_pkey_expanded
+        )
+
+        if ssh_pkey_expanded is not None:
             if os.path.exists(ssh_pkey_expanded):
                 ssh_pkey = SSHTunnelForwarder.read_private_key_file(
                     pkey_file=ssh_pkey_expanded,
