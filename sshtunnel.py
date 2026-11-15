@@ -1624,6 +1624,19 @@ class SSHTunnelForwarder(object):
                     self.tunnel_is_up[_server.local_address])
 
     @property
+    def transport(self):
+        """
+        Return the :class:`paramiko.Transport` connected to the SSH gateway
+
+        It can be used to share the gateway connection with other
+        services, for example ``server.transport.open_sftp_client()``.
+        The transport is owned by the forwarder: do not close it, use
+        :meth:`stop` instead.
+        """
+        self._check_is_started()
+        return self._transport
+
+    @property
     def is_active(self):
         """ Return True if the underlying SSH transport is up """
         if (
