@@ -139,6 +139,10 @@ class NullServer(paramiko.ServerInterface):
     def __init__(self, *args, **kwargs):
         # Allow tests to enable/disable specific key types
         self.__allowed_keys = kwargs.pop('allowed_keys', [])
+        # Allow tests to accept the "none" method or an empty password
+        self.__allow_none_auth = kwargs.pop('allow_none_auth', False)
+        self.__allow_empty_password = kwargs.pop('allow_empty_password',
+                                                 False)
         self.log = kwargs.pop('log', sshtunnel.create_logger(loglevel='DEBUG'))
         super(NullServer, self).__init__(*args, **kwargs)
 
@@ -155,8 +159,17 @@ class NullServer(paramiko.ServerInterface):
                        .format(username, allowed_auths))
         return allowed_auths
 
+    def check_auth_none(self, username):
+        _ok = (username == SSH_USERNAME and self.__allow_none_auth)
+        self.log.debug('NullServer >> none authentication for {0} {1}OK'
+                       .format(username, '' if _ok else 'NOT-'))
+        return paramiko.AUTH_SUCCESSFUL if _ok else paramiko.AUTH_FAILED
+
     def check_auth_password(self, username, password):
-        _ok = (username == SSH_USERNAME and password == SSH_PASSWORD)
+        _ok = (username == SSH_USERNAME and (
+            password == SSH_PASSWORD
+            or (password == '' and self.__allow_empty_password)
+        ))
         self.log.debug('NullServer >> password for {0} {1}OK'
                        .format(username, '' if _ok else 'NOT-'))
         return paramiko.AUTH_SUCCESSFUL if _ok else paramiko.AUTH_FAILED
@@ -323,7 +336,8 @@ class SSHClientTest(unittest.TestCase):
         )
         self.ts.add_server_key(host_key)
         server = NullServer(allowed_keys=FINGERPRINTS.keys(),
-                            log=self.log)
+                            log=self.log,
+                            **getattr(self, 'null_server_kwargs', {}))
         t = threading.Thread(target=self._do_forwarding,
                              name='forward-server')
         t.daemon = DAEMON_THREADS
@@ -458,6 +472,65 @@ class SSHClientTest(unittest.TestCase):
             logger=self.log,
         ):
             pass  # no exceptions are raised
+
+    def test_connect_with_empty_password_by_none_auth(self):
+        """
+        An empty password connects to a server that accepts the "none"
+        authentication method (#176)
+        """
+        self.null_server_kwargs = {'allow_none_auth': True}
+        with self._test_server(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password='',
+            allow_agent=False,
+            host_pkey_directories=[],
+            ssh_config_file=None,
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+        ):
+            pass  # no exceptions are raised
+
+    def test_connect_with_empty_password(self):
+        """
+        An empty password is sent when the server rejects the "none"
+        authentication method (#176)
+        """
+        self.null_server_kwargs = {'allow_empty_password': True}
+        with self._test_server(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password='',
+            allow_agent=False,
+            host_pkey_directories=[],
+            ssh_config_file=None,
+            remote_bind_address=(self.eaddr, self.eport),
+            logger=self.log,
+        ):
+            pass  # no exceptions are raised
+        self.assertIn('Authentication with method "none" failed, '
+                      'trying an empty password',
+                      self.sshtunnel_log_messages['debug'])
+
+    def test_empty_password_rejected_by_server(self):
+        """
+        When the server accepts neither the "none" method nor an empty
+        password, start() fails as with a wrong password
+        """
+        with self.assertRaises(sshtunnel.BaseSSHTunnelForwarderError):
+            with self._test_server(
+                (self.saddr, self.sport),
+                ssh_username=SSH_USERNAME,
+                ssh_password='',
+                allow_agent=False,
+                host_pkey_directories=[],
+                ssh_config_file=None,
+                remote_bind_address=(self.eaddr, self.randomize_eport()),
+                logger=self.log,
+            ):
+                pass
+        self.assertIn('Could not open connection to gateway',
+                      self.sshtunnel_log_messages['error'])
 
     def test_connect_by_rsa_key_file(self):
         """ Test connecting using a RSA key file """
@@ -678,6 +751,23 @@ class SSHClientTest(unittest.TestCase):
                 remote_bind_address=(self.eaddr, self.eport),
                 ssh_config_file=None
             )
+
+    def test_empty_password_without_pkey_does_not_raise_error(self):
+        """
+        An empty password is an authentication method of its own, so no
+        ValueError is raised when no key is available (#176)
+        """
+        server = open_tunnel(
+            (self.saddr, self.sport),
+            ssh_username=SSH_USERNAME,
+            ssh_password='',
+            allow_agent=False,
+            host_pkey_directories=[],
+            remote_bind_address=(self.eaddr, self.eport),
+            ssh_config_file=None
+        )
+        self.assertEqual(server.ssh_password, '')
+        self.assertEqual(server.ssh_pkeys, [])
 
     @unittest.skipIf(os.name == 'nt',
                      reason='Need to fix test on Windows')
