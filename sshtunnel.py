@@ -556,6 +556,11 @@ class SSHTunnelForwarder(object):
             Text representing the password used to connect to ``REMOTE
             SERVER`` or for unlocking a private key.
 
+            An empty string connects without a password: as the OpenSSH
+            client does, the ``none`` authentication method is tried
+            first, then an empty password. Use it for servers that do not
+            require any authentication.
+
             .. note::
                 Avoid coding secret password directly in the code, since this
                 may be visible and make your service vulnerable to attacks
@@ -1475,14 +1480,17 @@ class SSHTunnelForwarder(object):
                 self.logger.debug('Authentication error')
                 self._stop_transport()
 
-        if self.ssh_password is not None:  # avoid conflict using both pass and pkey
+        if self.ssh_password is not None:  # also an empty password
             self.logger.debug('Trying to log in with password: {0}'
                               .format('*' * len(self.ssh_password)))
             try:
                 self._transport = self._get_transport()
-                self._transport.connect(hostkey=self.ssh_host_key,
-                                        username=self.ssh_username,
-                                        password=self.ssh_password)
+                if self.ssh_password:
+                    self._transport.connect(hostkey=self.ssh_host_key,
+                                            username=self.ssh_username,
+                                            password=self.ssh_password)
+                else:
+                    self._connect_with_empty_password()
                 if self._transport.is_alive:
                     return
             except paramiko.AuthenticationException:
@@ -1490,6 +1498,21 @@ class SSHTunnelForwarder(object):
                 self._stop_transport()
 
         self.logger.error('Could not open connection to gateway')
+
+    def _connect_with_empty_password(self):
+        """
+        Authenticate without a password, as the OpenSSH client does: try
+        the ``none`` method first, then an empty password
+        """
+        # no credentials: only the handshake and the host key check
+        self._transport.connect(hostkey=self.ssh_host_key,
+                                username=self.ssh_username)
+        try:
+            self._transport.auth_none(self.ssh_username)
+        except paramiko.AuthenticationException:
+            self.logger.debug('Authentication with method "none" failed, '
+                              'trying an empty password')
+            self._transport.auth_password(self.ssh_username, '')
 
     def _serve_forever_wrapper(self, _srv, poll_interval=0.1):
         """
